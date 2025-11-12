@@ -40,29 +40,36 @@ export default function Categories() {
   const expenseCategories = categories.filter(c => c.type === 'expense')
 
   return (
-    <div>
-      <div className="page-header">
-        <h2>Categories</h2>
-        <p>Organize your transactions</p>
+    <div className="max-w-7xl mx-auto">
+      <div className="mb-8">
+        <h2 className="text-3xl font-bold text-gray-800 mb-2">Categories</h2>
+        <p className="text-gray-600">Organize your transactions</p>
       </div>
 
-      <button className="btn btn-primary" onClick={() => setShowModal(true)}>
+      <button 
+        className="bg-primary text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-600 transition-colors mb-6"
+        onClick={() => setShowModal(true)}
+      >
         ➕ Add Category
       </button>
 
-      <div style={{marginTop: '30px'}}>
-        <h3 style={{marginBottom: '15px'}}>Income Categories ({incomeCategories.length})</h3>
-        <div className="category-grid">
+      <div className="mb-10">
+        <h3 className="text-xl font-bold text-gray-800 mb-4">Income Categories ({incomeCategories.length})</h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {incomeCategories.map(cat => (
-            <div key={cat.id} className="category-card">
-              <div className="category-card-icon" style={{backgroundColor: cat.color + '20', color: cat.color}}>
+            <div key={cat.id} className="bg-white rounded-lg shadow-md p-6 text-center">
+              <div 
+                className="w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center text-3xl"
+                style={{backgroundColor: cat.color + '20', color: cat.color}}
+              >
                 {cat.icon}
               </div>
-              <h4>{cat.name}</h4>
-              <span className="badge income">Income</span>
+              <h4 className="font-bold text-gray-800 mb-2">{cat.name}</h4>
+              <span className="inline-block px-3 py-1 bg-green-100 text-success rounded-full text-sm font-medium mb-3">
+                Income
+              </span>
               <button 
-                className="btn btn-danger" 
-                style={{marginTop: '12px', padding: '6px 12px', fontSize: '12px'}}
+                className="w-full bg-danger text-white px-4 py-2 rounded hover:bg-red-600 transition-colors text-sm"
                 onClick={() => handleDelete(cat.id)}
               >
                 Delete
@@ -72,19 +79,23 @@ export default function Categories() {
         </div>
       </div>
 
-      <div style={{marginTop: '40px'}}>
-        <h3 style={{marginBottom: '15px'}}>Expense Categories ({expenseCategories.length})</h3>
-        <div className="category-grid">
+      <div>
+        <h3 className="text-xl font-bold text-gray-800 mb-4">Expense Categories ({expenseCategories.length})</h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {expenseCategories.map(cat => (
-            <div key={cat.id} className="category-card">
-              <div className="category-card-icon" style={{backgroundColor: cat.color + '20', color: cat.color}}>
+            <div key={cat.id} className="bg-white rounded-lg shadow-md p-6 text-center">
+              <div 
+                className="w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center text-3xl"
+                style={{backgroundColor: cat.color + '20', color: cat.color}}
+              >
                 {cat.icon}
               </div>
-              <h4>{cat.name}</h4>
-              <span className="badge expense">Expense</span>
+              <h4 className="font-bold text-gray-800 mb-2">{cat.name}</h4>
+              <span className="inline-block px-3 py-1 bg-red-100 text-danger rounded-full text-sm font-medium mb-3">
+                Expense
+              </span>
               <button 
-                className="btn btn-danger" 
-                style={{marginTop: '12px', padding: '6px 12px', fontSize: '12px'}}
+                className="w-full bg-danger text-white px-4 py-2 rounded hover:bg-red-600 transition-colors text-sm"
                 onClick={() => handleDelete(cat.id)}
               >
                 Delete
@@ -95,35 +106,48 @@ export default function Categories() {
       </div>
 
       {showModal && (
-        <div className="modal-overlay" onClick={() => setShowModal(false)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>Add Category</h3>
-              <button className="close-btn" onClick={() => setShowModal(false)}>×</button>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => setShowModal(false)}>
+          <div className="bg-white rounded-lg w-full max-w-md mx-4" onClick={(e) => e.stopPropagation()}>
+            <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+              <h3 className="text-xl font-bold text-gray-800">Add Category</h3>
+              <button 
+                className="text-gray-500 hover:text-gray-700 text-3xl leading-none"
+                onClick={() => setShowModal(false)}
+              >
+                ×
+              </button>
             </div>
-            <form onSubmit={handleSubmit}>
-              <div className="type-toggle">
+            <form onSubmit={handleSubmit} className="p-6">
+              <div className="flex gap-2 mb-6">
                 <button
                   type="button"
-                  className={`type-btn ${formData.type === 'income' ? 'active income' : ''}`}
+                  className={`flex-1 py-3 rounded-lg font-medium transition-colors ${
+                    formData.type === 'income'
+                      ? 'bg-success text-white'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
                   onClick={() => setFormData({...formData, type: 'income'})}
                 >
                   💰 Income
                 </button>
                 <button
                   type="button"
-                  className={`type-btn ${formData.type === 'expense' ? 'active expense' : ''}`}
+                  className={`flex-1 py-3 rounded-lg font-medium transition-colors ${
+                    formData.type === 'expense'
+                      ? 'bg-danger text-white'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
                   onClick={() => setFormData({...formData, type: 'expense'})}
                 >
                   💸 Expense
                 </button>
               </div>
 
-              <div className="form-group">
-                <label>Category Name</label>
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">Category Name</label>
                 <input
                   type="text"
-                  className="form-control"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                   value={formData.name}
                   onChange={(e) => setFormData({...formData, name: e.target.value})}
                   required
@@ -131,11 +155,11 @@ export default function Categories() {
                 />
               </div>
 
-              <div className="form-group">
-                <label>Icon (Emoji)</label>
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">Icon (Emoji)</label>
                 <input
                   type="text"
-                  className="form-control"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                   value={formData.icon}
                   onChange={(e) => setFormData({...formData, icon: e.target.value})}
                   placeholder="🎯"
@@ -143,19 +167,30 @@ export default function Categories() {
                 />
               </div>
 
-              <div className="form-group">
-                <label>Color</label>
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-gray-700 mb-2">Color</label>
                 <input
                   type="color"
-                  className="form-control"
+                  className="w-full h-12 px-2 py-1 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                   value={formData.color}
                   onChange={(e) => setFormData({...formData, color: e.target.value})}
                 />
               </div>
 
-              <div className="form-actions">
-                <button type="submit" className="btn btn-primary">Save Category</button>
-                <button type="button" className="btn btn-secondary" onClick={() => setShowModal(false)}>Cancel</button>
+              <div className="flex gap-3">
+                <button 
+                  type="submit" 
+                  className="flex-1 bg-primary text-white py-3 rounded-lg font-medium hover:bg-blue-600 transition-colors"
+                >
+                  Save Category
+                </button>
+                <button 
+                  type="button" 
+                  className="flex-1 bg-gray-200 text-gray-700 py-3 rounded-lg font-medium hover:bg-gray-300 transition-colors"
+                  onClick={() => setShowModal(false)}
+                >
+                  Cancel
+                </button>
               </div>
             </form>
           </div>
