@@ -14,20 +14,19 @@
 import { useState } from 'react'
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import Sidebar from './components/Sidebar'
-import Chatbot from './components/Chatbot'
-import UserInfo from './components/UserInfo'
+//import Chatbot from './components/Chatbot'
+//import UserInfo from './components/UserInfo'
 import Dashboard from './pages/Dashboard'
 import Transactions from './pages/Transactions'
 import Categories from './pages/Categories'
 import Accounts from './pages/Accounts'
 import Abouts from './pages/Abouts'
-import Authentication from './pages/Authenication'
+//import Authentication from './pages/Authenication'
 import GroupWallet from './pages/GroupWallet'
 
 export default function App() {
   // State để quản lý sidebar open/close
   const [isSidebarOpen, setIsSidebarOpen] = useState(true)
-  cosnt 
   return (
     <Router>
       <div className="flex min-h-screen bg-gray-50">
@@ -50,8 +49,8 @@ export default function App() {
             <Route path="/categories" element={<Categories />} />
             <Route path="/accounts" element={<Accounts />} />
             <Route path="/abouts" element={<Abouts />} />
-            <Route path="/authenication" element={<Authentication />}/>
-            <Route path="/userinfo" element={<UserInfo />}/>
+            {/* <Route path="/authenication" element={<Authentication />}/> */}
+            <Route path="/groupwallet" element={<GroupWallet />}/>
           </Routes>
         </main>
       </div>

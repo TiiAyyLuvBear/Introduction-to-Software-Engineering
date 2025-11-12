@@ -16,13 +16,33 @@
  * - Dùng useLocation() để lấy URL hiện tại
  * - Dùng Link component để navigate (giữ state)
  */
-import React from "react";
+import { React, useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Facebook, Twitter, Menu, X } from "lucide-react";
 
 export default function Sidebar({ isOpen, setIsOpen }) {
   // Lấy location hiện tại từ React Router
   const location = useLocation();
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth < 1024) {
+        setIsOpen(false);
+      } else {
+        setIsOpen(true);
+      }
+    };
+
+    handleResize();
+    window.addEventListener("resize", handleResize);
+
+    return () => window.removeEventListener("resize", handleResize);
+  }, [setIsOpen]);
+
+  useEffect(() => {
+    if(window.innerWidth < 1024){
+      setIsOpen(false);
+    }
+  }, [location.pathname, setIsOpen]);
 
   /**
    * Danh sách menu items
@@ -38,7 +58,7 @@ export default function Sidebar({ isOpen, setIsOpen }) {
     { path: "/accounts", label: "Accounts", icon: "🏦" },
     { path: "/abouts", label: "Abouts", icon: "ℹ️" },
     //{ path: "/authenication", label: "Authenication", icon: null},
-    { path: "/groupwallet", label: "Shared Wallet", icon:"😒"},
+    { path: "/groupwallet", label: "Shared Wallet", icon: "😒" },
   ];
 
   return (
