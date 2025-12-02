@@ -26,6 +26,8 @@ export default function Sidebar({ currentPage, onNavigate, user, onLogout }) {
     { id: 'transactions', label: 'Transactions', icon: '💰' },
     { id: 'budget', label: 'Budget', icon: '🎯' },
     { id: 'saving-goals', label: 'Saving Goals', icon: '🏆' },
+    { path: "/wallets", label: "Wallets", icon: "👛" },
+    { path: "/invitations", label: "Invitations", icon: "📬" },
     { id: 'categories', label: 'Categories', icon: '📁' },
     { id: 'reports', label: 'Reports', icon: '📈' },
     { id: 'accounts', label: 'Accounts', icon: '🏦' },
