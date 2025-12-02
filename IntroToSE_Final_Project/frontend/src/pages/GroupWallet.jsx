@@ -293,14 +293,10 @@
  */
 
 import React from 'react'
-// import { useState } from 'react'
-// import { Users, Plus, DollarSign, Settings, TrendingUp } from 'lucide-react'
+import { useState } from 'react'
+import { Users, Plus, DollarSign, Settings, TrendingUp } from 'lucide-react'
 
 export default function GroupWallet() {
-  // TODO: Setup state management
-  // const [groups, setGroups] = useState([])
-  // const [selectedGroup, setSelectedGroup] = useState(null)
-  // const [showModal, setShowModal] = useState(false)
 
   // TODO: Implement handleCreateGroup function
 
