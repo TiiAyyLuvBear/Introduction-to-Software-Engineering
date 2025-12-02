@@ -36,6 +36,8 @@ export default function Sidebar({ isOpen, setIsOpen }) {
     { path: "/transactions", label: "Transactions", icon: "💰" },
     { path: "/categories", label: "Categories", icon: "📁" },
     { path: "/accounts", label: "Accounts", icon: "🏦" },
+    { path: "/wallets", label: "Wallets", icon: "👛" },
+    { path: "/invitations", label: "Invitations", icon: "📬" },
     { path: "/abouts", label: "Abouts", icon: "ℹ️" },
     //{ path: "/authenication", label: "Authenication", icon: null},
     { path: "/groupwallet", label: "Shared Wallet", icon:"😒"},

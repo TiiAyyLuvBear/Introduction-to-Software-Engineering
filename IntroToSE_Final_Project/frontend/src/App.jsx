@@ -23,11 +23,13 @@ import Accounts from './pages/Accounts'
 import Abouts from './pages/Abouts'
 import Authentication from './pages/Authenication'
 import GroupWallet from './pages/GroupWallet'
+import Wallets from './pages/Wallets'
+import Invitations from './pages/Invitations'
 
 export default function App() {
   // State để quản lý sidebar open/close
   const [isSidebarOpen, setIsSidebarOpen] = useState(true)
-  cosnt 
+  
   return (
     <Router>
       <div className="flex min-h-screen bg-gray-50">
@@ -49,6 +51,8 @@ export default function App() {
             <Route path="/transactions" element={<Transactions />} />
             <Route path="/categories" element={<Categories />} />
             <Route path="/accounts" element={<Accounts />} />
+            <Route path="/wallets" element={<Wallets />} />
+            <Route path="/invitations" element={<Invitations />} />
             <Route path="/abouts" element={<Abouts />} />
             <Route path="/authenication" element={<Authentication />}/>
             <Route path="/userinfo" element={<UserInfo />}/>

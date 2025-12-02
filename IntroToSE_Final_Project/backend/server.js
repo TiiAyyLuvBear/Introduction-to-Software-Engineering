@@ -24,6 +24,8 @@ import transactionsRouter from './routes/transactions.js'
 import categoriesRouter from './routes/categories.js'
 import accountsRouter from './routes/accounts.js'
 import usersRouter from './routes/users.js'
+import walletsRouter from './routes/wallets.js'
+import invitationsRouter from './routes/invitations.js'
 
 // Load biến môi trường từ .env file (MONGODB_URI, PORT)
 dotenv.config()
@@ -53,6 +55,8 @@ app.use('/api/transactions', transactionsRouter)  // Quản lý giao dịch thu/
 app.use('/api/categories', categoriesRouter)      // Quản lý danh mục
 app.use('/api/accounts', accountsRouter)          // Quản lý tài khoản/ví
 app.use('/api/users', usersRouter)                // Quản lý người dùng
+app.use('/api/wallets', walletsRouter)            // Quản lý ví tiền (Use Cases U010-U014)
+app.use('/api/invitations', invitationsRouter)       // Quản lý lời mời ví chia sẻ (Use Case U011)
 
 /**
  * Health check endpoint
