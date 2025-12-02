@@ -1,106 +1,186 @@
 /**
- * Authentication Middleware
+ * AUTHENTICATION MIDDLEWARE - FIREBASE AUTH
  * 
- * Verifies JWT token from Authorization header
- * and adds user info to req.user
+ * Middleware này xác thực user bằng Firebase ID Token
+ * 
+ * LUỒNG XỬ LÝ:
+ * 1. Client đăng nhập qua Firebase (Google, Email/Password)
+ * 2. Firebase trả về ID Token
+ * 3. Client gửi request kèm header: Authorization: Bearer <firebase-id-token>
+ * 4. Middleware verify token với Firebase Admin SDK
+ * 5. Nếu valid, lấy user info và sync với MongoDB
+ * 6. Attach user vào req.user để controllers sử dụng
  */
-import jwt from 'jsonwebtoken'
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production'
+import { auth as firebaseAuth } from '../config/firebase.js'
+import { sendUnauthorized, sendServerError } from '../utils/response.js'
+import User from '../models/User.js'
 
 /**
- * Middleware to verify JWT token and authenticate requests
+ * MIDDLEWARE: Authenticate (Required)
  * 
- * Usage:
- * router.get('/protected-route', authenticate, controller)
+ * Verify Firebase ID token và require authentication
+ * Nếu không có token hoặc token invalid → return 401
  * 
- * Expected header:
- * Authorization: Bearer <token>
+ * Usage trong routes:
+ * router.get('/protected', authenticate, controller)
  * 
- * On success: adds req.user = { id, email }
- * On failure: returns 401 Unauthorized
+ * Sau khi pass middleware, req.user sẽ có:
+ * {
+ *   _id: MongoDB ObjectId,
+ *   firebaseUid: Firebase UID,
+ *   email: User email,
+ *   name: Display name
+ * }
  */
 export const authenticate = async (req, res, next) => {
   try {
-    // Get token from Authorization header
+    // 1. Lấy token từ Authorization header
     const authHeader = req.headers.authorization
-
+    
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return res.status(401).json({
-        success: false,
-        error: 'No token provided. Authorization header must be: Bearer <token>'
-      })
+      return sendUnauthorized(res, 'No token provided. Header must be: Authorization: Bearer <token>')
     }
-
-    // Extract token (remove 'Bearer ' prefix)
-    const token = authHeader.substring(7)
-
-    // Verify token
-    const decoded = jwt.verify(token, JWT_SECRET)
-
-    // Check token type
-    if (decoded.type !== 'access') {
-      return res.status(401).json({
-        success: false,
-        error: 'Invalid token type. Use access token for API requests.'
-      })
+    
+    // 2. Extract token (bỏ prefix 'Bearer ')
+    const idToken = authHeader.substring(7)
+    
+    if (!idToken) {
+      return sendUnauthorized(res, 'Token is empty')
     }
-
-    // Add user info to request object
+    
+    // 3. Verify token với Firebase Admin SDK
+    // Nếu token valid, Firebase trả về decoded token chứa user info
+    let decodedToken
+    try {
+      decodedToken = await firebaseAuth.verifyIdToken(idToken)
+    } catch (firebaseError) {
+      console.error('Firebase token verification failed:', firebaseError.message)
+      
+      if (firebaseError.code === 'auth/id-token-expired') {
+        return sendUnauthorized(res, 'Token expired. Please login again.')
+      }
+      
+      if (firebaseError.code === 'auth/argument-error') {
+        return sendUnauthorized(res, 'Invalid token format')
+      }
+      
+      return sendUnauthorized(res, 'Invalid token')
+    }
+    
+    // 4. Lấy Firebase UID và email từ decoded token
+    const { uid: firebaseUid, email, name: firebaseName } = decodedToken
+    
+    if (!firebaseUid || !email) {
+      return sendUnauthorized(res, 'Token missing required fields (uid or email)')
+    }
+    
+    // 5. Tìm hoặc tạo user trong MongoDB
+    // Sync Firebase user với MongoDB database
+    let user = await User.findOne({ firebaseUid })
+    
+    if (!user) {
+      // User chưa tồn tại trong MongoDB → Tạo mới
+      user = await User.create({
+        firebaseUid,
+        email,
+        name: firebaseName || email.split('@')[0]
+      })
+      
+      console.log('Created new user in MongoDB:', { firebaseUid, email })
+    }
+    
+    // 6. Attach user object vào request
+    // Controllers có thể access thông qua req.user
     req.user = {
-      id: decoded.id
+      _id: user._id,           // MongoDB ObjectId
+      firebaseUid: user.firebaseUid,
+      email: user.email,
+      name: user.name
     }
-
-    // Continue to next middleware/controller
+    
+    // 7. Continue đến controller
     next()
-
+    
   } catch (error) {
-    if (error.name === 'TokenExpiredError') {
-      return res.status(401).json({
-        success: false,
-        error: 'Token expired. Please login again or refresh your token.'
-      })
-    }
-
-    if (error.name === 'JsonWebTokenError') {
-      return res.status(401).json({
-        success: false,
-        error: 'Invalid token. Please login again.'
-      })
-    }
-
-    console.error('Authentication error:', error)
-    res.status(500).json({
-      success: false,
-      error: 'Authentication failed',
-      message: error.message
-    })
+    console.error('Authentication middleware error:', error)
+    return sendServerError(res, 'Authentication failed')
   }
 }
 
 /**
- * Optional authentication middleware
+ * MIDDLEWARE: Optional Authenticate
  * 
- * Adds user info if token is valid, but doesn't block if no token
- * Useful for routes that work both for authenticated and guest users
+ * Tương tự authenticate nhưng KHÔNG block request nếu không có token
+ * Dùng cho routes có thể access bởi cả authenticated và guest users
+ * 
+ * Nếu có token valid → attach req.user
+ * Nếu không có token hoặc invalid → req.user = null và vẫn pass
+ * 
+ * Usage:
+ * router.get('/public-but-personalized', optionalAuthenticate, controller)
+ * 
+ * Controller check:
+ * if (req.user) {
+ *   // User logged in, show personalized content
+ * } else {
+ *   // Guest user, show default content
+ * }
  */
 export const optionalAuthenticate = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization
-
-    if (authHeader && authHeader.startsWith('Bearer ')) {
-      const token = authHeader.substring(7)
-      const decoded = jwt.verify(token, JWT_SECRET)
-      
-      if (decoded.type === 'access') {
-        req.user = { id: decoded.id }
-      }
+    
+    // Nếu không có auth header, skip authentication
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      req.user = null
+      return next()
     }
-
+    
+    const idToken = authHeader.substring(7)
+    
+    if (!idToken) {
+      req.user = null
+      return next()
+    }
+    
+    // Try verify token
+    try {
+      const decodedToken = await firebaseAuth.verifyIdToken(idToken)
+      const { uid: firebaseUid, email, name: firebaseName } = decodedToken
+      
+      if (firebaseUid && email) {
+        let user = await User.findOne({ firebaseUid })
+        
+        if (!user) {
+          user = await User.create({
+            firebaseUid,
+            email,
+            name: firebaseName || email.split('@')[0]
+          })
+        }
+        
+        req.user = {
+          _id: user._id,
+          firebaseUid: user.firebaseUid,
+          email: user.email,
+          name: user.name
+        }
+      } else {
+        req.user = null
+      }
+    } catch (firebaseError) {
+      // Token invalid, nhưng không block request
+      console.log('Optional auth: Token invalid, continuing as guest')
+      req.user = null
+    }
+    
     next()
-
+    
   } catch (error) {
-    // Silently fail for optional authentication
+    // Có lỗi xảy ra, nhưng vẫn cho pass với guest mode
+    console.error('Optional authentication error:', error)
+    req.user = null
     next()
   }
 }

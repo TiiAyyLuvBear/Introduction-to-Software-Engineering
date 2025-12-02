@@ -1,219 +1,242 @@
-import React, { useState, useEffect } from 'react'
-import { useForm } from 'react-hook-form'
-import { Wallet, Plus, CreditCard, Briefcase, PiggyBank } from 'lucide-react'
-import { walletAPI } from '../api.js'
-import WalletDetailView from '../components/wallet/WalletDetailView.jsx'
+import React, { useState, useEffect } from "react";
+import { useForm } from "react-hook-form";
+import {
+  Wallet,
+  Plus,
+  CreditCard,
+  Briefcase,
+  PiggyBank,
+  Users,
+} from "lucide-react";
+import { walletAPI } from "../api.js";
+import WalletDetailView from "../components/wallet/WalletDetailView.jsx";
+import Chatbot from "../components/chatbot/Chatbot.jsx";
 
 /**
- * Wallets Component - Implement Use Case U010: Create Wallet
- * 
- * Features theo use case:
- * 1. Hiển thị danh sách ví hiện có
- * 2. Form tạo ví mới với validation
- * 3. Chọn loại ví (Cash/Bank/Savings)  
- * 4. Nhập số dư ban đầu (tùy chọn)
- * 5. Validation tên ví không trùng lặp
- * 6. Performance: tạo ví trong 1 giây
- * 7. Usability: tối đa 5 thao tác để tạo ví
+ * Wallets Component - Use Case U010: Create Wallet
  */
-
 export default function Wallets() {
-  const [wallets, setWallets] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [showCreateModal, setShowCreateModal] = useState(false)
-  const [showWalletDetail, setShowWalletDetail] = useState(false)
-  const [selectedWallet, setSelectedWallet] = useState(null)
-  const [currentUserId] = useState('user123') // TODO: Get from auth context
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [submitError, setSubmitError] = useState('')
-  
-  const { register, handleSubmit: handleFormSubmit, watch, reset, formState: { errors } } = useForm({
+  const [wallets, setWallets] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showWalletDetail, setShowWalletDetail] = useState(false);
+  const [selectedWallet, setSelectedWallet] = useState(null);
+  const [currentUserId] = useState("user123"); // TODO: get from auth
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState("");
+
+  const {
+    register,
+    handleSubmit: handleFormSubmit,
+    watch,
+    reset,
+    formState: { errors },
+  } = useForm({
     defaultValues: {
-      name: '',
-      type: 'Cash',
-      initialBalance: '',
-      currency: 'USD',
-      description: '',
-      isShared: false
-    }
-  })
+      name: "",
+      type: "Cash",
+      initialBalance: "",
+      currency: "USD",
+      description: "",
+      isShared: false,
+    },
+  });
 
-  // Load wallets when component mounts
+  // Load wallets
   useEffect(() => {
-    loadWallets()
-  }, [])
+    loadWallets();
+  }, []);
 
-  // Load user's wallets from API
   const loadWallets = async () => {
     try {
-      setLoading(true)
-      const response = await walletAPI.getUserWallets()
+      setLoading(true);
+      const response = await walletAPI.getUserWallets();
       if (response.success) {
-        setWallets(response.data.wallets || [])
+        setWallets(response.data.wallets || []);
       }
     } catch (error) {
-      console.error('Failed to load wallets:', error)
-      // Use mock data as fallback with shared wallet example
-      setWallets([
-        { id: 1, name: 'Main Cash', type: 'Cash', balance: 500, currency: 'USD', status: 'active', isShared: false, createdAt: new Date() },
-        { id: 2, name: 'Family Budget', type: 'Bank', balance: 12500, currency: 'USD', status: 'active', isShared: true, ownerId: 'user123', memberCount: 3, pendingInvitations: 1, createdAt: new Date() },
-        { id: 3, name: 'Emergency Fund', type: 'Savings', balance: 25000, currency: 'USD', status: 'active', isShared: false, createdAt: new Date() },
-      ])
+      console.error("Failed to load wallets:", error);
+      setSubmitError(error.response?.data?.error || error.message || 'Failed to load wallets');
+      setWallets([]);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
-  // Wallet type options với icons
+  // Wallet type options
   const walletTypes = [
-    { value: 'Cash', label: 'Cash', icon: 'CreditCard', description: 'Physical money and coins' },
-    { value: 'Bank', label: 'Bank Account', icon: 'Briefcase', description: 'Bank savings or checking account' },
-    { value: 'Savings', label: 'Savings', icon: 'PiggyBank', description: 'Long-term savings account' }
-  ]
+    {
+      value: "Cash",
+      label: "Cash",
+      icon: CreditCard,
+      description: "Physical money and coins",
+    },
+    {
+      value: "Bank",
+      label: "Bank Account",
+      icon: Briefcase,
+      description: "Bank savings or checking account",
+    },
+    {
+      value: "Savings",
+      label: "Savings",
+      icon: PiggyBank,
+      description: "Long-term savings account",
+    },
+  ];
 
-  // Currency options
   const currencies = [
-    { value: 'USD', label: 'USD ($)', symbol: '$' },
-    { value: 'VND', label: 'VND (₫)', symbol: '₫' },
-    { value: 'EUR', label: 'EUR (€)', symbol: '€' },
-    { value: 'JPY', label: 'JPY (¥)', symbol: '¥' }
-  ]
+    { value: "USD", label: "USD ($)", symbol: "$" },
+    { value: "VND", label: "VND (₫)", symbol: "₫" },
+    { value: "EUR", label: "EUR (€)", symbol: "€" },
+    { value: "JPY", label: "JPY (¥)", symbol: "¥" },
+  ];
 
-  // Handle form submission (main scenario steps 6-9)
   const onSubmit = async (data) => {
-    setIsSubmitting(true)
-    setSubmitError('')
+    setIsSubmitting(true);
+    setSubmitError("");
 
     try {
-      // Step 8: System saves wallet to database
-      const startTime = Date.now()
-      
+      const startTime = Date.now();
+
       const walletData = {
         name: data.name.trim(),
         type: data.type,
         initialBalance: parseFloat(data.initialBalance || 0),
         currency: data.currency,
         description: data.description.trim(),
-        isShared: data.isShared || false
-      }
+        isShared: data.isShared || false,
+      };
 
-      const response = await walletAPI.createWallet(walletData)
-      
+      const response = await walletAPI.createWallet(walletData);
+
       if (response.success) {
-        // Step 9: Wallet appears in user's wallet list
-        setWallets(prev => [response.data, ...prev])
-        
-        // Reset form and close modal
-        reset()
-        setShowCreateModal(false)
+        setWallets((prev) => [response.data, ...prev]);
+        reset();
+        setShowCreateModal(false);
 
-        const endTime = Date.now()
-        console.log(`Wallet created in ${endTime - startTime}ms`) // Performance tracking
+        const endTime = Date.now();
+        console.log(`Wallet created in ${endTime - startTime}ms`);
       } else {
-        setSubmitError(response.error || 'Failed to create wallet')
+        setSubmitError(response.error || "Failed to create wallet");
       }
-
     } catch (error) {
-      console.error('Error creating wallet:', error)
-      
-      // Handle specific error cases (Alternative Scenarios)
-      if (error.response?.data?.code === 'DUPLICATE_WALLET_NAME') {
-        setSubmitError('Wallet name already in use')
+      console.error("Error creating wallet:", error);
+      if (error.response?.data?.code === "DUPLICATE_WALLET_NAME") {
+        setSubmitError("Wallet name already in use");
       } else if (error.response?.data?.error) {
-        setSubmitError(error.response.data.error)
+        setSubmitError(error.response.data.error);
       } else {
-        setSubmitError('Failed to create wallet. Please try again.')
+        setSubmitError("Failed to create wallet. Please try again.");
       }
     } finally {
-      setIsSubmitting(false)
+      setIsSubmitting(false);
     }
-  }
+  };
 
-  // Handle wallet selection (both personal and shared)
   const handleWalletClick = (wallet) => {
-    setSelectedWallet(wallet)
-    setShowWalletDetail(true)
-  }
+    setSelectedWallet(wallet);
+    setShowWalletDetail(true);
+  };
 
-  // Close wallet detail view
   const handleCloseWalletDetail = () => {
-    setShowWalletDetail(false)
-    setSelectedWallet(null)
-    loadWallets() // Refresh wallets after any changes
-  }
+    setShowWalletDetail(false);
+    setSelectedWallet(null);
+    loadWallets();
+  };
 
-  // Calculate total balance across all wallets
   const totalBalance = wallets.reduce((sum, wallet) => {
-    // Simple currency conversion (in real app, use exchange rates)
-    const balance = wallet.currency === 'USD' ? (wallet.balance || wallet.currentBalance) : (wallet.balance || wallet.currentBalance) * 0.00004 // VND to USD approximation
-    return sum + balance
-  }, 0)
+    const balance =
+      wallet.currency === "USD"
+        ? wallet.balance || wallet.currentBalance
+        : (wallet.balance || wallet.currentBalance) * 0.00004;
+    return sum + balance;
+  }, 0);
 
-  // Get wallet icon by type
   const getWalletIcon = (type) => {
     const iconMap = {
-      'Cash': CreditCard,
-      'Bank': Briefcase,
-      'Savings': PiggyBank
-    }
-    const IconComponent = iconMap[type] || Wallet
-    return <IconComponent className="w-full h-full" />
-  }
+      Cash: CreditCard,
+      Bank: Briefcase,
+      Savings: PiggyBank,
+    };
+    const IconComponent = iconMap[type] || Wallet;
+    return <IconComponent className="w-full h-full text-white" />;
+  };
 
-  // Format currency display
   const formatCurrency = (amount, currency) => {
-    const currencyInfo = currencies.find(c => c.value === currency)
-    const symbol = currencyInfo ? currencyInfo.symbol : '$'
-    return `${symbol}${amount.toLocaleString()}`
-  }
+    const currencyInfo = currencies.find((c) => c.value === currency);
+    const symbol = currencyInfo ? currencyInfo.symbol : "$";
+    return `${symbol}${amount.toLocaleString()}`;
+  };
 
-  // Show loading spinner
   if (loading) {
     return (
       <div className="max-w-7xl mx-auto flex items-center justify-center min-h-[400px]">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading wallets...</p>
+          <div className="relative w-24 h-24 mx-auto mb-6">
+            {/* Outer rotating circle */}
+            <div className="absolute inset-0 rounded-full border-4 border-blue-100"></div>
+            <div className="absolute inset-0 rounded-full border-4 border-t-blue-500 border-r-purple-500 border-b-transparent border-l-transparent animate-spin"></div>
+            
+            {/* Inner pulsing wallet icon */}
+            <div className="absolute inset-0 flex items-center justify-center">
+              <Wallet className="w-10 h-10 text-blue-500 animate-pulse" />
+            </div>
+          </div>
+          
+          <h3 className="text-xl font-semibold text-gray-800 mb-2">Loading Wallets</h3>
+          <p className="text-gray-600">Please wait while we fetch your data...</p>
+          
+          {/* Loading dots animation */}
+          <div className="flex justify-center gap-2 mt-4">
+            <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+            <div className="w-2 h-2 bg-purple-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+            <div className="w-2 h-2 bg-pink-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+          </div>
         </div>
       </div>
-    )
+    );
   }
 
   return (
-    <div className="max-w-7xl mx-auto">
+    <div className="max-w-7xl mx-auto p-4">
       {/* Header */}
       <div className="mb-8">
         <h2 className="text-3xl font-bold text-gray-800 mb-2">My Wallets</h2>
         <p className="text-gray-600">Manage your personal and shared wallets</p>
       </div>
 
-      {/* Total Balance Summary */}
-      <div className="bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 rounded-xl shadow-lg hover:shadow-2xl p-6 mb-8 max-w-md transform hover:scale-105 transition-all duration-300 cursor-pointer border-2 border-transparent hover:border-white">
+      {/* Total Balance */}
+      <div className="bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 rounded-xl shadow-lg p-6 mb-8 max-w-md transform hover:scale-105 transition-all duration-300 cursor-pointer border-2 border-transparent hover:border-white">
         <div className="flex justify-between items-center mb-4">
           <span className="text-white font-semibold text-lg">Total Balance</span>
           <Wallet className="w-10 h-10 text-white animate-bounce" />
         </div>
-        <div className="text-4xl font-bold text-white mb-2">${totalBalance.toFixed(2)}</div>
-        <div className="text-blue-100 text-sm font-medium">Across {wallets.length} wallets</div>
+        <div className="text-4xl font-bold text-white mb-2">
+          ${totalBalance.toFixed(2)}
+        </div>
+        <div className="text-blue-100 text-sm font-medium">
+          Across {wallets.length} wallets
+        </div>
       </div>
 
-      {/* Add Wallet Button (step 1: User selects "Add Wallet") */}
+      {/* Add Wallet Button */}
       <div className="flex justify-between items-center mb-6">
         <h3 className="text-xl font-semibold text-gray-800">Your Wallets</h3>
         <button
           onClick={() => setShowCreateModal(true)}
           className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white px-6 py-3 rounded-xl font-semibold hover:shadow-lg hover:scale-105 transition-all duration-300 flex items-center gap-2"
         >
-          <span>+</span>
+          <Plus className="w-5 h-5" />
           Add Wallet
         </button>
       </div>
 
       {/* Wallets Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-        {wallets.map(wallet => (
-          <div 
-            key={wallet.id} 
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+        {wallets.map((wallet) => (
+          <div
+            key={wallet.id}
             onClick={() => handleWalletClick(wallet)}
             className="bg-gradient-to-br from-white to-blue-50 rounded-xl shadow-md hover:shadow-2xl p-6 border-2 border-blue-200 hover:border-blue-400 cursor-pointer transition-all duration-300 transform hover:scale-105 hover:-translate-y-1"
           >
@@ -227,17 +250,21 @@ export default function Wallets() {
                   <p className="text-sm text-gray-600 font-medium">{wallet.type}</p>
                 </div>
               </div>
-              <span className={`px-2 py-1 text-xs rounded-full ${
-                wallet.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
-              }`}>
+              <span
+                className={`px-2 py-1 text-xs rounded-full ${
+                  wallet.status === "active"
+                    ? "bg-green-100 text-green-800"
+                    : "bg-gray-100 text-gray-800"
+                }`}
+              >
                 {wallet.status}
               </span>
             </div>
-            
+
             <div className="text-2xl font-bold text-gray-800 mb-2">
               {formatCurrency(wallet.balance || wallet.currentBalance, wallet.currency)}
             </div>
-            
+
             <div className="flex items-center justify-between text-sm text-gray-500 mb-2">
               <span>Created {new Date(wallet.createdAt).toLocaleDateString()}</span>
               {wallet.isShared && (
@@ -246,8 +273,7 @@ export default function Wallets() {
                 </span>
               )}
             </div>
-            
-            {/* Action Indicator */}
+
             <div className="pt-3 border-t border-gray-200 mt-3">
               {wallet.isShared ? (
                 <div>
@@ -273,182 +299,203 @@ export default function Wallets() {
         ))}
       </div>
 
-      {/* Create Wallet Modal (step 2: system displays Wallet Creation form) */}
+      {/* Create Wallet Modal */}
       {showCreateModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-xl shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
             <div className="p-6">
               <div className="flex justify-between items-center mb-6">
                 <h3 className="text-xl font-semibold text-gray-800">Create New Wallet</h3>
                 <button
                   onClick={() => {
-                    setShowCreateModal(false)
-                    setErrors({})
-                    setFormData({
-                      name: '',
-                      type: 'Cash',
-                      initialBalance: '',
-                      currency: 'USD',
-                      description: '',
-                      isShared: false
-                    })
+                    setShowCreateModal(false);
+                    setSubmitError("");
+                    reset();
                   }}
-                  className="text-gray-400 hover:text-gray-600 text-xl"
+                  className="text-gray-400 hover:text-gray-600 text-2xl"
                 >
                   ×
                 </button>
               </div>
 
-              <form onSubmit={handleFormSubmit(onSubmit)} className="space-y-4">
-                {/* Step 3: User enters Wallet Name */}
+              {/* Form UI (Styled & Icons) */}
+              <form onSubmit={handleFormSubmit(onSubmit)} className="space-y-6">
+                {/* === Wallet Name === */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Wallet Name *
+                  <label className="block text-sm font-semibold text-gray-800 mb-2">
+                    Wallet Name <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="text"
-                    {...register('name', { 
-                      required: 'Wallet name is required',
-                      maxLength: { value: 50, message: 'Wallet name cannot exceed 50 characters' },
+                    {...register("name", {
+                      required: "Wallet name is required",
+                      maxLength: { value: 50, message: "Max 50 characters" },
                       validate: (value) => {
-                        const existingWallet = wallets.find(w => 
-                          w.name.toLowerCase() === value.toLowerCase().trim()
-                        )
-                        return !existingWallet || 'Wallet name already in use'
-                      }
+                        const dup = wallets.find(
+                          (w) => w.name.toLowerCase() === value.toLowerCase().trim()
+                        );
+                        return !dup || "Wallet name already exists";
+                      },
                     })}
-                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                      errors.name ? 'border-red-500' : 'border-gray-300'
+                    className={`w-full px-4 py-3 rounded-xl border bg-gray-50 focus:ring-2 focus:ring-blue-500 
+                    transition-all duration-200 outline-none ${
+                      errors.name ? "border-red-400" : "border-gray-300"
                     }`}
-                    placeholder="Enter wallet name"
-                    maxLength={50}
+                    placeholder="Ex: Family Cash"
                   />
-                  {errors.name && <p className="mt-1 text-sm text-red-500">{errors.name.message}</p>}
+                  {errors.name && (
+                    <p className="text-sm text-red-500 mt-1">{errors.name.message}</p>
+                  )}
                 </div>
 
-                {/* Step 4: User selects Wallet Type */}
+                {/* === Wallet Type === */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Wallet Type *
+                  <label className="block text-sm font-semibold text-gray-800 mb-3">
+                    Wallet Type <span className="text-red-500">*</span>
                   </label>
-                  <div className="grid grid-cols-1 gap-2">
-                    {walletTypes.map(type => (
-                      <label key={type.value} className="flex items-center p-3 border rounded-lg cursor-pointer hover:bg-gray-50">
-                        <input
-                          type="radio"
-                          {...register('type')}
-                          value={type.value}
-                          className="mr-3"
-                        />
-                        <span className="text-xl mr-3">{type.icon}</span>
-                        <div>
-                          <div className="font-medium">{type.label}</div>
-                          <div className="text-sm text-gray-500">{type.description}</div>
-                        </div>
-                      </label>
-                    ))}
+
+                  <div className="grid grid-cols-1 gap-3">
+                    {walletTypes.map((type) => {
+                      const isSelected = watch("type") === type.value;
+                      const Icon = type.icon;
+
+                      return (
+                        <label
+                          key={type.value}
+                          className={`flex items-center gap-3 p-4 rounded-xl border cursor-pointer 
+                            transition-all duration-200 ${
+                              isSelected
+                                ? "border-blue-500 bg-blue-50 shadow-sm"
+                                : "border-gray-300 bg-white hover:bg-gray-50"
+                            }`}
+                        >
+                          <input
+                            type="radio"
+                            {...register("type")}
+                            value={type.value}
+                            className="hidden"
+                          />
+
+                          <div className="w-12 h-12 flex items-center justify-center rounded-full bg-blue-100 text-blue-600">
+                            <Icon />
+                          </div>
+
+                          <div>
+                            <div className="font-semibold text-gray-800">{type.label}</div>
+                            <div className="text-xs text-gray-500">{type.description}</div>
+                          </div>
+                        </label>
+                      );
+                    })}
                   </div>
                 </div>
 
-                {/* Shared Wallet Option */}
+                {/* === Shared Wallet === */}
                 <div>
-                  <label className="flex items-center p-3 border rounded-lg cursor-pointer hover:bg-gray-50">
-                    <input
-                      type="checkbox"
-                      {...register('isShared')}
-                      className="mr-3"
-                    />
-                    <span className="text-xl mr-3">👥</span>
+                  <label
+                    className="flex items-center gap-3 p-4 rounded-xl border border-gray-300 
+                    bg-white hover:bg-gray-50 transition-all duration-200 cursor-pointer"
+                  >
+                    <input type="checkbox" {...register("isShared")} className="w-5 h-5" />
+
+                    <div className="w-10 h-10 flex items-center justify-center bg-purple-100 text-purple-600 rounded-full">
+                      <Users />
+                    </div>
+
                     <div>
-                      <div className="font-medium">Create as Shared Wallet</div>
-                      <div className="text-sm text-gray-500">Allow multiple people to manage this wallet together</div>
+                      <div className="font-semibold text-gray-800">Shared Wallet</div>
+                      <div className="text-xs text-gray-500">
+                        Allow multiple users to access this wallet
+                      </div>
                     </div>
                   </label>
                 </div>
 
-                {/* Currency Selection */}
+                {/* === Currency === */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Currency
-                  </label>
+                  <label className="block text-sm font-semibold text-gray-800 mb-2">Currency</label>
                   <select
-                    {...register('currency')}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    {...register("currency")}
+                    className="w-full px-4 py-3 rounded-xl border border-gray-300 bg-gray-50 
+                    focus:ring-2 focus:ring-blue-500 transition-all duration-200 outline-none"
                   >
-                    {currencies.map(currency => (
-                      <option key={currency.value} value={currency.value}>
-                        {currency.label}
+                    {currencies.map((c) => (
+                      <option key={c.value} value={c.value}>
+                        {c.label}
                       </option>
                     ))}
                   </select>
                 </div>
 
-                {/* Step 5: User optionally enters Initial Balance */}
+                {/* === Initial Balance === */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Initial Balance (Optional)
-                  </label>
+                  <label className="block text-sm font-semibold text-gray-800 mb-2">Initial Balance</label>
                   <input
                     type="number"
-                    step="0.01"
-                    min="0"
-                    {...register('initialBalance', {
-                      min: { value: 0, message: 'Initial balance must be a positive number' }
+                    {...register("initialBalance", {
+                      min: { value: 0, message: "Balance must be ≥ 0" },
                     })}
-                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                      errors.initialBalance ? 'border-red-500' : 'border-gray-300'
+                    className={`w-full px-4 py-3 rounded-xl border bg-gray-50 outline-none 
+                    focus:ring-2 focus:ring-blue-500 transition-all duration-200 ${
+                      errors.initialBalance ? "border-red-400" : "border-gray-300"
                     }`}
                     placeholder="0.00"
                   />
-                  {errors.initialBalance && <p className="mt-1 text-sm text-red-500">{errors.initialBalance.message}</p>}
+                  {errors.initialBalance && (
+                    <p className="text-sm text-red-500 mt-1">{errors.initialBalance.message}</p>
+                  )}
                 </div>
 
-                {/* Description (Optional) */}
+                {/* === Description === */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Description (Optional)
-                  </label>
+                  <label className="block text-sm font-semibold text-gray-800 mb-2">Description</label>
                   <textarea
-                    {...register('description', {
-                      maxLength: { value: 200, message: 'Description cannot exceed 200 characters' }
+                    {...register("description", {
+                      maxLength: { value: 200, message: "Max 200 characters" },
                     })}
-                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none ${
-                      errors.description ? 'border-red-500' : 'border-gray-300'
-                    }`}
-                    placeholder="Add a description for this wallet"
                     rows={3}
-                    maxLength={200}
-                  />
-                  {errors.description && <p className="mt-1 text-sm text-red-500">{errors.description.message}</p>}
-                  <p className="mt-1 text-sm text-gray-500">{watch('description')?.length || 0}/200 characters</p>
+                    className={`w-full px-4 py-3 rounded-xl border bg-gray-50 resize-none 
+                    focus:ring-2 focus:ring-blue-500 transition-all duration-200 outline-none ${
+                      errors.description ? "border-red-400" : "border-gray-300"
+                    }`}
+                    placeholder="Optional note..."
+                  ></textarea>
+                  <div className="text-right text-xs text-gray-500 mt-1">
+                    {watch("description")?.length || 0}/200
+                  </div>
                 </div>
 
-                {/* Submit Error */}
+                {/* === Error === */}
                 {submitError && (
-                  <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
-                    <p className="text-sm text-red-700">{submitError}</p>
+                  <div className="bg-red-50 border border-red-200 p-3 rounded-xl text-red-700 text-sm">
+                    {submitError}
                   </div>
                 )}
 
-                {/* Step 6: User taps "Save" */}
-                <div className="flex gap-3 pt-4">
+                {/* === Buttons === */}
+                <div className="flex gap-4 pt-4">
                   <button
                     type="button"
                     onClick={() => {
-                      setShowCreateModal(false)
-                      setSubmitError('')
-                      reset()
+                      setShowCreateModal(false);
+                      setSubmitError("");
+                      reset();
                     }}
-                    className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium transition-colors duration-200"
+                    className="flex-1 py-3 border border-gray-300 rounded-xl text-gray-700 font-semibold 
+                    hover:bg-gray-100 transition-all duration-200"
                   >
                     Cancel
                   </button>
+
                   <button
                     type="submit"
                     disabled={isSubmitting}
-                    className="flex-1 px-4 py-2 bg-blue-500 hover:bg-blue-600 disabled:bg-blue-300 text-white rounded-lg font-medium transition-colors duration-200"
+                    className="flex-1 py-3 rounded-xl text-white font-semibold 
+                    bg-gradient-to-r from-blue-500 to-purple-600 
+                    hover:from-blue-600 hover:to-purple-700
+                    disabled:opacity-50 transition-all duration-200"
                   >
-                    {isSubmitting ? 'Creating...' : 'Save Wallet'}
+                    {isSubmitting ? "Creating..." : "Create Wallet"}
                   </button>
                 </div>
               </form>
@@ -457,12 +504,16 @@ export default function Wallets() {
         </div>
       )}
 
-      {/* Empty State */}
+      {/* Empty state */}
       {wallets.length === 0 && (
         <div className="text-center py-12">
-          <div className="text-6xl mb-4">💼</div>
+          <div className="text-6xl mb-4">
+            <Wallet />
+          </div>
           <h3 className="text-xl font-medium text-gray-800 mb-2">No wallets yet</h3>
-          <p className="text-gray-600 mb-6">Create your first wallet to start managing your finances</p>
+          <p className="text-gray-600 mb-6">
+            Create your first wallet to start managing your finances
+          </p>
           <button
             onClick={() => setShowCreateModal(true)}
             className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg font-medium transition-colors duration-200"
@@ -472,7 +523,7 @@ export default function Wallets() {
         </div>
       )}
 
-      {/* Wallet Detail View */}
+      {/* Wallet Detail */}
       {showWalletDetail && selectedWallet && (
         <WalletDetailView
           wallet={selectedWallet}
@@ -481,6 +532,9 @@ export default function Wallets() {
           onWalletUpdate={loadWallets}
         />
       )}
+
+      {/* Chatbot */}
+      <Chatbot />
     </div>
-  )
+  );
 }

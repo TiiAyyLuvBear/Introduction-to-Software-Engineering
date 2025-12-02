@@ -1,21 +1,14 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { Plus, FolderOpen, TrendingUp, TrendingDown, Trash2 } from 'lucide-react'
-
-const mockCategories = [
-  { id: 1, name: 'Salary', type: 'income', color: '#27ae60', icon: '💼' },
-  { id: 2, name: 'Freelance', type: 'income', color: '#3498db', icon: '💻' },
-  { id: 3, name: 'Investment', type: 'income', color: '#9b59b6', icon: '📈' },
-  { id: 4, name: 'Groceries', type: 'expense', color: '#e74c3c', icon: '🛒' },
-  { id: 5, name: 'Restaurant', type: 'expense', color: '#e67e22', icon: '🍽️' },
-  { id: 6, name: 'Transportation', type: 'expense', color: '#f39c12', icon: '🚗' },
-  { id: 7, name: 'Shopping', type: 'expense', color: '#c0392b', icon: '🛍️' },
-  { id: 8, name: 'Utilities', type: 'expense', color: '#34495e', icon: '💡' },
-]
+import { categoryAPI } from '../api.js'
+import Chatbot from '../components/chatbot/Chatbot.jsx'
 
 export default function Categories() {
-  const [categories, setCategories] = useState(mockCategories)
+  const [categories, setCategories] = useState([])
   const [showModal, setShowModal] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
   const { register, handleSubmit, watch, setValue, reset, formState: { errors } } = useForm({
     defaultValues: {
       name: '',
@@ -27,22 +20,91 @@ export default function Categories() {
 
   const currentType = watch('type')
 
-  const onSubmit = (data) => {
-    const newCategory = {
-      id: Date.now(),
-      ...data
+  // Load categories on mount
+  useEffect(() => {
+    loadCategories()
+  }, [])
+
+  const loadCategories = async () => {
+    try {
+      setLoading(true)
+      const response = await categoryAPI.getAll()
+      if (response.success) {
+        setCategories(response.data.categories || [])
+      }
+    } catch (err) {
+      console.error('Failed to load categories:', err)
+      setError(err.response?.data?.error || err.message || 'Failed to load categories')
+    } finally {
+      setLoading(false)
     }
-    setCategories([...categories, newCategory])
-    setShowModal(false)
-    reset()
   }
 
-  const handleDelete = (id) => {
-    setCategories(categories.filter(c => c.id !== id))
+  const onSubmit = async (data) => {
+    try {
+      setError(null)
+      const categoryData = {
+        name: data.name,
+        type: data.type,
+        icon: data.icon,
+        color: data.color
+      }
+
+      const response = await categoryAPI.create(categoryData)
+      if (response.success) {
+        setCategories([...categories, response.data.category])
+      }
+      setShowModal(false)
+      reset()
+    } catch (err) {
+      console.error('Failed to create category:', err)
+      setError(err.response?.data?.error || err.message || 'Failed to create category')
+    }
+  }
+
+  const handleDelete = async (id) => {
+    if (!confirm('Are you sure you want to delete this category?')) return
+
+    try {
+      await categoryAPI.delete(id)
+      setCategories(categories.filter(c => c._id !== id && c.id !== id))
+    } catch (err) {
+      console.error('Failed to delete category:', err)
+      setError(err.response?.data?.error || err.message || 'Failed to delete category')
+    }
   }
 
   const incomeCategories = categories.filter(c => c.type === 'income')
   const expenseCategories = categories.filter(c => c.type === 'expense')
+
+  if (loading) {
+    return (
+      <div className="max-w-7xl mx-auto flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <div className="relative w-24 h-24 mx-auto mb-6">
+            {/* Outer rotating circle */}
+            <div className="absolute inset-0 rounded-full border-4 border-blue-100"></div>
+            <div className="absolute inset-0 rounded-full border-4 border-t-blue-500 border-r-purple-500 border-b-transparent border-l-transparent animate-spin"></div>
+            
+            {/* Inner pulsing folder icon */}
+            <div className="absolute inset-0 flex items-center justify-center">
+              <FolderOpen className="w-10 h-10 text-blue-500 animate-pulse" />
+            </div>
+          </div>
+          
+          <h3 className="text-xl font-semibold text-gray-800 mb-2">Loading Categories</h3>
+          <p className="text-gray-600">Please wait while we fetch your data...</p>
+          
+          {/* Loading dots animation */}
+          <div className="flex justify-center gap-2 mt-4">
+            <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+            <div className="w-2 h-2 bg-purple-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+            <div className="w-2 h-2 bg-pink-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="max-w-7xl mx-auto">
@@ -50,6 +112,12 @@ export default function Categories() {
         <h2 className="text-3xl font-bold text-gray-800 mb-2">Categories</h2>
         <p className="text-gray-600">Organize your transactions</p>
       </div>
+
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6 text-red-600">
+          {error}
+        </div>
+      )}
 
       <button 
         className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-8 py-3 rounded-xl font-semibold hover:from-blue-600 hover:to-purple-700 hover:shadow-lg hover:scale-105 transition-all duration-300 mb-6 flex items-center gap-2"
@@ -205,6 +273,9 @@ export default function Categories() {
           </div>
         </div>
       )}
+
+      {/* Chatbot */}
+      <Chatbot />
     </div>
   )
 }

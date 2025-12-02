@@ -10,29 +10,54 @@
  * 2. Danh sách giao dịch gần đây (5 transactions mới nhất)
  * 
  * Data:
- * - Hiện tại dùng mock data (hardcoded)
- * - TODO: Fetch từ API GET /api/transactions khi có backend
+ * - Fetch từ API GET /api/transactions
  * 
  * Calculations:
  * - totalIncome: Sum của các transactions có type='income'
  * - totalExpense: Sum của các transactions có type='expense'
  * - balance: totalIncome - totalExpense
  */
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { TrendingUp, TrendingDown, Wallet, Receipt } from 'lucide-react'
-
-// Mock data để demo (thay thế bằng API call sau)
-const mockTransactions = [
-  { id: 1, category: 'Salary', type: 'income', amount: 5000, date: '2025-11-01', note: 'Monthly salary' },
-  { id: 2, category: 'Groceries', type: 'expense', amount: 150, date: '2025-11-05', note: 'Weekly shopping' },
-  { id: 3, category: 'Restaurant', type: 'expense', amount: 45, date: '2025-11-07', note: 'Dinner with friends' },
-  { id: 4, category: 'Freelance', type: 'income', amount: 800, date: '2025-11-08', note: 'Web design project' },
-  { id: 5, category: 'Transportation', type: 'expense', amount: 60, date: '2025-11-09', note: 'Gas and parking' },
-]
+import { transactionAPI, walletAPI } from '../api.js'
+import Chatbot from '../components/chatbot/Chatbot.jsx'
 
 export default function Dashboard() {
-  // State lưu transactions (hiện tại dùng mock, sau sẽ fetch từ API)
-  const [transactions] = useState(mockTransactions)
+  const [transactions, setTransactions] = useState([])
+  const [wallets, setWallets] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+
+  // Load data on mount
+  useEffect(() => {
+    loadDashboardData()
+  }, [])
+
+  const loadDashboardData = async () => {
+    try {
+      setLoading(true)
+      setError(null)
+
+      // Load transactions và wallets cùng lúc
+      const [transactionsRes, walletsRes] = await Promise.all([
+        transactionAPI.getAll({ limit: 10 }),
+        walletAPI.getUserWallets()
+      ])
+
+      if (transactionsRes.success) {
+        setTransactions(transactionsRes.data.transactions || [])
+      }
+
+      if (walletsRes.success) {
+        setWallets(walletsRes.data.wallets || [])
+      }
+    } catch (err) {
+      console.error('Failed to load dashboard data:', err)
+      setError(err.response?.data?.error || err.message || 'Failed to load data')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   /**
    * Tính tổng thu nhập
@@ -57,6 +82,54 @@ export default function Dashboard() {
    * Balance = Thu nhập - Chi tiêu
    */
   const balance = totalIncome - totalExpense
+
+  // Show loading state
+  if (loading) {
+    return (
+      <div className="max-w-7xl mx-auto flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <div className="relative w-24 h-24 mx-auto mb-6">
+            {/* Outer rotating circle */}
+            <div className="absolute inset-0 rounded-full border-4 border-blue-100"></div>
+            <div className="absolute inset-0 rounded-full border-4 border-t-blue-500 border-r-purple-500 border-b-transparent border-l-transparent animate-spin"></div>
+            
+            {/* Inner pulsing wallet icon */}
+            <div className="absolute inset-0 flex items-center justify-center">
+              <Wallet className="w-10 h-10 text-blue-500 animate-pulse" />
+            </div>
+          </div>
+          
+          <h3 className="text-xl font-semibold text-gray-800 mb-2">Loading Dashboard</h3>
+          <p className="text-gray-600">Please wait while we fetch your data...</p>
+          
+          {/* Loading dots animation */}
+          <div className="flex justify-center gap-2 mt-4">
+            <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+            <div className="w-2 h-2 bg-purple-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+            <div className="w-2 h-2 bg-pink-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // Show error state
+  if (error) {
+    return (
+      <div className="max-w-7xl mx-auto">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
+          <p className="text-red-600 font-semibold mb-2">Failed to load dashboard</p>
+          <p className="text-red-500 text-sm mb-4">{error}</p>
+          <button
+            onClick={loadDashboardData}
+            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="max-w-7xl mx-auto">
@@ -110,8 +183,13 @@ export default function Dashboard() {
         
         {/* Chỉ hiển thị 5 transactions đầu tiên */}
         <div className="divide-y divide-gray-100">
-          {transactions.slice(0, 5).map(tx => (
-            <div key={tx.id} className="px-6 py-4 flex justify-between items-center hover:bg-gradient-to-r hover:from-blue-50 hover:to-purple-50 transition-all duration-300 cursor-pointer transform hover:scale-[1.02]">
+          {transactions.length === 0 ? (
+            <div className="px-6 py-8 text-center text-gray-500">
+              No transactions yet. Start by creating your first transaction!
+            </div>
+          ) : (
+            transactions.slice(0, 5).map(tx => (
+              <div key={tx._id || tx.id} className="px-6 py-4 flex justify-between items-center hover:bg-gradient-to-r hover:from-blue-50 hover:to-purple-50 transition-all duration-300 cursor-pointer transform hover:scale-[1.02]">
               {/* Left side: Icon + Category + Note */}
               <div className="flex items-center gap-4">
                 {/* Icon circle màu xanh (income) hoặc đỏ (expense) */}
@@ -134,15 +212,18 @@ export default function Dashboard() {
                 }`}>
                   {tx.type === 'expense' ? '-' : '+'}${tx.amount.toFixed(2)}
                 </div>
-                {/* Format date theo locale */}
                 <div className="text-sm text-gray-500">
                   {new Date(tx.date).toLocaleDateString()}
                 </div>
               </div>
             </div>
-          ))}
+            ))
+          )}
         </div>
       </div>
+
+      {/* Chatbot */}
+      <Chatbot />
     </div>
   )
 }

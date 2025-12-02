@@ -1,12 +1,16 @@
-import React, { useState, useEffect } from 'react'
-import { useForm } from 'react-hook-form'
-import { Plus, Target, AlertTriangle, Calendar, Trash2 } from 'lucide-react'
+import React, { useState, useEffect } from 'react';
+import { useForm } from 'react-hook-form';
+import { FaPlus, FaBullseye, FaCalendarAlt, FaTrashAlt, FaExclamationTriangle } from 'react-icons/fa';
+import { budgetAPI, transactionAPI } from '../api.js';
+import Chatbot from '../components/chatbot/Chatbot.jsx';
 
 export default function Budget() {
-  const [budgets, setBudgets] = useState([])
-  const [showModal, setShowModal] = useState(false)
-  const [transactions, setTransactions] = useState([])
-  
+  const [budgets, setBudgets] = useState([]);
+  const [showModal, setShowModal] = useState(false);
+  const [transactions, setTransactions] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
   const { register, handleSubmit, watch, reset, formState: { errors } } = useForm({
     defaultValues: {
       name: '',
@@ -16,108 +20,147 @@ export default function Budget() {
       startDate: new Date().toISOString().split('T')[0],
       endDate: ''
     }
-  })
-  
-  const watchPeriod = watch('period')
+  });
+
+  const watchPeriod = watch('period');
 
   useEffect(() => {
-    // Load budgets from localStorage
-    const saved = localStorage.getItem('budgets_demo')
-    if (saved) {
-      try { setBudgets(JSON.parse(saved)) } catch (e) { setBudgets([]) }
-    } else {
-      const demo = [
-        {
-          id: 'b1',
-          name: 'Groceries Monthly',
-          limit: 400,
-          category: 'Groceries',
-          period: 'monthly',
-          spent: 150,
-          alerts: false
-        },
-        {
-          id: 'b2',
-          name: 'Dining Out',
-          limit: 200,
-          category: 'Restaurant',
-          period: 'monthly',
-          spent: 180,
-          alerts: true
-        }
-      ]
-      setBudgets(demo)
-      localStorage.setItem('budgets_demo', JSON.stringify(demo))
-    }
+    loadBudgets();
+    loadTransactions();
+  }, []);
 
-    // Load transactions
-    const savedTx = localStorage.getItem('transactions_demo')
-    if (savedTx) {
-      try { setTransactions(JSON.parse(savedTx)) } catch (e) { setTransactions([]) }
+  if (loading) {
+    return (
+      <div className="max-w-5xl mx-auto flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <div className="relative w-24 h-24 mx-auto mb-6">
+            {/* Outer rotating circle */}
+            <div className="absolute inset-0 rounded-full border-4 border-purple-100"></div>
+            <div className="absolute inset-0 rounded-full border-4 border-t-purple-500 border-r-pink-500 border-b-transparent border-l-transparent animate-spin"></div>
+            
+            {/* Inner pulsing target icon */}
+            <div className="absolute inset-0 flex items-center justify-center">
+              <FaBullseye className="w-10 h-10 text-purple-500 animate-pulse" />
+            </div>
+          </div>
+          
+          <h3 className="text-xl font-semibold text-gray-800 mb-2">Loading Budgets</h3>
+          <p className="text-gray-600">Please wait while we fetch your data...</p>
+          
+          {/* Loading dots animation */}
+          <div className="flex justify-center gap-2 mt-4">
+            <div className="w-2 h-2 bg-purple-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+            <div className="w-2 h-2 bg-pink-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+            <div className="w-2 h-2 bg-purple-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  const loadBudgets = async () => {
+    try {
+      setLoading(true);
+      const response = await budgetAPI.getAll();
+      if (response.success) {
+        setBudgets(response.data.budgets || []);
+      }
+    } catch (err) {
+      console.error('Failed to load budgets:', err);
+      setError(err.response?.data?.error || err.message || 'Failed to load budgets');
+    } finally {
+      setLoading(false);
     }
-  }, [])
+  };
+
+  const loadTransactions = async () => {
+    try {
+      const response = await transactionAPI.getAll();
+      if (response.success) {
+        setTransactions(response.data.transactions || []);
+      }
+    } catch (err) {
+      console.error('Failed to load transactions:', err);
+    }
+  };
 
   const calculateSpent = (budget) => {
     return transactions
-      .filter(tx => tx.type === 'expense' && tx.category === budget.category)
-      .reduce((sum, tx) => sum + (tx.amount || 0), 0)
-  }
+      .filter(t => t.type === 'expense' && t.category === budget.category)
+      .reduce((sum, t) => sum + t.amount, 0);
+  };
 
-  const onCreateBudget = (data) => {
-    const newBudget = {
-      id: 'b_' + Date.now(),
-      name: data.name,
-      limit: parseFloat(data.limit),
-      category: data.category,
-      period: data.period,
-      startDate: data.startDate,
-      endDate: data.endDate,
-      spent: 0,
-      alerts: false
+  const onCreateBudget = async (data) => {
+    try {
+      setError(null);
+      const budgetData = {
+        name: data.name,
+        amount: parseFloat(data.limit),
+        categoryId: data.category,
+        period: data.period,
+        startDate: data.startDate,
+        endDate: data.endDate || null,
+        alertThreshold: 80,
+        enableAlerts: false
+      };
+
+      const response = await budgetAPI.create(budgetData);
+      if (response.success) {
+        setBudgets([...budgets, response.data.budget]);
+      }
+      setShowModal(false);
+      reset();
+    } catch (err) {
+      console.error('Failed to create budget:', err);
+      setError(err.response?.data?.error || err.message || 'Failed to create budget');
     }
-    const updated = [...budgets, newBudget]
-    setBudgets(updated)
-    localStorage.setItem('budgets_demo', JSON.stringify(updated))
-    setShowModal(false)
-    reset()
-  }
+  };
 
-  const deleteBudget = (id) => {
-    const updated = budgets.filter(b => b.id !== id)
-    setBudgets(updated)
-    localStorage.setItem('budgets_demo', JSON.stringify(updated))
-  }
+  const deleteBudget = async (id) => {
+    if (!confirm('Are you sure you want to delete this budget?')) return;
+
+    try {
+      await budgetAPI.delete(id);
+      setBudgets(budgets.filter(b => b._id !== id && b.id !== id));
+    } catch (err) {
+      console.error('Failed to delete budget:', err);
+      setError(err.response?.data?.error || err.message || 'Failed to delete budget');
+    }
+  };
 
   return (
-    <div>
-      <div className="page-header mb-8">
+    <div className="max-w-5xl mx-auto p-4">
+      <div className="mb-8">
         <h2 className="text-3xl font-bold text-gray-800 mb-2">Budget Tracking</h2>
         <p className="text-gray-600">Set and monitor spending budgets across categories</p>
       </div>
 
-      <button className="bg-gradient-to-r from-purple-500 to-pink-600 text-white px-8 py-3 rounded-xl font-semibold hover:from-purple-600 hover:to-pink-700 hover:shadow-lg hover:scale-105 transition-all duration-300 flex items-center gap-2" onClick={() => setShowModal(true)}>
-        <Plus className="w-5 h-5" /> Create Budget
+      <button
+        className="flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-purple-500 to-pink-600 text-white font-semibold hover:from-purple-600 hover:to-pink-700 hover:shadow-lg hover:scale-105 transition-all duration-300 mb-6"
+        onClick={() => setShowModal(true)}
+      >
+        <FaPlus /> Create Budget
       </button>
 
-      <div style={{ marginTop: '30px' }}>
+      <div className="space-y-6">
         {budgets.length === 0 ? (
-          <div className="empty-state">
-            <div className="empty-state-icon">🎯</div>
-            <h3>No budgets yet</h3>
+          <div className="flex flex-col items-center py-12 text-gray-500">
+            <FaBullseye className="text-5xl mb-4" />
+            <h3 className="text-xl font-semibold mb-2">No budgets yet</h3>
             <p>Create a budget to track your spending</p>
           </div>
         ) : (
           budgets.map(budget => {
-            const spent = calculateSpent(budget)
-            const remaining = budget.limit - spent
-            const percentage = (spent / budget.limit) * 100
-            const isAlert = percentage >= 80
+            const spent = calculateSpent(budget);
+            const remaining = budget.limit - spent;
+            const percentage = (spent / budget.limit) * 100;
+            const isAlert = percentage >= 80;
 
             return (
-              <div key={budget.id} className="bg-gradient-to-br from-white to-purple-50 rounded-xl shadow-md hover:shadow-2xl transition-all duration-300 p-6 mb-6 border border-purple-100 transform hover:scale-[1.02]">
+              <div key={budget.id} className="bg-gradient-to-br from-white to-purple-50 rounded-xl shadow-md hover:shadow-2xl p-6 border border-purple-100 transform hover:scale-[1.02] transition-all duration-300">
                 <div className="flex justify-between items-center mb-4">
                   <span className="text-xl font-bold text-gray-800">{budget.name}</span>
-                  <Target className="w-8 h-8 text-purple-600 animate-pulse" />
+                  <FaBullseye className="w-8 h-8 text-purple-600 animate-pulse" />
                 </div>
 
                 <div className="mb-4">
@@ -129,40 +172,44 @@ export default function Budget() {
                   </div>
 
                   <div className="w-full h-3 bg-gray-200 rounded-full overflow-hidden shadow-inner">
-                    <div 
-                      className={`h-full transition-all duration-500 ${
-                        isAlert ? 'bg-gradient-to-r from-red-500 to-red-600' : 'bg-gradient-to-r from-green-500 to-green-600'
-                      }`}
+                    <div
+                      className={`h-full transition-all duration-500 ${isAlert ? 'bg-gradient-to-r from-red-500 to-red-600' : 'bg-gradient-to-r from-green-500 to-green-600'}`}
                       style={{ width: `${Math.min(percentage, 100)}%` }}
                     />
                   </div>
 
                   <div className="flex justify-between mt-2 text-xs">
                     <span className="text-gray-500 font-medium">{percentage.toFixed(0)}% spent</span>
-                    <span className={`font-bold ${
-                      remaining >= 0 ? 'text-green-600' : 'text-red-600'
-                    }`}>
+                    <span className={`font-bold ${remaining >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                       ${remaining.toFixed(2)} remaining
                     </span>
                   </div>
                 </div>
 
                 {isAlert && (
-                  <div className="bg-gradient-to-r from-red-100 to-red-200 text-red-700 px-4 py-3 rounded-lg mb-3 text-sm font-semibold border border-red-300 animate-pulse flex items-center gap-2">
-                    <AlertTriangle className="w-5 h-5" /> Budget Alert: You've spent {percentage.toFixed(0)}% of your {budget.category} budget!
+                  <div className="flex items-center gap-2 bg-gradient-to-r from-red-100 to-red-200 text-red-700 px-4 py-3 rounded-lg mb-3 text-sm font-semibold border border-red-300 animate-pulse">
+                    <FaExclamationTriangle className="w-5 h-5" /> Budget Alert: You've spent {percentage.toFixed(0)}% of your {budget.category} budget!
                   </div>
                 )}
 
                 <div className="text-xs text-gray-500 mb-3 font-medium">
-                  {budget.period === 'monthly' && <span className="bg-blue-100 px-3 py-1 rounded-full inline-flex items-center gap-1"><Calendar className="w-3 h-3" /> Monthly budget</span>}
-                  {budget.period === 'yearly' && <span className="bg-purple-100 px-3 py-1 rounded-full inline-flex items-center gap-1"><Calendar className="w-3 h-3" /> Yearly budget</span>}
+                  {budget.period === 'monthly' && (
+                    <span className="bg-blue-100 px-3 py-1 rounded-full inline-flex items-center gap-1">
+                      <FaCalendarAlt className="w-3 h-3" /> Monthly budget
+                    </span>
+                  )}
+                  {budget.period === 'yearly' && (
+                    <span className="bg-purple-100 px-3 py-1 rounded-full inline-flex items-center gap-1">
+                      <FaCalendarAlt className="w-3 h-3" /> Yearly budget
+                    </span>
+                  )}
                 </div>
 
                 <button
-                  className="bg-gradient-to-r from-red-500 to-red-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:from-red-600 hover:to-red-700 hover:shadow-lg transition-all duration-300 flex items-center gap-2"
+                  className="flex items-center gap-2 bg-gradient-to-r from-red-500 to-red-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:from-red-600 hover:to-red-700 hover:shadow-lg transition-all duration-300"
                   onClick={() => deleteBudget(budget.id)}
                 >
-                  <Trash2 className="w-4 h-4" /> Delete
+                  <FaTrashAlt className="w-4 h-4" /> Delete
                 </button>
               </div>
             )
@@ -170,45 +217,40 @@ export default function Budget() {
         )}
       </div>
 
+      {/* Modal */}
       {showModal && (
-        <div className="modal-overlay" onClick={() => setShowModal(false)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>Create Budget</h3>
-              <button className="close-btn" onClick={() => setShowModal(false)}>×</button>
-            </div>
-            <form onSubmit={handleSubmit(onCreateBudget)}>
-              <div className="form-group">
-                <label>Budget Name</label>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => setShowModal(false)}>
+          <div className="bg-white rounded-xl w-full max-w-md p-6 shadow-lg" onClick={e => e.stopPropagation()}>
+            <h3 className="text-xl font-bold mb-4">Create Budget</h3>
+            <form onSubmit={handleSubmit(onCreateBudget)} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">Budget Name</label>
                 <input
                   type="text"
-                  className={`form-control ${errors.name ? 'border-red-500' : ''}`}
+                  className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 transition ${errors.name ? 'border-red-500' : 'border-gray-300'}`}
                   {...register('name', { required: 'Budget name is required' })}
                   placeholder="e.g., Monthly Groceries"
                 />
                 {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name.message}</p>}
               </div>
 
-              <div className="form-group">
-                <label>Category</label>
+              <div>
+                <label className="block text-sm font-medium mb-1">Category</label>
                 <input
                   type="text"
-                  className={`form-control ${errors.category ? 'border-red-500' : ''}`}
+                  className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 transition ${errors.category ? 'border-red-500' : 'border-gray-300'}`}
                   {...register('category', { required: 'Category is required' })}
-                  placeholder="e.g., Groceries, Dining, Transport"
+                  placeholder="e.g., Groceries, Dining"
                 />
                 {errors.category && <p className="text-red-500 text-sm mt-1">{errors.category.message}</p>}
               </div>
 
-              <div className="form-group">
-                <label>Spending Limit</label>
+              <div>
+                <label className="block text-sm font-medium mb-1">Spending Limit</label>
                 <input
                   type="number"
-                  className={`form-control ${errors.limit ? 'border-red-500' : ''}`}
-                  {...register('limit', { 
-                    required: 'Spending limit is required',
-                    min: { value: 0.01, message: 'Limit must be greater than 0' }
-                  })}
+                  className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 transition ${errors.limit ? 'border-red-500' : 'border-gray-300'}`}
+                  {...register('limit', { required: 'Spending limit is required', min: { value: 0.01, message: 'Limit must be > 0' } })}
                   min="0"
                   step="0.01"
                   placeholder="0.00"
@@ -216,46 +258,47 @@ export default function Budget() {
                 {errors.limit && <p className="text-red-500 text-sm mt-1">{errors.limit.message}</p>}
               </div>
 
-              <div className="form-group">
-                <label>Period</label>
-                <select className="form-control" {...register('period')}>
+              <div>
+                <label className="block text-sm font-medium mb-1">Period</label>
+                <select className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 transition" {...register('period')}>
                   <option value="monthly">Monthly</option>
                   <option value="yearly">Yearly</option>
                   <option value="custom">Custom</option>
                 </select>
               </div>
 
-              <div className="form-group">
-                <label>Start Date</label>
+              <div>
+                <label className="block text-sm font-medium mb-1">Start Date</label>
                 <input
                   type="date"
-                  className="form-control"
+                  className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 transition"
                   {...register('startDate')}
                 />
               </div>
 
               {watchPeriod === 'custom' && (
-                <div className="form-group">
-                  <label>End Date</label>
+                <div>
+                  <label className="block text-sm font-medium mb-1">End Date</label>
                   <input
                     type="date"
-                    className={`form-control ${errors.endDate ? 'border-red-500' : ''}`}
-                    {...register('endDate', {
-                      required: watchPeriod === 'custom' ? 'End date is required for custom period' : false
-                    })}
+                    className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 transition ${errors.endDate ? 'border-red-500' : 'border-gray-300'}`}
+                    {...register('endDate', { required: watchPeriod === 'custom' ? 'End date required for custom period' : false })}
                   />
                   {errors.endDate && <p className="text-red-500 text-sm mt-1">{errors.endDate.message}</p>}
                 </div>
               )}
 
-              <div className="form-actions">
-                <button type="submit" className="btn btn-primary">Create Budget</button>
-                <button type="button" className="btn btn-secondary" onClick={() => { setShowModal(false); reset(); }}>Cancel</button>
+              <div className="flex gap-3 mt-4">
+                <button type="submit" className="flex-1 py-2 bg-gradient-to-r from-purple-500 to-pink-600 text-white rounded-lg font-semibold hover:from-purple-600 hover:to-pink-700 transition-all duration-300">Create Budget</button>
+                <button type="button" onClick={() => { setShowModal(false); reset(); }} className="flex-1 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-all duration-300">Cancel</button>
               </div>
             </form>
           </div>
         </div>
       )}
+
+      {/* Chatbot */}
+      <Chatbot />
     </div>
-  )
+  );
 }
