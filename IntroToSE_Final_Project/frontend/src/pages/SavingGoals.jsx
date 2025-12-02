@@ -25,6 +25,8 @@ export default function SavingGoals() {
   }, [])
 
   const loadGoals = async () => {
+    // TEMPORARILY COMMENTED - Backend integration
+    /*
     try {
       setLoading(true)
       const response = await savingGoalAPI.getAll()
@@ -37,9 +39,14 @@ export default function SavingGoals() {
     } finally {
       setLoading(false)
     }
+    */
+    // Mock data for now
+    setLoading(false)
   }
 
   const onCreateGoal = async (data) => {
+    // TEMPORARILY COMMENTED - Backend integration
+    /*
     try {
       setError(null)
       const goalData = {
@@ -61,9 +68,14 @@ export default function SavingGoals() {
       console.error('Failed to create goal:', err)
       setError(err.response?.data?.error || err.message || 'Failed to create goal')
     }
+    */
+    setShowModal(false)
+    reset()
   }
 
   const addContribution = async (id, amount) => {
+    // TEMPORARILY COMMENTED - Backend integration
+    /*
     try {
       const response = await savingGoalAPI.addContribution(id, {
         amount: parseFloat(amount),
@@ -76,11 +88,13 @@ export default function SavingGoals() {
       console.error('Failed to add contribution:', err)
       setError(err.response?.data?.error || err.message || 'Failed to add contribution')
     }
+    */
   }
 
   const deleteGoal = async (id) => {
     if (!confirm('Are you sure you want to delete this saving goal?')) return
-
+    // TEMPORARILY COMMENTED - Backend integration
+    /*
     try {
       await savingGoalAPI.delete(id)
       setGoals(goals.filter(g => g._id !== id && g.id !== id))
@@ -88,6 +102,7 @@ export default function SavingGoals() {
       console.error('Failed to delete goal:', err)
       setError(err.response?.data?.error || err.message || 'Failed to delete goal')
     }
+    */
   }
 
   const daysRemaining = (deadline) => {

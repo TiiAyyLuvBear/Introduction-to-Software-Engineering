@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { FaPlus, FaBullseye, FaCalendarAlt, FaTrashAlt, FaExclamationTriangle } from 'react-icons/fa';
-import { budgetAPI, transactionAPI } from '../api.js';
+// import { budgetAPI, transactionAPI } from '../api.js';
 import Chatbot from '../components/chatbot/Chatbot.jsx';
 
 export default function Budget() {
@@ -24,41 +24,9 @@ export default function Budget() {
 
   const watchPeriod = watch('period');
 
-  useEffect(() => {
-    loadBudgets();
-    loadTransactions();
-  }, []);
-
-  if (loading) {
-    return (
-      <div className="max-w-5xl mx-auto flex items-center justify-center min-h-[400px]">
-        <div className="text-center">
-          <div className="relative w-24 h-24 mx-auto mb-6">
-            {/* Outer rotating circle */}
-            <div className="absolute inset-0 rounded-full border-4 border-purple-100"></div>
-            <div className="absolute inset-0 rounded-full border-4 border-t-purple-500 border-r-pink-500 border-b-transparent border-l-transparent animate-spin"></div>
-            
-            {/* Inner pulsing target icon */}
-            <div className="absolute inset-0 flex items-center justify-center">
-              <FaBullseye className="w-10 h-10 text-purple-500 animate-pulse" />
-            </div>
-          </div>
-          
-          <h3 className="text-xl font-semibold text-gray-800 mb-2">Loading Budgets</h3>
-          <p className="text-gray-600">Please wait while we fetch your data...</p>
-          
-          {/* Loading dots animation */}
-          <div className="flex justify-center gap-2 mt-4">
-            <div className="w-2 h-2 bg-purple-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-            <div className="w-2 h-2 bg-pink-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-            <div className="w-2 h-2 bg-purple-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
+  // TEMPORARILY COMMENTED - Backend integration
   const loadBudgets = async () => {
+    /*
     try {
       setLoading(true);
       const response = await budgetAPI.getAll();
@@ -71,9 +39,13 @@ export default function Budget() {
     } finally {
       setLoading(false);
     }
+    */
+    // Mock data for now
+    setLoading(false);
   };
 
   const loadTransactions = async () => {
+    /*
     try {
       const response = await transactionAPI.getAll();
       if (response.success) {
@@ -82,7 +54,14 @@ export default function Budget() {
     } catch (err) {
       console.error('Failed to load transactions:', err);
     }
+    */
+    // Mock data for now
   };
+
+  useEffect(() => {
+    loadBudgets();
+    loadTransactions();
+  }, []);
 
   const calculateSpent = (budget) => {
     return transactions
@@ -91,6 +70,8 @@ export default function Budget() {
   };
 
   const onCreateBudget = async (data) => {
+    // TEMPORARILY COMMENTED - Backend integration
+    /*
     try {
       setError(null);
       const budgetData = {
@@ -114,11 +95,15 @@ export default function Budget() {
       console.error('Failed to create budget:', err);
       setError(err.response?.data?.error || err.message || 'Failed to create budget');
     }
+    */
+    setShowModal(false);
+    reset();
   };
 
   const deleteBudget = async (id) => {
     if (!confirm('Are you sure you want to delete this budget?')) return;
-
+    // TEMPORARILY COMMENTED - Backend integration
+    /*
     try {
       await budgetAPI.delete(id);
       setBudgets(budgets.filter(b => b._id !== id && b.id !== id));
@@ -126,6 +111,7 @@ export default function Budget() {
       console.error('Failed to delete budget:', err);
       setError(err.response?.data?.error || err.message || 'Failed to delete budget');
     }
+    */
   };
 
   return (

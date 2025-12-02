@@ -34,6 +34,8 @@ export default function Dashboard() {
   }, [])
 
   const loadDashboardData = async () => {
+    // TEMPORARILY COMMENTED - Backend integration
+    /*
     try {
       setLoading(true)
       setError(null)
@@ -57,6 +59,9 @@ export default function Dashboard() {
     } finally {
       setLoading(false)
     }
+    */
+    // Mock data for now
+    setLoading(false)
   }
 
   /**

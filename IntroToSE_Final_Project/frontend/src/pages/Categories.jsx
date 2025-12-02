@@ -26,6 +26,8 @@ export default function Categories() {
   }, [])
 
   const loadCategories = async () => {
+    // TEMPORARILY COMMENTED - Backend integration
+    /*
     try {
       setLoading(true)
       const response = await categoryAPI.getAll()
@@ -38,9 +40,14 @@ export default function Categories() {
     } finally {
       setLoading(false)
     }
+    */
+    // Mock data for now
+    setLoading(false)
   }
 
   const onSubmit = async (data) => {
+    // TEMPORARILY COMMENTED - Backend integration
+    /*
     try {
       setError(null)
       const categoryData = {
@@ -60,11 +67,15 @@ export default function Categories() {
       console.error('Failed to create category:', err)
       setError(err.response?.data?.error || err.message || 'Failed to create category')
     }
+    */
+    setShowModal(false)
+    reset()
   }
 
   const handleDelete = async (id) => {
     if (!confirm('Are you sure you want to delete this category?')) return
-
+    // TEMPORARILY COMMENTED - Backend integration
+    /*
     try {
       await categoryAPI.delete(id)
       setCategories(categories.filter(c => c._id !== id && c.id !== id))
@@ -72,6 +83,7 @@ export default function Categories() {
       console.error('Failed to delete category:', err)
       setError(err.response?.data?.error || err.message || 'Failed to delete category')
     }
+    */
   }
 
   const incomeCategories = categories.filter(c => c.type === 'income')
