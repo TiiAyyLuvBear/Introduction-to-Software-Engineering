@@ -20,212 +20,67 @@ import { React, useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Facebook, Twitter, Menu, X } from "lucide-react";
 
-export default function Sidebar({ isOpen, setIsOpen }) {
-  // Lấy location hiện tại từ React Router
-  const location = useLocation();
-  useEffect(() => {
-    const handleResize = () => {
-      if (window.innerWidth < 1024) {
-        setIsOpen(false);
-      } else {
-        setIsOpen(true);
-      }
-    };
-
-    handleResize();
-    window.addEventListener("resize", handleResize);
-
-    return () => window.removeEventListener("resize", handleResize);
-  }, [setIsOpen]);
-
-  useEffect(() => {
-    if(window.innerWidth < 1024){
-      setIsOpen(false);
-    }
-  }, [location.pathname, setIsOpen]);
-
-  /**
-   * Danh sách menu items
-   * Mỗi item có:
-   * - path: URL path (ví dụ: /dashboard)
-   * - label: Text hiển thị
-   * - icon: Emoji icon
-   */
+export default function Sidebar({ currentPage, onNavigate, user, onLogout }) {
   const menuItems = [
-    { path: "/dashboard", label: "Dashboard", icon: "📊" },
-    { path: "/transactions", label: "Transactions", icon: "💰" },
-    { path: "/categories", label: "Categories", icon: "📁" },
-    { path: "/accounts", label: "Accounts", icon: "🏦" },
-    { path: "/abouts", label: "Abouts", icon: "ℹ️" },
-    //{ path: "/authenication", label: "Authenication", icon: null},
-    { path: "/groupwallet", label: "Shared Wallet", icon: "😒" },
-  ];
+    { id: 'dashboard', label: 'Dashboard', icon: '📊' },
+    { id: 'transactions', label: 'Transactions', icon: '💰' },
+    { id: 'budget', label: 'Budget', icon: '🎯' },
+    { id: 'saving-goals', label: 'Saving Goals', icon: '🏆' },
+    { id: 'categories', label: 'Categories', icon: '📁' },
+    { id: 'reports', label: 'Reports', icon: '📈' },
+    { id: 'accounts', label: 'Accounts', icon: '🏦' },
+  ]
 
   return (
-    <>
-      {/* Toggle button - Always visible */}
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="fixed top-4 left-4 z-50 p-2 bg-gray-800 text-white rounded-lg hover:bg-gray-700 hover:rounded-lg transition-colors shadow-lg"
-        aria-label="Toggle Sidebar"
-      >
-        {isOpen ? <X size={24} /> : <Menu size={24} />}
-      </button>
+    <aside className="sidebar">
+      <div className="sidebar-header">
+        <h1>💸 Money Lover</h1>
+        <p>Personal Finance Manager</p>
+      </div>
+      <ul className="nav-menu">
+        {menuItems.map(item => (
+          <li
+            key={item.id}
+            className={`nav-item ${currentPage === item.id ? 'active' : ''}`}
+            onClick={() => onNavigate(item.id)}
+          >
+            <span className="nav-icon">{item.icon}</span>
+            <span>{item.label}</span>
+          </li>
+        ))}
 
-      {/* Sidebar - Slide in/out */}
-      <aside
-        className={`fixed left-0 top-0 h-screen bg-gray-800 text-white flex flex-col transition-transform duration-300 ease-in-out z-40 ${
-          isOpen ? "translate-x-0 w-64" : "-translate-x-full w-64"
-        }`}
-      >
-        {/* Header với logo và tagline */}
-        <div className="p-6 pt-20 border-b border-gray-700">
-          <h1 className="text-2xl font-bold mb-2">💸 Money Lover</h1>
-          <p className="text-sm text-gray-400">
-            Introduction to Software Engineering
-          </p>
-        </div>
-
-        {/* Navigation menu */}
-        <nav className="flex-1 py-4 overflow-y-auto">
-          <ul>
-            {menuItems.map((item) => {
-              // Check nếu item hiện tại đang active
-              const isActive = location.pathname === item.path;
-
-              return (
-                <li key={item.path}>
-                  <Link
-                    to={item.path}
-                    className={`px-6 py-3 flex items-center gap-3 transition-colors hover:bg-gray-700 ${
-                      isActive ? "bg-blue-600 text-white rounded-lg" : ""
-                    }`}
-                  >
-                    <span className="text-xl">{item.icon}</span>
-                    <span className="font-medium">{item.label}</span>
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
-        </nav>
-
-        {/* Footer với social links */}
-        <footer className="p-6 border-t border-gray-700 text-sm text-gray-400">
-          <p className="text-center mb-4">Follow us on</p>
-          <div className="flex justify-center gap-4">
-            <a
-              href="https://facebook.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hover:text-blue-500 transition-colors transform hover:scale-150"
-              title="Facebook"
+        {!user && (
+          <>
+            <li
+              className={`nav-item ${currentPage === 'login' ? 'active' : ''}`}
+              onClick={() => onNavigate('login')}
             >
-              <Facebook size={24} />
-            </a>
-            <a
-              href="https://twitter.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hover:text-blue-400 transition-colors transform hover:scale-150"
-              title="Twitter"
+              <span className="nav-icon">🔑</span>
+              <span>Login</span>
+            </li>
+            <li
+              className={`nav-item ${currentPage === 'register' ? 'active' : ''}`}
+              onClick={() => onNavigate('register')}
             >
-              <Twitter size={24} />
-            </a>
+              <span className="nav-icon">📝</span>
+              <span>Register</span>
+            </li>
+          </>
+        )}
+      </ul>
+
+      <div style={{ padding: '20px' }}>
+        {user ? (
+          <div className="nav-item" style={{ cursor: 'pointer' }} onClick={onLogout}>
+            <span className="nav-icon">🔓</span>
+            <span>Logout</span>
           </div>
-        </footer>
-      </aside>
-
-      {/* Overlay khi sidebar mở (trên mobile) */}
-      {isOpen && (
-        <div
-          className="fixed inset-0 bg-black bg-opacity-50 z-30 lg:hidden"
-          onClick={() => setIsOpen(false)}
-        />
-      )}
-    </>
-  );
-    <>
-      {/* Toggle button - Always visible */}
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="fixed top-4 left-4 z-50 p-2 bg-gray-800 text-white rounded-lg hover:bg-gray-700 hover:rounded-lg transition-colors shadow-lg"
-        aria-label="Toggle Sidebar"
-      >
-        {isOpen ? <X size={24} /> : <Menu size={24} />}
-      </button>
-
-      {/* Sidebar - Slide in/out */}
-      <aside
-        className={`fixed left-0 top-0 h-screen bg-gray-800 text-white flex flex-col transition-transform duration-300 ease-in-out z-40 ${
-          isOpen ? "translate-x-0 w-64" : "-translate-x-full w-64"
-        }`}
-      >
-        {/* Header với logo và tagline */}
-        <div className="p-6 pt-20 border-b border-gray-700">
-          <h1 className="text-2xl font-bold mb-2">💸 Money Lover</h1>
-          <p className="text-sm text-gray-400">
-            Introduction to Software Engineering
-          </p>
-        </div>
-
-        {/* Navigation menu */}
-        <nav className="flex-1 py-4 overflow-y-auto">
-          <ul>
-            {menuItems.map((item) => {
-              // Check nếu item hiện tại đang active
-              const isActive = location.pathname === item.path;
-
-              return (
-                <li key={item.path}>
-                  <Link
-                    to={item.path}
-                    className={`px-6 py-3 flex items-center gap-3 transition-colors hover:bg-gray-700 ${
-                      isActive ? "bg-blue-600 text-white rounded-lg" : ""
-                    }`}
-                  >
-                    <span className="text-xl">{item.icon}</span>
-                    <span className="font-medium">{item.label}</span>
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
-        </nav>
-
-        {/* Footer với social links */}
-        <footer className="p-6 border-t border-gray-700 text-sm text-gray-400">
-          <p className="text-center mb-4">Follow us on</p>
-          <div className="flex justify-center gap-4">
-            <a
-              href="https://facebook.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hover:text-blue-500 transition-colors transform hover:scale-150"
-              title="Facebook"
-            >
-              <Facebook size={24} />
-            </a>
-            <a
-              href="https://twitter.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hover:text-blue-400 transition-colors transform hover:scale-150"
-              title="Twitter"
-            >
-              <Twitter size={24} />
-            </a>
+        ) : (
+          <div style={{ color: '#95a5a6', fontSize: 13 }}>
+            <div>Not signed in</div>
           </div>
-        </footer>
-      </aside>
-
-      {/* Overlay khi sidebar mở (trên mobile) */}
-      {isOpen && (
-        <div
-          className="fixed inset-0 bg-black bg-opacity-50 z-30 lg:hidden"
-          onClick={() => setIsOpen(false)}
-        />
-      )}
-    </>
-  );
+        )}
+      </div>
+    </aside>
+  )
 }

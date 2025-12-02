@@ -1,181 +1,267 @@
-import React, {useState} from 'react'
-
-const mockAccounts = [
-  { id: 1, name: 'Cash', balance: 500, currency: 'USD', icon: '💵' },
-  { id: 2, name: 'Bank Account', balance: 12500, currency: 'USD', icon: '🏦' },
-  { id: 3, name: 'Credit Card', balance: -450, currency: 'USD', icon: '💳' },
-  { id: 4, name: 'Savings', balance: 25000, currency: 'USD', icon: '🐷' },
-]
+import React, { useEffect, useState } from 'react'
 
 export default function Accounts() {
-  const [accounts, setAccounts] = useState(mockAccounts)
-  const [showModal, setShowModal] = useState(false)
-  const [formData, setFormData] = useState({
-    name: '',
-    balance: '',
-    currency: 'USD',
-    icon: '🏦'
+  // current user (in a real app this comes from auth)
+  const [currentUser] = useState(() => {
+    return localStorage.getItem('currentUserEmail') || 'you@example.com'
   })
 
-  const handleSubmit = (e) => {
-    e.preventDefault()
-    const newAccount = {
-      id: Date.now(),
-      ...formData,
-      balance: parseFloat(formData.balance)
+  const [wallets, setWallets] = useState([])
+  const [showCreate, setShowCreate] = useState(false)
+  const [createForm, setCreateForm] = useState({ name: '', type: 'private', balance: '', currency: 'USD', icon: '🏦' })
+  const [selectedWallet, setSelectedWallet] = useState(null)
+  const [inviteEmail, setInviteEmail] = useState('')
+  const [memberError, setMemberError] = useState(null)
+
+  useEffect(() => {
+    const saved = localStorage.getItem('wallets_demo')
+    if (saved) {
+      try { setWallets(JSON.parse(saved)) } catch (e) { setWallets([]) }
+    } else {
+      // seed a demo wallet
+      const demo = [
+        {
+          id: 'w1',
+          name: 'Personal Cash',
+          type: 'private',
+          balance: 500,
+          currency: 'USD',
+          icon: '💵',
+          members: [{ email: 'you@example.com', role: 'owner' }]
+        },
+        {
+          id: 'w2',
+          name: 'Household',
+          type: 'group',
+          balance: 1200,
+          currency: 'USD',
+          icon: '🏠',
+          members: [{ email: 'you@example.com', role: 'owner' }, { email: 'alice@example.com', role: 'edit' }, { email: 'bob@example.com', role: 'view' }]
+        }
+      ]
+      setWallets(demo)
+      localStorage.setItem('wallets_demo', JSON.stringify(demo))
     }
-    setAccounts([...accounts, newAccount])
-    setShowModal(false)
-    setFormData({ name: '', balance: '', currency: 'USD', icon: '🏦' })
+  }, [])
+
+  useEffect(() => {
+    localStorage.setItem('wallets_demo', JSON.stringify(wallets))
+  }, [wallets])
+
+  const totalBalance = wallets.reduce((sum, w) => sum + (Number(w.balance) || 0), 0)
+
+  const handleCreate = (e) => {
+    e.preventDefault()
+    const newWallet = {
+      id: 'w_' + Date.now(),
+      name: createForm.name || 'New Wallet',
+      type: createForm.type,
+      balance: parseFloat(createForm.balance) || 0,
+      currency: createForm.currency,
+      icon: createForm.icon || '🏦',
+      members: [{ email: currentUser, role: 'owner' }]
+    }
+    setWallets(prev => [newWallet, ...prev])
+    setCreateForm({ name: '', type: 'private', balance: '', currency: 'USD', icon: '🏦' })
+    setShowCreate(false)
   }
 
-  const handleDelete = (id) => {
-    setAccounts(accounts.filter(a => a.id !== id))
+  const openMembers = (wallet) => {
+    setSelectedWallet(wallet)
+    setInviteEmail('')
+    setMemberError(null)
   }
 
-  const totalBalance = accounts.reduce((sum, acc) => sum + acc.balance, 0)
+  const closeMembers = () => setSelectedWallet(null)
+
+  const inviteMember = () => {
+    setMemberError(null)
+    const email = (inviteEmail || '').trim().toLowerCase()
+    if (!email) return setMemberError('Enter an email to invite')
+    if (!/\S+@\S+\.\S+/.test(email)) return setMemberError('Enter a valid email')
+    setWallets(prev => prev.map(w => {
+      if (w.id !== selectedWallet.id) return w
+      if (w.members.find(m => m.email === email)) return w
+      return { ...w, members: [...w.members, { email, role: 'view' }] }
+    }))
+    setInviteEmail('')
+  }
+
+  const changeMemberRole = (walletId, memberEmail, role) => {
+    setWallets(prev => prev.map(w => {
+      if (w.id !== walletId) return w
+      return { ...w, members: w.members.map(m => m.email === memberEmail ? { ...m, role } : m) }
+    }))
+  }
+
+  const removeMember = (walletId, memberEmail) => {
+    setWallets(prev => prev.map(w => {
+      if (w.id !== walletId) return w
+      return { ...w, members: w.members.filter(m => m.email !== memberEmail) }
+    }))
+    if (selectedWallet && selectedWallet.id === walletId) {
+      setSelectedWallet(prev => ({ ...prev, members: prev.members.filter(m => m.email !== memberEmail) }))
+    }
+  }
+
+  const leaveWallet = (walletId) => {
+    const w = wallets.find(x => x.id === walletId)
+    if (!w) return
+    const me = currentUser
+    const imOwner = w.members.find(m => m.email === me && m.role === 'owner')
+    if (imOwner) {
+      // owner cannot leave; suggest delete instead
+      if (!confirm('You are the owner. Delete the wallet instead to remove yourself, or transfer ownership by adjusting members. Delete wallet?')) return
+      // delete wallet
+      setWallets(prev => prev.filter(x => x.id !== walletId))
+      return
+    }
+    // remove member
+    removeMember(walletId, me)
+  }
+
+  const deleteWallet = (walletId) => {
+    if (!confirm('Delete this wallet? This action cannot be undone.')) return
+    setWallets(prev => prev.filter(w => w.id !== walletId))
+    if (selectedWallet && selectedWallet.id === walletId) setSelectedWallet(null)
+  }
 
   return (
-    <div className="max-w-7xl mx-auto">
-      <div className="mb-8">
-        <h2 className="text-3xl font-bold text-gray-800 mb-2">Accounts</h2>
-        <p className="text-gray-600">Manage your accounts and wallets</p>
+    <div>
+      <div className="page-header">
+        <h2>Wallets</h2>
+        <p>Create group or private wallets and manage members</p>
       </div>
 
-      <div className="bg-white rounded-lg shadow-md p-6 mb-8 max-w-md">
-        <div className="flex justify-between items-center mb-4">
-          <span className="text-gray-600 font-medium">Total Balance</span>
-          <span className="text-2xl">💰</span>
+      <div className="card" style={{marginBottom: '30px', maxWidth: '480px'}}>
+        <div className="card-header">
+          <span className="card-title">Total Balance</span>
+          <span className="card-icon">💰</span>
         </div>
-        <div className="text-3xl font-bold text-primary mb-2">${totalBalance.toFixed(2)}</div>
-        <div className="text-sm text-gray-500">Across {accounts.length} accounts</div>
+        <div className="card-amount balance">${totalBalance.toFixed(2)}</div>
+        <div className="card-change">Across {wallets.length} wallets</div>
       </div>
 
-      <button 
-        className="bg-primary text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-600 transition-colors mb-6"
-        onClick={() => setShowModal(true)}
-      >
-        ➕ Add Account
-      </button>
+      <button className="btn btn-primary" onClick={() => setShowCreate(true)}>➕ Create Wallet</button>
 
-      <div className="bg-white rounded-lg shadow-md">
-        {accounts.length === 0 ? (
-          <div className="text-center py-16">
-            <div className="text-6xl mb-4">🏦</div>
-            <h3 className="text-xl font-bold text-gray-800 mb-2">No accounts yet</h3>
-            <p className="text-gray-600">Click "Add Account" to get started</p>
+      <div style={{marginTop:20}} className="account-list">
+        {wallets.length === 0 ? (
+          <div className="empty-state">
+            <div className="empty-state-icon">🏦</div>
+            <h3>No wallets yet</h3>
+            <p>Create a wallet to get started</p>
           </div>
         ) : (
-          <div className="divide-y divide-gray-200">
-            {accounts.map(account => (
-              <div key={account.id} className="px-6 py-5 flex justify-between items-center hover:bg-gray-50 transition-colors">
-                <div>
-                  <h4 className="text-lg font-bold text-gray-800 mb-1">
-                    <span className="mr-3 text-2xl">{account.icon}</span>
-                    {account.name}
-                  </h4>
-                  <p className="text-sm text-gray-500 ml-11">{account.currency}</p>
-                </div>
-                <div className="flex items-center gap-6">
-                  <div 
-                    className="text-2xl font-bold"
-                    style={{color: account.balance >= 0 ? '#3498db' : '#e74c3c'}}
-                  >
-                    ${account.balance.toFixed(2)}
-                  </div>
-                  <button 
-                    className="bg-danger text-white px-4 py-2 rounded hover:bg-red-600 transition-colors text-sm"
-                    onClick={() => handleDelete(account.id)}
-                  >
-                    🗑️ Delete
-                  </button>
-                </div>
+          wallets.map(wallet => (
+            <div key={wallet.id} className="account-item">
+              <div className="account-info">
+                <h4>
+                  <span style={{marginRight: '10px', fontSize: '24px'}}>{wallet.icon}</span>
+                  {wallet.name} {wallet.type === 'group' && <small style={{marginLeft:8, color:'#666'}}>(group)</small>}
+                </h4>
+                <p>{wallet.currency} • {wallet.members.length} members</p>
               </div>
-            ))}
-          </div>
+              <div style={{display: 'flex', alignItems: 'center', gap: '12px'}}>
+                <div className="account-balance" style={{color: wallet.balance >= 0 ? '#3498db' : '#e74c3c'}}>${(Number(wallet.balance) || 0).toFixed(2)}</div>
+                <button className="btn" onClick={() => openMembers(wallet)}>👥 Members</button>
+                <button className="btn btn-secondary" onClick={() => leaveWallet(wallet.id)}>↩️ Leave</button>
+                <button className="btn btn-danger" onClick={() => deleteWallet(wallet.id)}>🗑️ Delete</button>
+              </div>
+            </div>
+          ))
         )}
       </div>
 
-      {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => setShowModal(false)}>
-          <div className="bg-white rounded-lg w-full max-w-md mx-4" onClick={(e) => e.stopPropagation()}>
-            <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
-              <h3 className="text-xl font-bold text-gray-800">Add Account</h3>
-              <button 
-                className="text-gray-500 hover:text-gray-700 text-3xl leading-none"
-                onClick={() => setShowModal(false)}
-              >
-                ×
-              </button>
+      {showCreate && (
+        <div className="modal-overlay" onClick={() => setShowCreate(false)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Create Wallet</h3>
+              <button className="close-btn" onClick={() => setShowCreate(false)}>×</button>
             </div>
-            <form onSubmit={handleSubmit} className="p-6">
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">Account Name</label>
-                <input
-                  type="text"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                  value={formData.name}
-                  onChange={(e) => setFormData({...formData, name: e.target.value})}
-                  required
-                  placeholder="e.g., Cash, Bank Account, Credit Card"
-                />
+            <form onSubmit={handleCreate}>
+              <div className="form-group">
+                <label>Wallet Name</label>
+                <input type="text" className="form-control" required value={createForm.name} onChange={e => setCreateForm({...createForm, name: e.target.value})} />
               </div>
-
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">Initial Balance</label>
-                <input
-                  type="number"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                  value={formData.balance}
-                  onChange={(e) => setFormData({...formData, balance: e.target.value})}
-                  required
-                  step="0.01"
-                  placeholder="0.00"
-                />
+              <div className="form-group">
+                <label>Type</label>
+                <select className="form-control" value={createForm.type} onChange={e => setCreateForm({...createForm, type: e.target.value})}>
+                  <option value="private">Private (only you)</option>
+                  <option value="group">Group (invite members)</option>
+                </select>
               </div>
-
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">Currency</label>
-                <select
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                  value={formData.currency}
-                  onChange={(e) => setFormData({...formData, currency: e.target.value})}
-                >
+              <div className="form-group">
+                <label>Initial Balance</label>
+                <input type="number" className="form-control" value={createForm.balance} onChange={e => setCreateForm({...createForm, balance: e.target.value})} step="0.01" />
+              </div>
+              <div className="form-group">
+                <label>Currency</label>
+                <select className="form-control" value={createForm.currency} onChange={e => setCreateForm({...createForm, currency: e.target.value})}>
                   <option>USD</option>
                   <option>VND</option>
                   <option>EUR</option>
                   <option>GBP</option>
                 </select>
               </div>
-
-              <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-700 mb-2">Icon (Emoji)</label>
-                <input
-                  type="text"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                  value={formData.icon}
-                  onChange={(e) => setFormData({...formData, icon: e.target.value})}
-                  placeholder="🏦"
-                  maxLength="2"
-                />
+              <div className="form-group">
+                <label>Icon</label>
+                <input type="text" className="form-control" value={createForm.icon} onChange={e => setCreateForm({...createForm, icon: e.target.value})} />
               </div>
 
-              <div className="flex gap-3">
-                <button 
-                  type="submit" 
-                  className="flex-1 bg-primary text-white py-3 rounded-lg font-medium hover:bg-blue-600 transition-colors"
-                >
-                  Save Account
-                </button>
-                <button 
-                  type="button" 
-                  className="flex-1 bg-gray-200 text-gray-700 py-3 rounded-lg font-medium hover:bg-gray-300 transition-colors"
-                  onClick={() => setShowModal(false)}
-                >
-                  Cancel
-                </button>
+              <div className="form-actions">
+                <button type="submit" className="btn btn-primary">Create</button>
+                <button type="button" className="btn btn-secondary" onClick={() => setShowCreate(false)}>Cancel</button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {selectedWallet && (
+        <div className="modal-overlay" onClick={closeMembers}>
+          <div className="modal" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Members — {selectedWallet.name}</h3>
+              <button className="close-btn" onClick={closeMembers}>×</button>
+            </div>
+
+            <div style={{marginBottom: 12}}>
+              <label>Invite Member</label>
+              <div style={{display:'flex', gap:8}}>
+                <input className="form-control" placeholder="email@example.com" value={inviteEmail} onChange={e => setInviteEmail(e.target.value)} />
+                <button className="btn btn-primary" onClick={inviteMember}>Invite</button>
+              </div>
+              {memberError && <div className="msg error" style={{marginTop:8}}>{memberError}</div>}
+            </div>
+
+            <div>
+              <h4>Members</h4>
+              <ul style={{paddingLeft:0, listStyle:'none'}}>
+                {selectedWallet.members.map(m => (
+                  <li key={m.email} style={{display:'flex', alignItems:'center', justifyContent:'space-between', padding:'8px 0', borderBottom:'1px solid #eee'}}>
+                    <div>
+                      <div style={{fontWeight:700}}>{m.email} {m.email === currentUser && <small style={{color:'#666'}}> (you)</small>}</div>
+                      <div style={{color:'#666'}}>{m.role}</div>
+                    </div>
+                    <div style={{display:'flex', gap:8, alignItems:'center'}}>
+                      <select value={m.role} onChange={e => changeMemberRole(selectedWallet.id, m.email, e.target.value)}>
+                        <option value="view">View</option>
+                        <option value="edit">Edit</option>
+                        <option value="owner" disabled>Owner</option>
+                      </select>
+                      {m.email !== currentUser && selectedWallet.members.find(x => x.email === currentUser && x.role === 'owner') && (
+                        <button className="btn btn-danger" onClick={() => removeMember(selectedWallet.id, m.email)}>Remove</button>
+                      )}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <div style={{marginTop:12}}>
+              <button className="btn btn-secondary" onClick={() => { closeMembers(); }}>Close</button>
+            </div>
           </div>
         </div>
       )}

@@ -97,3 +97,23 @@ export async function deleteTransaction(req, res){
     res.status(500).json({error: 'Server error'})
   }
 }
+
+export async function updateTransaction(req, res){
+  try{
+    const { id } = req.params
+    const { amount, type, category, account, date, note } = req.body
+    if(typeof amount !== 'number' || !['income','expense'].includes(type)){
+      return res.status(400).json({error: 'Invalid payload'})
+    }
+    const updated = await Transaction.findByIdAndUpdate(
+      id,
+      { amount, type, category, account, date, note },
+      { new: true }
+    )
+    if(!updated) return res.status(404).json({error: 'Not found'})
+    res.json(updated)
+  }catch(err){
+    console.error(err)
+    res.status(500).json({error: 'Server error'})
+  }
+}

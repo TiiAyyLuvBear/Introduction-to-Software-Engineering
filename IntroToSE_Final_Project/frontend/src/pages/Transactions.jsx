@@ -1,47 +1,12 @@
-/**
- * Transactions Page - Quản lý giao dịch thu/chi
- * 
- * Features:
- * 1. Hiển thị danh sách tất cả transactions (scrollable)
- * 2. Nút "Add Transaction" mở modal form
- * 3. Modal form với các fields:
- *    - Type toggle: Income/Expense
- *    - Category (text input)
- *    - Amount (number)
- *    - Date (date picker)
- *    - Account (dropdown)
- *    - Note (textarea - optional)
- * 4. Nút Delete cho mỗi transaction
- * 
- * State:
- * - transactions: Danh sách tất cả transactions
- * - showModal: Boolean để show/hide form modal
- * - formData: Object chứa data của form
- * 
- * TODO:
- * - Connect API: POST /api/transactions, DELETE /api/transactions/:id
- * - Validation: amount > 0, category required
- * - Filter: Theo type, category, date range
- * - Pagination hoặc infinite scroll
- */
-import React, {useState} from 'react'
-
-// Mock data (thay bằng API call sau)
-const mockTransactions = [
-  { id: 1, category: 'Salary', type: 'income', amount: 5000, date: '2025-11-01', note: 'Monthly salary', account: 'Bank Account' },
-  { id: 2, category: 'Groceries', type: 'expense', amount: 150, date: '2025-11-05', note: 'Weekly shopping', account: 'Credit Card' },
-  { id: 3, category: 'Restaurant', type: 'expense', amount: 45, date: '2025-11-07', note: 'Dinner with friends', account: 'Cash' },
-  { id: 4, category: 'Freelance', type: 'income', amount: 800, date: '2025-11-08', note: 'Web design project', account: 'Bank Account' },
-  { id: 5, category: 'Transportation', type: 'expense', amount: 60, date: '2025-11-09', note: 'Gas and parking', account: 'Credit Card' },
-  { id: 6, category: 'Utilities', type: 'expense', amount: 120, date: '2025-11-03', note: 'Electricity bill', account: 'Bank Account' },
-  { id: 7, category: 'Shopping', type: 'expense', amount: 200, date: '2025-11-06', note: 'New clothes', account: 'Credit Card' },
-]
+import React, {useState, useEffect} from 'react'
+import api from '../api'
 
 export default function Transactions() {
-  // State: Danh sách transactions (local, sẽ sync với API sau)
-  const [transactions, setTransactions] = useState(mockTransactions)
-  
-  // State: Show/hide modal
+  // Toggle this to `true` when backend is ready. For now the UI works fully client-side.
+  const useBackend = false
+
+  const [transactions, setTransactions] = useState([])
+  const [loading, setLoading] = useState(false)
   const [showModal, setShowModal] = useState(false)
   
   /**
@@ -59,48 +24,156 @@ export default function Transactions() {
     note: '',
     account: 'Cash'
   })
+  const [isEditing, setIsEditing] = useState(false)
+  const [editingId, setEditingId] = useState(null)
+  const [error, setError] = useState(null)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [isSearching, setIsSearching] = useState(false)
+  const [showTransfer, setShowTransfer] = useState(false)
+  const [transferData, setTransferData] = useState({
+    from: 'Bank Account',
+    to: 'Cash',
+    amount: '',
+    date: new Date().toISOString().split('T')[0],
+    note: ''
+  })
+  const [selectedTransaction, setSelectedTransaction] = useState(null)
+  const [detailsNote, setDetailsNote] = useState('')
 
-  /**
-   * Handler: Submit form (thêm transaction mới)
-   * 
-   * Flow:
-   * 1. Prevent default form submission
-   * 2. Tạo object transaction mới với unique ID
-   * 3. Parse amount từ string sang number
-   * 4. Thêm vào đầu array (unshift) để hiển thị mới nhất trước
-   * 5. Đóng modal và reset form
-   * 
-   * TODO: Gọi API POST /api/transactions thay vì update local state
-   */
-  const handleSubmit = (e) => {
-    e.preventDefault()
-    const newTx = {
-      id: Date.now(),  // Temporary ID (API sẽ generate ObjectId thực)
-      ...formData,
-      amount: parseFloat(formData.amount)  // Convert string to number
+  useEffect(() => {
+    if (useBackend) {
+      const fetchTx = async () => {
+        setLoading(true)
+        try {
+          const res = await api.get('/transactions')
+          setTransactions(res.data)
+        } catch (err) {
+          setError(err.message || 'Failed to load transactions')
+        } finally {
+          setLoading(false)
+        }
+      }
+      fetchTx()
+    } else {
+      // Load from localStorage or use a small demo set
+      const saved = localStorage.getItem('transactions_demo')
+      if (saved) {
+        try { setTransactions(JSON.parse(saved)) } catch(e) { setTransactions([]) }
+      } else {
+        const demo = [
+          { _id: 't1', category: 'Salary', type: 'income', amount: 5000, date: '2025-11-01', note: 'Monthly salary', account: 'Bank Account' },
+          { _id: 't2', category: 'Groceries', type: 'expense', amount: 150, date: '2025-11-05', note: 'Weekly shopping', account: 'Credit Card' }
+        ]
+        setTransactions(demo)
+        localStorage.setItem('transactions_demo', JSON.stringify(demo))
+      }
     }
-    setTransactions([newTx, ...transactions])  // Thêm vào đầu array
-    setShowModal(false)
-    
-    // Reset form về default
-    setFormData({
-      type: 'expense',
-      category: '',
-      amount: '',
-      date: new Date().toISOString().split('T')[0],
-      note: '',
-      account: 'Cash'
-    })
+  }, [])
+
+  // If backend is enabled, allow searching via query param (debounced)
+  useEffect(() => {
+    if (!useBackend) return
+    let mounted = true
+    let t = null
+    const doSearch = async () => {
+      setIsSearching(true)
+      try {
+        const res = await api.get('/transactions', { params: { q: searchTerm } })
+        if (mounted) setTransactions(res.data)
+      } catch (err) {
+        if (mounted) setError(err.message || 'Search failed')
+      } finally {
+        if (mounted) setIsSearching(false)
+      }
+    }
+    // debounce
+    t = setTimeout(() => doSearch(), 300)
+    return () => { mounted = false; clearTimeout(t) }
+  }, [searchTerm])
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    setError(null)
+    const payload = {
+      amount: parseFloat(formData.amount),
+      type: formData.type,
+      category: formData.category,
+      account: formData.account,
+      date: formData.date,
+      note: formData.note
+    }
+    try {
+      if (useBackend) {
+        if (isEditing && editingId) {
+          const res = await api.put(`/transactions/${editingId}`, payload)
+          setTransactions(prev => prev.map(t => t._id === res.data._id ? res.data : t))
+        } else {
+          const res = await api.post('/transactions', payload)
+          // prepend the created transaction returned by backend
+          setTransactions(prev => [res.data, ...prev])
+        }
+      } else {
+        // Client-side demo flow: create or update locally and persist to localStorage
+        if (isEditing && editingId) {
+          const updated = { ...payload, _id: editingId }
+          setTransactions(prev => {
+            const next = prev.map(t => t._id === editingId ? updated : t)
+            localStorage.setItem('transactions_demo', JSON.stringify(next))
+            return next
+          })
+        } else {
+          const newTx = { ...payload, _id: 'tx_' + Date.now() }
+          setTransactions(prev => {
+            const next = [newTx, ...prev]
+            localStorage.setItem('transactions_demo', JSON.stringify(next))
+            return next
+          })
+        }
+      }
+      setShowModal(false)
+      setFormData({
+        type: 'expense',
+        category: '',
+        amount: '',
+        date: new Date().toISOString().split('T')[0],
+        note: '',
+        account: 'Cash'
+      })
+      setIsEditing(false)
+      setEditingId(null)
+    } catch (err) {
+      setError(err.response?.data?.error || err.message || 'Failed to save transaction')
+    }
   }
 
-  /**
-   * Handler: Xóa transaction
-   * 
-   * Filter out transaction có id trùng
-   * TODO: Gọi API DELETE /api/transactions/:id
-   */
-  const handleDelete = (id) => {
-    setTransactions(transactions.filter(t => t.id !== id))
+  const handleDelete = async (id) => {
+    setError(null)
+    try {
+      if (useBackend) {
+        await api.delete(`/transactions/${id}`)
+        setTransactions(prev => prev.filter(t => t._id !== id))
+      } else {
+        const next = transactions.filter(t => t._id !== id)
+        setTransactions(next)
+        localStorage.setItem('transactions_demo', JSON.stringify(next))
+      }
+    } catch (err) {
+      setError(err.response?.data?.error || err.message || 'Failed to delete')
+    }
+  }
+
+  const handleEdit = (tx) => {
+    setFormData({
+      type: tx.type || 'expense',
+      category: tx.category || '',
+      amount: (tx.amount || 0).toString(),
+      date: tx.date ? new Date(tx.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+      note: tx.note || '',
+      account: tx.account || 'Cash'
+    })
+    setIsEditing(true)
+    setEditingId(tx._id)
+    setShowModal(true)
   }
 
   return (
@@ -117,55 +190,157 @@ export default function Transactions() {
         ➕ Add Transaction
       </button>
 
-      <div className="bg-white rounded-lg shadow-md">
-        <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
-          <h3 className="text-xl font-bold text-gray-800">All Transactions</h3>
-          <span className="text-gray-600">{transactions.length} transactions</span>
+      <button className="btn" style={{marginLeft:8}} onClick={() => setShowTransfer(true)}>🔁 Transfer</button>
+
+      <div style={{display:'inline-block', marginLeft:12}}>
+        <input
+          type="search"
+          className="form-control"
+          placeholder="Search transactions..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          style={{minWidth: 240}}
+        />
+      </div>
+
+      <div className="transaction-list" style={{marginTop: '20px'}}>
+        <div className="list-header">
+          <h3>All Transactions</h3>
+          <span>{transactions.length} transactions{isSearching ? ' (searching...)' : ''}</span>
         </div>
-        {transactions.length === 0 ? (
-          <div className="text-center py-16">
-            <div className="text-6xl mb-4">💸</div>
-            <h3 className="text-xl font-bold text-gray-800 mb-2">No transactions yet</h3>
-            <p className="text-gray-600">Click "Add Transaction" to get started</p>
+        {loading || isSearching ? (
+          <p>Loading transactions...</p>
+        ) : (transactions.length === 0) ? (
+          <div className="empty-state">
+            <div className="empty-state-icon">💸</div>
+            <h3>No transactions yet</h3>
+            <p>Click "Add Transaction" to get started</p>
           </div>
         ) : (
-          <div className="divide-y divide-gray-200">
-            {transactions.map(tx => (
-              <div key={tx.id} className="px-6 py-4 flex justify-between items-center hover:bg-gray-50 transition-colors">
-                <div className="flex items-center gap-4">
-                  <div className={`w-12 h-12 rounded-full flex items-center justify-center text-xl ${
-                    tx.type === 'income' ? 'bg-green-100' : 'bg-red-100'
-                  }`}>
-                    {tx.type === 'income' ? '💰' : '💸'}
-                  </div>
-                  <div>
-                    <div className="font-semibold text-gray-800">{tx.category}</div>
-                    <div className="text-sm text-gray-500">{tx.note} • {tx.account}</div>
-                  </div>
+          // apply client-side filtering when backend is not used
+          (() => {
+            const term = searchTerm.trim().toLowerCase()
+            const filtered = term === '' ? transactions : transactions.filter(tx => {
+              const s = [tx.category, tx.note, tx.account, tx.type, String(tx.amount), new Date(tx.date).toLocaleDateString()].join(' ').toLowerCase()
+              return s.indexOf(term) !== -1
+            })
+            if (filtered.length === 0) {
+              return (
+                <div className="empty-state">
+                  <div className="empty-state-icon">🔎</div>
+                  <h3>No matching transactions</h3>
+                  <p>Try a different search or clear the filter.</p>
                 </div>
-                <div className="text-right flex items-center gap-4">
-                  <div>
-                    <div className={`text-lg font-bold ${
-                      tx.type === 'income' ? 'text-success' : 'text-danger'
-                    }`}>
-                      {tx.type === 'expense' ? '-' : '+'}${tx.amount.toFixed(2)}
-                    </div>
-                    <div className="text-sm text-gray-500">
-                      {new Date(tx.date).toLocaleDateString()}
-                    </div>
-                  </div>
-                  <button 
-                    className="bg-danger text-white px-3 py-1 rounded text-sm hover:bg-red-600 transition-colors"
-                    onClick={() => handleDelete(tx.id)}
-                  >
-                    🗑️
-                  </button>
+              )
+            }
+
+            return filtered.map(tx => (
+            <div key={tx._id} className="transaction-item" onClick={() => { setSelectedTransaction(tx); setDetailsNote(tx.detailsNote || ''); }}>
+              <div className="transaction-left">
+                <div className={`transaction-icon-circle ${tx.type}`}>
+                  {tx.type === 'income' ? '💰' : '💸'}
+                </div>
+                <div className="transaction-info">
+                  <div className="transaction-category">{tx.category}</div>
+                  <div className="transaction-note">{tx.note} • {tx.account}</div>
                 </div>
               </div>
-            ))}
-          </div>
+              <div className="transaction-right">
+                <div className={`transaction-amount ${tx.type}`}>
+                  {tx.type === 'expense' ? '-' : '+'}${tx.amount.toFixed(2)}
+                </div>
+                <div className="transaction-date">
+                  {new Date(tx.date).toLocaleDateString()}
+                </div>
+                <div style={{display:'flex', gap:8, marginTop:8}}>
+                  <button className="btn btn-secondary" style={{padding:'4px 8px', fontSize:12}} onClick={(e) => { e.stopPropagation(); handleEdit(tx) }}>✏️ Edit</button>
+                  <button className="btn btn-danger" style={{padding:'4px 8px', fontSize:12}} onClick={(e) => { e.stopPropagation(); handleDelete(tx._id) }}>🗑️ Delete</button>
+                </div>
+              </div>
+            </div>
+            ))
+          })()
         )}
+        {error && <div className="msg error" style={{marginTop:12}}>{error}</div>}
       </div>
+
+      {selectedTransaction && (
+        <div className="modal-overlay" onClick={() => setSelectedTransaction(null)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Transaction Details</h3>
+              <button className="close-btn" onClick={() => setSelectedTransaction(null)}>×</button>
+            </div>
+
+            <div style={{marginBottom: '20px'}}>
+              <div style={{display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px'}}>
+                <div className={`transaction-icon-circle ${selectedTransaction.type}`} style={{fontSize: '28px'}}>
+                  {selectedTransaction.type === 'income' ? '💰' : '💸'}
+                </div>
+                <div>
+                  <div style={{fontSize: '14px', color: '#7f8c8d'}}>
+                    {selectedTransaction.type === 'expense' ? 'Expense' : 'Income'}
+                  </div>
+                  <div style={{fontSize: '28px', fontWeight: 'bold', color: selectedTransaction.type === 'expense' ? '#e74c3c' : '#27ae60'}}>
+                    {selectedTransaction.type === 'expense' ? '-' : '+'}${selectedTransaction.amount.toFixed(2)}
+                  </div>
+                </div>
+              </div>
+
+              <div style={{backgroundColor: '#f8f9fa', padding: '16px', borderRadius: '8px', marginBottom: '16px'}}>
+                <div style={{marginBottom: '12px'}}>
+                  <div style={{fontSize: '12px', color: '#7f8c8d', marginBottom: '4px'}}>Category</div>
+                  <div style={{fontWeight: '600'}}>{selectedTransaction.category}</div>
+                </div>
+                <div style={{marginBottom: '12px'}}>
+                  <div style={{fontSize: '12px', color: '#7f8c8d', marginBottom: '4px'}}>Account</div>
+                  <div style={{fontWeight: '600'}}>{selectedTransaction.account}</div>
+                </div>
+                <div style={{marginBottom: '12px'}}>
+                  <div style={{fontSize: '12px', color: '#7f8c8d', marginBottom: '4px'}}>Date</div>
+                  <div style={{fontWeight: '600'}}>{new Date(selectedTransaction.date).toLocaleDateString()}</div>
+                </div>
+                <div>
+                  <div style={{fontSize: '12px', color: '#7f8c8d', marginBottom: '4px'}}>Note</div>
+                  <div style={{fontWeight: '600'}}>{selectedTransaction.note || 'No note'}</div>
+                </div>
+              </div>
+
+              <div style={{marginBottom: '16px'}}>
+                <label style={{display: 'block', marginBottom: '8px', fontWeight: '600'}}>Details & Notes</label>
+                <textarea
+                  className="form-control"
+                  value={detailsNote}
+                  onChange={(e) => setDetailsNote(e.target.value)}
+                  rows="4"
+                  placeholder="Add details, receipt info, or repeat instructions here..."
+                />
+              </div>
+
+              <div style={{display: 'flex', gap: '8px'}}>
+                <button
+                  className="btn btn-primary"
+                  onClick={() => {
+                    const updated = {...selectedTransaction, detailsNote}
+                    const next = transactions.map(t => t._id === updated._id ? updated : t)
+                    setTransactions(next)
+                    localStorage.setItem('transactions_demo', JSON.stringify(next))
+                    setSelectedTransaction(null)
+                  }}
+                >
+                  💾 Save Details
+                </button>
+                <button
+                  className="btn btn-secondary"
+                  onClick={() => setSelectedTransaction(null)}
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => setShowModal(false)}>
@@ -280,6 +455,198 @@ export default function Transactions() {
                 >
                   Cancel
                 </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {showTransfer && (
+        <div className="modal-overlay" onClick={() => setShowTransfer(false)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Transfer Funds</h3>
+              <button className="close-btn" onClick={() => setShowTransfer(false)}>×</button>
+            </div>
+            <form onSubmit={async (e) => {
+              e.preventDefault()
+              setError(null)
+              const amt = parseFloat(transferData.amount)
+              if (!amt || amt <= 0) return setError('Enter a valid amount for transfer')
+              if (transferData.from === transferData.to) return setError('Select different source and destination accounts')
+
+              // Create two transactions: expense from source, income to destination
+              const txFrom = {
+                _id: 'tx_' + Date.now() + '_from',
+                amount: amt,
+                type: 'expense',
+                category: `Transfer to ${transferData.to}`,
+                account: transferData.from,
+                date: transferData.date,
+                note: transferData.note || `Transfer to ${transferData.to}`
+              }
+              const txTo = {
+                _id: 'tx_' + (Date.now()+1) + '_to',
+                amount: amt,
+                type: 'income',
+                category: `Transfer from ${transferData.from}`,
+                account: transferData.to,
+                date: transferData.date,
+                note: transferData.note || `Transfer from ${transferData.from}`
+              }
+
+              try {
+                if (useBackend) {
+                  // backend approach: post two transactions (or implement a /transfer endpoint server-side)
+                  await api.post('/transactions', {...txFrom, amount: txFrom.amount})
+                  await api.post('/transactions', {...txTo, amount: txTo.amount})
+                  // re-fetch or optimistically insert
+                  const res = await api.get('/transactions')
+                  setTransactions(res.data)
+                } else {
+                  // client-side: persist both transactions in localStorage
+                  const next = [txTo, txFrom, ...transactions]
+                  setTransactions(next)
+                  localStorage.setItem('transactions_demo', JSON.stringify(next))
+                }
+                setShowTransfer(false)
+                setTransferData({from: 'Bank Account', to: 'Cash', amount: '', date: new Date().toISOString().split('T')[0], note: ''})
+              } catch (err) {
+                setError(err.response?.data?.error || err.message || 'Transfer failed')
+              }
+            }}>
+              <div className="form-group">
+                <label>From (source)</label>
+                <select className="form-control" value={transferData.from} onChange={e => setTransferData({...transferData, from: e.target.value})}>
+                  <option>Cash</option>
+                  <option>Bank Account</option>
+                  <option>Credit Card</option>
+                </select>
+              </div>
+
+              <div className="form-group">
+                <label>To (destination)</label>
+                <select className="form-control" value={transferData.to} onChange={e => setTransferData({...transferData, to: e.target.value})}>
+                  <option>Cash</option>
+                  <option>Bank Account</option>
+                  <option>Credit Card</option>
+                </select>
+              </div>
+
+              <div className="form-group">
+                <label>Amount</label>
+                <input type="number" className="form-control" value={transferData.amount} onChange={e => setTransferData({...transferData, amount: e.target.value})} min="0" step="0.01" required />
+              </div>
+
+              <div className="form-group">
+                <label>Date</label>
+                <input type="date" className="form-control" value={transferData.date} onChange={e => setTransferData({...transferData, date: e.target.value})} required />
+              </div>
+
+              <div className="form-group">
+                <label>Note (optional)</label>
+                <input className="form-control" value={transferData.note} onChange={e => setTransferData({...transferData, note: e.target.value})} />
+              </div>
+
+              <div className="form-actions">
+                <button type="submit" className="btn btn-primary">Save Transaction</button>
+                <button type="button" className="btn btn-secondary" onClick={() => setShowModal(false)}>Cancel</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {showTransfer && (
+        <div className="modal-overlay" onClick={() => setShowTransfer(false)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Transfer Funds</h3>
+              <button className="close-btn" onClick={() => setShowTransfer(false)}>×</button>
+            </div>
+            <form onSubmit={async (e) => {
+              e.preventDefault()
+              setError(null)
+              const amt = parseFloat(transferData.amount)
+              if (!amt || amt <= 0) return setError('Enter a valid amount for transfer')
+              if (transferData.from === transferData.to) return setError('Select different source and destination accounts')
+
+              // Create two transactions: expense from source, income to destination
+              const txFrom = {
+                _id: 'tx_' + Date.now() + '_from',
+                amount: amt,
+                type: 'expense',
+                category: `Transfer to ${transferData.to}`,
+                account: transferData.from,
+                date: transferData.date,
+                note: transferData.note || `Transfer to ${transferData.to}`
+              }
+              const txTo = {
+                _id: 'tx_' + (Date.now()+1) + '_to',
+                amount: amt,
+                type: 'income',
+                category: `Transfer from ${transferData.from}`,
+                account: transferData.to,
+                date: transferData.date,
+                note: transferData.note || `Transfer from ${transferData.from}`
+              }
+
+              try {
+                if (useBackend) {
+                  // backend approach: post two transactions (or implement a /transfer endpoint server-side)
+                  await api.post('/transactions', {...txFrom, amount: txFrom.amount})
+                  await api.post('/transactions', {...txTo, amount: txTo.amount})
+                  // re-fetch or optimistically insert
+                  const res = await api.get('/transactions')
+                  setTransactions(res.data)
+                } else {
+                  // client-side: persist both transactions in localStorage
+                  const next = [txTo, txFrom, ...transactions]
+                  setTransactions(next)
+                  localStorage.setItem('transactions_demo', JSON.stringify(next))
+                }
+                setShowTransfer(false)
+                setTransferData({from: 'Bank Account', to: 'Cash', amount: '', date: new Date().toISOString().split('T')[0], note: ''})
+              } catch (err) {
+                setError(err.response?.data?.error || err.message || 'Transfer failed')
+              }
+            }}>
+              <div className="form-group">
+                <label>From (source)</label>
+                <select className="form-control" value={transferData.from} onChange={e => setTransferData({...transferData, from: e.target.value})}>
+                  <option>Cash</option>
+                  <option>Bank Account</option>
+                  <option>Credit Card</option>
+                </select>
+              </div>
+
+              <div className="form-group">
+                <label>To (destination)</label>
+                <select className="form-control" value={transferData.to} onChange={e => setTransferData({...transferData, to: e.target.value})}>
+                  <option>Cash</option>
+                  <option>Bank Account</option>
+                  <option>Credit Card</option>
+                </select>
+              </div>
+
+              <div className="form-group">
+                <label>Amount</label>
+                <input type="number" className="form-control" value={transferData.amount} onChange={e => setTransferData({...transferData, amount: e.target.value})} min="0" step="0.01" required />
+              </div>
+
+              <div className="form-group">
+                <label>Date</label>
+                <input type="date" className="form-control" value={transferData.date} onChange={e => setTransferData({...transferData, date: e.target.value})} required />
+              </div>
+
+              <div className="form-group">
+                <label>Note (optional)</label>
+                <input className="form-control" value={transferData.note} onChange={e => setTransferData({...transferData, note: e.target.value})} />
+              </div>
+
+              <div className="form-actions">
+                <button type="submit" className="btn btn-primary">Confirm Transfer</button>
+                <button type="button" className="btn btn-secondary" onClick={() => setShowTransfer(false)}>Cancel</button>
               </div>
             </form>
           </div>
