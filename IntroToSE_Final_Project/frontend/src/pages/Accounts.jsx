@@ -1,270 +1,260 @@
-import React, { useEffect, useState } from 'react'
+import React, { useState } from 'react'
+import { useForm } from 'react-hook-form'
+import { User, Mail, Phone, MapPin, Calendar, Camera, Edit2, Save, X } from 'lucide-react'
 
 export default function Accounts() {
-  // current user (in a real app this comes from auth)
-  const [currentUser] = useState(() => {
-    return localStorage.getItem('currentUserEmail') || 'you@example.com'
+  const [isEditing, setIsEditing] = useState(false)
+  const [userProfile, setUserProfile] = useState(() => {
+    const saved = localStorage.getItem('userProfile')
+    return saved ? JSON.parse(saved) : {
+      name: 'John Doe',
+      email: 'john.doe@example.com',
+      phone: '+84 123 456 789',
+      address: 'Ho Chi Minh City, Vietnam',
+      birthday: '1995-05-15',
+      avatar: 'https://ui-avatars.com/api/?name=John+Doe&background=3B82F6&color=fff&size=200',
+      bio: 'Personal finance enthusiast and software developer'
+    }
   })
 
-  const [wallets, setWallets] = useState([])
-  const [showCreate, setShowCreate] = useState(false)
-  const [createForm, setCreateForm] = useState({ name: '', type: 'private', balance: '', currency: 'USD', icon: '🏦' })
-  const [selectedWallet, setSelectedWallet] = useState(null)
-  const [inviteEmail, setInviteEmail] = useState('')
-  const [memberError, setMemberError] = useState(null)
+  const { register, handleSubmit, reset, formState: { errors } } = useForm({
+    defaultValues: userProfile
+  })
 
-  useEffect(() => {
-    const saved = localStorage.getItem('wallets_demo')
-    if (saved) {
-      try { setWallets(JSON.parse(saved)) } catch (e) { setWallets([]) }
-    } else {
-      // seed a demo wallet
-      const demo = [
-        {
-          id: 'w1',
-          name: 'Personal Cash',
-          type: 'private',
-          balance: 500,
-          currency: 'USD',
-          icon: '💵',
-          members: [{ email: 'you@example.com', role: 'owner' }]
-        },
-        {
-          id: 'w2',
-          name: 'Household',
-          type: 'group',
-          balance: 1200,
-          currency: 'USD',
-          icon: '🏠',
-          members: [{ email: 'you@example.com', role: 'owner' }, { email: 'alice@example.com', role: 'edit' }, { email: 'bob@example.com', role: 'view' }]
-        }
-      ]
-      setWallets(demo)
-      localStorage.setItem('wallets_demo', JSON.stringify(demo))
+  const handleEditToggle = () => {
+    if (isEditing) {
+      reset(userProfile) // Reset form to current profile data
     }
-  }, [])
+    setIsEditing(!isEditing)
+  }
 
-  useEffect(() => {
-    localStorage.setItem('wallets_demo', JSON.stringify(wallets))
-  }, [wallets])
+  const onSaveProfile = (data) => {
+    const updatedProfile = { ...userProfile, ...data }
+    setUserProfile(updatedProfile)
+    localStorage.setItem('userProfile', JSON.stringify(updatedProfile))
+    setIsEditing(false)
+  }
 
-  const totalBalance = wallets.reduce((sum, w) => sum + (Number(w.balance) || 0), 0)
-
-  const handleCreate = (e) => {
-    e.preventDefault()
-    const newWallet = {
-      id: 'w_' + Date.now(),
-      name: createForm.name || 'New Wallet',
-      type: createForm.type,
-      balance: parseFloat(createForm.balance) || 0,
-      currency: createForm.currency,
-      icon: createForm.icon || '🏦',
-      members: [{ email: currentUser, role: 'owner' }]
+  const handleAvatarChange = (e) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        const updatedProfile = { ...userProfile, avatar: reader.result }
+        setUserProfile(updatedProfile)
+        localStorage.setItem('userProfile', JSON.stringify(updatedProfile))
+      }
+      reader.readAsDataURL(file)
     }
-    setWallets(prev => [newWallet, ...prev])
-    setCreateForm({ name: '', type: 'private', balance: '', currency: 'USD', icon: '🏦' })
-    setShowCreate(false)
-  }
-
-  const openMembers = (wallet) => {
-    setSelectedWallet(wallet)
-    setInviteEmail('')
-    setMemberError(null)
-  }
-
-  const closeMembers = () => setSelectedWallet(null)
-
-  const inviteMember = () => {
-    setMemberError(null)
-    const email = (inviteEmail || '').trim().toLowerCase()
-    if (!email) return setMemberError('Enter an email to invite')
-    if (!/\S+@\S+\.\S+/.test(email)) return setMemberError('Enter a valid email')
-    setWallets(prev => prev.map(w => {
-      if (w.id !== selectedWallet.id) return w
-      if (w.members.find(m => m.email === email)) return w
-      return { ...w, members: [...w.members, { email, role: 'view' }] }
-    }))
-    setInviteEmail('')
-  }
-
-  const changeMemberRole = (walletId, memberEmail, role) => {
-    setWallets(prev => prev.map(w => {
-      if (w.id !== walletId) return w
-      return { ...w, members: w.members.map(m => m.email === memberEmail ? { ...m, role } : m) }
-    }))
-  }
-
-  const removeMember = (walletId, memberEmail) => {
-    setWallets(prev => prev.map(w => {
-      if (w.id !== walletId) return w
-      return { ...w, members: w.members.filter(m => m.email !== memberEmail) }
-    }))
-    if (selectedWallet && selectedWallet.id === walletId) {
-      setSelectedWallet(prev => ({ ...prev, members: prev.members.filter(m => m.email !== memberEmail) }))
-    }
-  }
-
-  const leaveWallet = (walletId) => {
-    const w = wallets.find(x => x.id === walletId)
-    if (!w) return
-    const me = currentUser
-    const imOwner = w.members.find(m => m.email === me && m.role === 'owner')
-    if (imOwner) {
-      // owner cannot leave; suggest delete instead
-      if (!confirm('You are the owner. Delete the wallet instead to remove yourself, or transfer ownership by adjusting members. Delete wallet?')) return
-      // delete wallet
-      setWallets(prev => prev.filter(x => x.id !== walletId))
-      return
-    }
-    // remove member
-    removeMember(walletId, me)
-  }
-
-  const deleteWallet = (walletId) => {
-    if (!confirm('Delete this wallet? This action cannot be undone.')) return
-    setWallets(prev => prev.filter(w => w.id !== walletId))
-    if (selectedWallet && selectedWallet.id === walletId) setSelectedWallet(null)
   }
 
   return (
-    <div>
-      <div className="page-header">
-        <h2>Wallets</h2>
-        <p>Create group or private wallets and manage members</p>
+    <div className="max-w-5xl mx-auto">
+      <div className="page-header mb-8">
+        <h2 className="text-3xl font-bold text-gray-800 mb-2">My Account</h2>
+        <p className="text-gray-600">View and manage your personal information</p>
       </div>
 
-      <div className="card" style={{marginBottom: '30px', maxWidth: '480px'}}>
-        <div className="card-header">
-          <span className="card-title">Total Balance</span>
-          <span className="card-icon">💰</span>
-        </div>
-        <div className="card-amount balance">${totalBalance.toFixed(2)}</div>
-        <div className="card-change">Across {wallets.length} wallets</div>
-      </div>
-
-      <button className="btn btn-primary" onClick={() => setShowCreate(true)}>➕ Create Wallet</button>
-
-      <div style={{marginTop:20}} className="account-list">
-        {wallets.length === 0 ? (
-          <div className="empty-state">
-            <div className="empty-state-icon">🏦</div>
-            <h3>No wallets yet</h3>
-            <p>Create a wallet to get started</p>
+      <div className="bg-gradient-to-br from-white to-blue-50 rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 border border-blue-100 overflow-hidden">
+        {/* Header Section with Avatar */}
+        <div className="bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 p-8 relative">
+          <div className="absolute top-6 right-6">
+            {!isEditing ? (
+              <button
+                onClick={handleEditToggle}
+                className="bg-white text-blue-600 px-6 py-2 rounded-lg font-semibold hover:bg-blue-50 hover:shadow-lg transition-all duration-300 flex items-center gap-2"
+              >
+                <Edit2 className="w-4 h-4" /> Edit Profile
+              </button>
+            ) : (
+              <div className="flex gap-2">
+                <button
+                  onClick={handleSubmit(onSaveProfile)}
+                  className="bg-green-500 text-white px-6 py-2 rounded-lg font-semibold hover:bg-green-600 hover:shadow-lg transition-all duration-300 flex items-center gap-2"
+                >
+                  <Save className="w-4 h-4" /> Save
+                </button>
+                <button
+                  onClick={handleEditToggle}
+                  className="bg-red-500 text-white px-6 py-2 rounded-lg font-semibold hover:bg-red-600 hover:shadow-lg transition-all duration-300 flex items-center gap-2"
+                >
+                  <X className="w-4 h-4" /> Cancel
+                </button>
+              </div>
+            )}
           </div>
-        ) : (
-          wallets.map(wallet => (
-            <div key={wallet.id} className="account-item">
-              <div className="account-info">
-                <h4>
-                  <span style={{marginRight: '10px', fontSize: '24px'}}>{wallet.icon}</span>
-                  {wallet.name} {wallet.type === 'group' && <small style={{marginLeft:8, color:'#666'}}>(group)</small>}
-                </h4>
-                <p>{wallet.currency} • {wallet.members.length} members</p>
-              </div>
-              <div style={{display: 'flex', alignItems: 'center', gap: '12px'}}>
-                <div className="account-balance" style={{color: wallet.balance >= 0 ? '#3498db' : '#e74c3c'}}>${(Number(wallet.balance) || 0).toFixed(2)}</div>
-                <button className="btn" onClick={() => openMembers(wallet)}>👥 Members</button>
-                <button className="btn btn-secondary" onClick={() => leaveWallet(wallet.id)}>↩️ Leave</button>
-                <button className="btn btn-danger" onClick={() => deleteWallet(wallet.id)}>🗑️ Delete</button>
-              </div>
+
+          <div className="flex items-center gap-6">
+            <div className="relative group">
+              <img
+                src={userProfile.avatar}
+                alt={userProfile.name}
+                className="w-32 h-32 rounded-full border-4 border-white shadow-xl object-cover"
+              />
+              {isEditing && (
+                <label className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 rounded-full cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                  <Camera className="w-8 h-8 text-white" />
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleAvatarChange}
+                    className="hidden"
+                  />
+                </label>
+              )}
             </div>
-          ))
-        )}
-      </div>
-
-      {showCreate && (
-        <div className="modal-overlay" onClick={() => setShowCreate(false)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>Create Wallet</h3>
-              <button className="close-btn" onClick={() => setShowCreate(false)}>×</button>
-            </div>
-            <form onSubmit={handleCreate}>
-              <div className="form-group">
-                <label>Wallet Name</label>
-                <input type="text" className="form-control" required value={createForm.name} onChange={e => setCreateForm({...createForm, name: e.target.value})} />
-              </div>
-              <div className="form-group">
-                <label>Type</label>
-                <select className="form-control" value={createForm.type} onChange={e => setCreateForm({...createForm, type: e.target.value})}>
-                  <option value="private">Private (only you)</option>
-                  <option value="group">Group (invite members)</option>
-                </select>
-              </div>
-              <div className="form-group">
-                <label>Initial Balance</label>
-                <input type="number" className="form-control" value={createForm.balance} onChange={e => setCreateForm({...createForm, balance: e.target.value})} step="0.01" />
-              </div>
-              <div className="form-group">
-                <label>Currency</label>
-                <select className="form-control" value={createForm.currency} onChange={e => setCreateForm({...createForm, currency: e.target.value})}>
-                  <option>USD</option>
-                  <option>VND</option>
-                  <option>EUR</option>
-                  <option>GBP</option>
-                </select>
-              </div>
-              <div className="form-group">
-                <label>Icon</label>
-                <input type="text" className="form-control" value={createForm.icon} onChange={e => setCreateForm({...createForm, icon: e.target.value})} />
-              </div>
-
-              <div className="form-actions">
-                <button type="submit" className="btn btn-primary">Create</button>
-                <button type="button" className="btn btn-secondary" onClick={() => setShowCreate(false)}>Cancel</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {selectedWallet && (
-        <div className="modal-overlay" onClick={closeMembers}>
-          <div className="modal" onClick={e => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>Members — {selectedWallet.name}</h3>
-              <button className="close-btn" onClick={closeMembers}>×</button>
-            </div>
-
-            <div style={{marginBottom: 12}}>
-              <label>Invite Member</label>
-              <div style={{display:'flex', gap:8}}>
-                <input className="form-control" placeholder="email@example.com" value={inviteEmail} onChange={e => setInviteEmail(e.target.value)} />
-                <button className="btn btn-primary" onClick={inviteMember}>Invite</button>
-              </div>
-              {memberError && <div className="msg error" style={{marginTop:8}}>{memberError}</div>}
-            </div>
-
-            <div>
-              <h4>Members</h4>
-              <ul style={{paddingLeft:0, listStyle:'none'}}>
-                {selectedWallet.members.map(m => (
-                  <li key={m.email} style={{display:'flex', alignItems:'center', justifyContent:'space-between', padding:'8px 0', borderBottom:'1px solid #eee'}}>
-                    <div>
-                      <div style={{fontWeight:700}}>{m.email} {m.email === currentUser && <small style={{color:'#666'}}> (you)</small>}</div>
-                      <div style={{color:'#666'}}>{m.role}</div>
-                    </div>
-                    <div style={{display:'flex', gap:8, alignItems:'center'}}>
-                      <select value={m.role} onChange={e => changeMemberRole(selectedWallet.id, m.email, e.target.value)}>
-                        <option value="view">View</option>
-                        <option value="edit">Edit</option>
-                        <option value="owner" disabled>Owner</option>
-                      </select>
-                      {m.email !== currentUser && selectedWallet.members.find(x => x.email === currentUser && x.role === 'owner') && (
-                        <button className="btn btn-danger" onClick={() => removeMember(selectedWallet.id, m.email)}>Remove</button>
-                      )}
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            <div style={{marginTop:12}}>
-              <button className="btn btn-secondary" onClick={() => { closeMembers(); }}>Close</button>
+            <div className="text-white">
+              <h3 className="text-3xl font-bold mb-2">{userProfile.name}</h3>
+              <p className="text-blue-100 flex items-center gap-2">
+                <Mail className="w-4 h-4" /> {userProfile.email}
+              </p>
             </div>
           </div>
         </div>
-      )}
+
+        {/* Profile Information */}
+        <div className="p-8">
+          <form onSubmit={handleSubmit(onSaveProfile)}>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+              {/* Full Name */}
+              <div className="form-group">
+                <label className="flex items-center gap-2 text-gray-700 font-semibold mb-2">
+                  <User className="w-4 h-4" /> Full Name
+                </label>
+                {isEditing ? (
+                  <input
+                    type="text"
+                    className={`form-control ${errors.name ? 'border-red-500' : ''}`}
+                    {...register('name', { required: 'Name is required' })}
+                  />
+                ) : (
+                  <div className="bg-gray-50 px-4 py-3 rounded-lg text-gray-800 font-medium">
+                    {userProfile.name}
+                  </div>
+                )}
+                {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name.message}</p>}
+              </div>
+
+              {/* Email */}
+              <div className="form-group">
+                <label className="flex items-center gap-2 text-gray-700 font-semibold mb-2">
+                  <Mail className="w-4 h-4" /> Email
+                </label>
+                {isEditing ? (
+                  <input
+                    type="email"
+                    className={`form-control ${errors.email ? 'border-red-500' : ''}`}
+                    {...register('email', {
+                      required: 'Email is required',
+                      pattern: { value: /^\S+@\S+\.\S+$/, message: 'Invalid email' }
+                    })}
+                  />
+                ) : (
+                  <div className="bg-gray-50 px-4 py-3 rounded-lg text-gray-800 font-medium">
+                    {userProfile.email}
+                  </div>
+                )}
+                {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email.message}</p>}
+              </div>
+
+              {/* Phone */}
+              <div className="form-group">
+                <label className="flex items-center gap-2 text-gray-700 font-semibold mb-2">
+                  <Phone className="w-4 h-4" /> Phone Number
+                </label>
+                {isEditing ? (
+                  <input
+                    type="tel"
+                    className="form-control"
+                    {...register('phone')}
+                  />
+                ) : (
+                  <div className="bg-gray-50 px-4 py-3 rounded-lg text-gray-800 font-medium">
+                    {userProfile.phone}
+                  </div>
+                )}
+              </div>
+
+              {/* Birthday */}
+              <div className="form-group">
+                <label className="flex items-center gap-2 text-gray-700 font-semibold mb-2">
+                  <Calendar className="w-4 h-4" /> Birthday
+                </label>
+                {isEditing ? (
+                  <input
+                    type="date"
+                    className="form-control"
+                    {...register('birthday')}
+                  />
+                ) : (
+                  <div className="bg-gray-50 px-4 py-3 rounded-lg text-gray-800 font-medium">
+                    {userProfile.birthday ? new Date(userProfile.birthday).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : 'Not set'}
+                  </div>
+                )}
+              </div>
+
+              {/* Address */}
+              <div className="form-group md:col-span-2">
+                <label className="flex items-center gap-2 text-gray-700 font-semibold mb-2">
+                  <MapPin className="w-4 h-4" /> Address
+                </label>
+                {isEditing ? (
+                  <input
+                    type="text"
+                    className="form-control"
+                    {...register('address')}
+                  />
+                ) : (
+                  <div className="bg-gray-50 px-4 py-3 rounded-lg text-gray-800 font-medium">
+                    {userProfile.address}
+                  </div>
+                )}
+              </div>
+
+              {/* Bio */}
+              <div className="form-group md:col-span-2">
+                <label className="flex items-center gap-2 text-gray-700 font-semibold mb-2">
+                  <User className="w-4 h-4" /> Bio
+                </label>
+                {isEditing ? (
+                  <textarea
+                    className="form-control"
+                    rows="4"
+                    {...register('bio')}
+                  />
+                ) : (
+                  <div className="bg-gray-50 px-4 py-3 rounded-lg text-gray-800 font-medium">
+                    {userProfile.bio}
+                  </div>
+                )}
+              </div>
+            </div>
+          </form>
+
+          {/* Account Statistics */}
+          <div className="border-t border-gray-200 pt-8">
+            <h4 className="text-xl font-bold text-gray-800 mb-6">Account Statistics</h4>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="bg-gradient-to-br from-green-50 to-white rounded-xl p-6 border-2 border-green-200 hover:border-green-400 hover:shadow-lg transition-all duration-300">
+                <div className="text-gray-600 font-semibold mb-2">Member Since</div>
+                <div className="text-2xl font-bold text-green-600">Jan 2024</div>
+              </div>
+              <div className="bg-gradient-to-br from-blue-50 to-white rounded-xl p-6 border-2 border-blue-200 hover:border-blue-400 hover:shadow-lg transition-all duration-300">
+                <div className="text-gray-600 font-semibold mb-2">Total Transactions</div>
+                <div className="text-2xl font-bold text-blue-600">
+                  {JSON.parse(localStorage.getItem('transactions_demo') || '[]').length}
+                </div>
+              </div>
+              <div className="bg-gradient-to-br from-purple-50 to-white rounded-xl p-6 border-2 border-purple-200 hover:border-purple-400 hover:shadow-lg transition-all duration-300">
+                <div className="text-gray-600 font-semibold mb-2">Active Wallets</div>
+                <div className="text-2xl font-bold text-purple-600">
+                  {JSON.parse(localStorage.getItem('wallets_demo') || '[]').length}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   )
 }

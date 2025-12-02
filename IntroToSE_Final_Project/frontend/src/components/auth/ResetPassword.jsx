@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { verifyPasswordResetCode, confirmPasswordReset } from 'firebase/auth'
-import { auth } from '../firebase'
+import { auth } from '../../firebase'
 
 export default function ResetPassword({ oobCode, onNavigate }) {
   const [code, setCode] = useState(oobCode || '')

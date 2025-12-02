@@ -1,45 +1,24 @@
-import React, {useState, useEffect} from 'react'
+import React, { useState, useEffect } from 'react'
+import { useForm } from 'react-hook-form'
+import { motion, AnimatePresence } from 'framer-motion'
+import { FaMoneyBillWave, FaRegTrashAlt, FaEdit, FaExchangeAlt, FaPlus } from 'react-icons/fa'
 import api from '../api'
 
 export default function Transactions() {
-  // Toggle this to `true` when backend is ready. For now the UI works fully client-side.
   const useBackend = false
 
   const [transactions, setTransactions] = useState([])
   const [loading, setLoading] = useState(false)
   const [showModal, setShowModal] = useState(false)
-  
-  /**
-   * State: Form data
-   * Default values:
-   * - type: 'expense' (phần lớn transactions là chi tiêu)
-   * - date: Hôm nay
-   * - account: 'Cash'
-   */
-  const [formData, setFormData] = useState({
-    type: 'expense',
-    category: '',
-    amount: '',
-    date: new Date().toISOString().split('T')[0], // Format: YYYY-MM-DD
-    note: '',
-    account: 'Cash'
-  })
-  const [isEditing, setIsEditing] = useState(false)
-  const [editingId, setEditingId] = useState(null)
-  const [error, setError] = useState(null)
+  const [showTransfer, setShowTransfer] = useState(false)
+  const [selectedTransaction, setSelectedTransaction] = useState(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [isSearching, setIsSearching] = useState(false)
-  const [showTransfer, setShowTransfer] = useState(false)
-  const [transferData, setTransferData] = useState({
-    from: 'Bank Account',
-    to: 'Cash',
-    amount: '',
-    date: new Date().toISOString().split('T')[0],
-    note: ''
-  })
-  const [selectedTransaction, setSelectedTransaction] = useState(null)
-  const [detailsNote, setDetailsNote] = useState('')
+  const [error, setError] = useState(null)
 
+  // ---------------------
+  // Load Transactions
+  // ---------------------
   useEffect(() => {
     if (useBackend) {
       const fetchTx = async () => {
@@ -55,7 +34,6 @@ export default function Transactions() {
       }
       fetchTx()
     } else {
-      // Load from localStorage or use a small demo set
       const saved = localStorage.getItem('transactions_demo')
       if (saved) {
         try { setTransactions(JSON.parse(saved)) } catch(e) { setTransactions([]) }
@@ -70,12 +48,14 @@ export default function Transactions() {
     }
   }, [])
 
-  // If backend is enabled, allow searching via query param (debounced)
+  // ---------------------
+  // Search
+  // ---------------------
   useEffect(() => {
     if (!useBackend) return
     let mounted = true
-    let t = null
-    const doSearch = async () => {
+    const timeout = setTimeout(async () => {
+      if (!searchTerm.trim()) return
       setIsSearching(true)
       try {
         const res = await api.get('/transactions', { params: { q: searchTerm } })
@@ -85,573 +65,310 @@ export default function Transactions() {
       } finally {
         if (mounted) setIsSearching(false)
       }
-    }
-    // debounce
-    t = setTimeout(() => doSearch(), 300)
-    return () => { mounted = false; clearTimeout(t) }
+    }, 300)
+    return () => { mounted = false; clearTimeout(timeout) }
   }, [searchTerm])
 
-  const handleSubmit = async (e) => {
-    e.preventDefault()
-    setError(null)
-    const payload = {
-      amount: parseFloat(formData.amount),
-      type: formData.type,
-      category: formData.category,
-      account: formData.account,
-      date: formData.date,
-      note: formData.note
+  // ---------------------
+  // React Hook Form
+  // ---------------------
+  const { register, handleSubmit, reset, setValue, watch, formState: { errors } } = useForm({
+    defaultValues: {
+      type: 'expense',
+      category: '',
+      amount: '',
+      date: new Date().toISOString().split('T')[0],
+      note: '',
+      account: 'Cash'
     }
-    try {
-      if (useBackend) {
-        if (isEditing && editingId) {
-          const res = await api.put(`/transactions/${editingId}`, payload)
-          setTransactions(prev => prev.map(t => t._id === res.data._id ? res.data : t))
-        } else {
-          const res = await api.post('/transactions', payload)
-          // prepend the created transaction returned by backend
-          setTransactions(prev => [res.data, ...prev])
-        }
-      } else {
-        // Client-side demo flow: create or update locally and persist to localStorage
-        if (isEditing && editingId) {
-          const updated = { ...payload, _id: editingId }
-          setTransactions(prev => {
-            const next = prev.map(t => t._id === editingId ? updated : t)
-            localStorage.setItem('transactions_demo', JSON.stringify(next))
-            return next
-          })
-        } else {
-          const newTx = { ...payload, _id: 'tx_' + Date.now() }
-          setTransactions(prev => {
-            const next = [newTx, ...prev]
-            localStorage.setItem('transactions_demo', JSON.stringify(next))
-            return next
-          })
-        }
-      }
-      setShowModal(false)
-      setFormData({
-        type: 'expense',
-        category: '',
-        amount: '',
-        date: new Date().toISOString().split('T')[0],
-        note: '',
-        account: 'Cash'
-      })
-      setIsEditing(false)
-      setEditingId(null)
-    } catch (err) {
-      setError(err.response?.data?.error || err.message || 'Failed to save transaction')
-    }
-  }
+  })
 
-  const handleDelete = async (id) => {
+  const { register: registerTransfer, handleSubmit: handleSubmitTransfer, reset: resetTransfer, watch: watchTransfer, setError: setTransferError } = useForm({
+    defaultValues: {
+      from: 'Bank Account',
+      to: 'Cash',
+      amount: '',
+      date: new Date().toISOString().split('T')[0],
+      note: ''
+    }
+  })
+
+  // ---------------------
+  // Submit Transaction
+  // ---------------------
+  const onSubmit = async (data) => {
     setError(null)
+    const payload = { ...data, amount: parseFloat(data.amount) }
+
     try {
       if (useBackend) {
-        await api.delete(`/transactions/${id}`)
-        setTransactions(prev => prev.filter(t => t._id !== id))
+        const res = await api.post('/transactions', payload)
+        setTransactions(prev => [res.data, ...prev])
       } else {
-        const next = transactions.filter(t => t._id !== id)
+        const newTx = { ...payload, _id: 'tx_' + Date.now() }
+        const next = [newTx, ...transactions]
         setTransactions(next)
         localStorage.setItem('transactions_demo', JSON.stringify(next))
       }
+      setShowModal(false)
+      reset()
     } catch (err) {
-      setError(err.response?.data?.error || err.message || 'Failed to delete')
+      setError(err.message || 'Failed to save transaction')
     }
   }
 
-  const handleEdit = (tx) => {
-    setFormData({
-      type: tx.type || 'expense',
-      category: tx.category || '',
-      amount: (tx.amount || 0).toString(),
-      date: tx.date ? new Date(tx.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-      note: tx.note || '',
-      account: tx.account || 'Cash'
-    })
-    setIsEditing(true)
-    setEditingId(tx._id)
-    setShowModal(true)
+  // ---------------------
+  // Submit Transfer
+  // ---------------------
+  const onSubmitTransfer = async (data) => {
+    setError(null)
+    const amt = parseFloat(data.amount)
+    if (!amt || amt <= 0) return setError('Enter a valid amount for transfer')
+    if (data.from === data.to) return setError('Source and destination must differ')
+
+    const txFrom = {
+      _id: 'tx_' + Date.now() + '_from',
+      type: 'expense',
+      category: `Transfer to ${data.to}`,
+      account: data.from,
+      amount: amt,
+      date: data.date,
+      note: data.note || `Transfer to ${data.to}`
+    }
+    const txTo = {
+      _id: 'tx_' + (Date.now()+1) + '_to',
+      type: 'income',
+      category: `Transfer from ${data.from}`,
+      account: data.to,
+      amount: amt,
+      date: data.date,
+      note: data.note || `Transfer from ${data.from}`
+    }
+
+    try {
+      const next = [txTo, txFrom, ...transactions]
+      setTransactions(next)
+      localStorage.setItem('transactions_demo', JSON.stringify(next))
+      setShowTransfer(false)
+      resetTransfer()
+    } catch(err) {
+      setError(err.message || 'Transfer failed')
+    }
+  }
+
+  // ---------------------
+  // Delete Transaction
+  // ---------------------
+  const handleDelete = (id) => {
+    const next = transactions.filter(t => t._id !== id)
+    setTransactions(next)
+    localStorage.setItem('transactions_demo', JSON.stringify(next))
   }
 
   return (
-    <div className="max-w-7xl mx-auto">
-      <div className="mb-8">
-        <h2 className="text-3xl font-bold text-gray-800 mb-2">Transactions</h2>
+    <div className="max-w-7xl mx-auto p-4">
+      <div className="mb-6">
+        <h2 className="text-3xl font-bold mb-1">Transactions</h2>
         <p className="text-gray-600">Manage your income and expenses</p>
       </div>
 
-      <button 
-        className="bg-primary text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-600 transition-colors mb-6"
-        onClick={() => setShowModal(true)}
-      >
-        ➕ Add Transaction
-      </button>
-
-      <button className="btn" style={{marginLeft:8}} onClick={() => setShowTransfer(true)}>🔁 Transfer</button>
-
-      <div style={{display:'inline-block', marginLeft:12}}>
+      {/* Buttons & Search */}
+      <div className="flex flex-wrap gap-3 mb-6">
+        <button
+          className="px-6 py-3 rounded-xl bg-gradient-to-r from-blue-500 to-purple-600 text-white hover:from-blue-600 hover:to-purple-700 hover:shadow-lg hover:scale-105 transition-all duration-300 font-semibold flex items-center gap-2"
+          onClick={() => setShowModal(true)}
+        >
+          <FaPlus /> Add Transaction
+        </button>
+        <button
+          className="px-6 py-3 rounded-xl bg-gradient-to-r from-green-500 to-teal-600 text-white hover:from-green-600 hover:to-teal-700 hover:shadow-lg hover:scale-105 transition-all duration-300 font-semibold flex items-center gap-2"
+          onClick={() => setShowTransfer(true)}
+        >
+          <FaExchangeAlt /> Transfer
+        </button>
         <input
           type="search"
-          className="form-control"
+          className="px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
           placeholder="Search transactions..."
           value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          style={{minWidth: 240}}
+          onChange={e => setSearchTerm(e.target.value)}
         />
       </div>
 
-      <div className="transaction-list" style={{marginTop: '20px'}}>
-        <div className="list-header">
-          <h3>All Transactions</h3>
-          <span>{transactions.length} transactions{isSearching ? ' (searching...)' : ''}</span>
-        </div>
+      {/* Transaction List */}
+      <div className="space-y-2">
         {loading || isSearching ? (
           <p>Loading transactions...</p>
-        ) : (transactions.length === 0) ? (
-          <div className="empty-state">
-            <div className="empty-state-icon">💸</div>
-            <h3>No transactions yet</h3>
-            <p>Click "Add Transaction" to get started</p>
+        ) : transactions.length === 0 ? (
+          <div className="flex flex-col items-center py-12 text-gray-500">
+            <FaMoneyBillWave className="text-5xl mb-4" />
+            <h3 className="text-xl font-semibold mb-2">No transactions yet</h3>
+            <p>Add your first transaction!</p>
           </div>
         ) : (
-          // apply client-side filtering when backend is not used
-          (() => {
+          transactions.filter(tx => {
             const term = searchTerm.trim().toLowerCase()
-            const filtered = term === '' ? transactions : transactions.filter(tx => {
-              const s = [tx.category, tx.note, tx.account, tx.type, String(tx.amount), new Date(tx.date).toLocaleDateString()].join(' ').toLowerCase()
-              return s.indexOf(term) !== -1
-            })
-            if (filtered.length === 0) {
-              return (
-                <div className="empty-state">
-                  <div className="empty-state-icon">🔎</div>
-                  <h3>No matching transactions</h3>
-                  <p>Try a different search or clear the filter.</p>
+            if (!term) return true
+            return [tx.category, tx.note, tx.account, tx.type, String(tx.amount)].join(' ').toLowerCase().includes(term)
+          }).map(tx => (
+            <motion.div
+              key={tx._id}
+              layout
+              initial={{ opacity: 0, y: -5 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 5 }}
+              className="flex justify-between items-center p-5 border-2 border-gray-200 rounded-xl hover:bg-gradient-to-r hover:from-blue-50 hover:to-purple-50 hover:border-blue-300 cursor-pointer transition-all duration-300 transform hover:scale-[1.02] shadow-sm hover:shadow-lg"
+            >
+              <div className="flex items-center gap-4" onClick={() => setSelectedTransaction(tx)}>
+                <div className={`w-14 h-14 flex items-center justify-center rounded-full text-2xl shadow-md hover:shadow-xl transition-all duration-300 transform hover:rotate-12 ${tx.type==='income'?'bg-gradient-to-br from-green-400 to-green-600 text-white':'bg-gradient-to-br from-red-400 to-red-600 text-white'}`}>
+                  <FaMoneyBillWave />
                 </div>
-              )
-            }
-
-            return filtered.map(tx => (
-            <div key={tx._id} className="transaction-item" onClick={() => { setSelectedTransaction(tx); setDetailsNote(tx.detailsNote || ''); }}>
-              <div className="transaction-left">
-                <div className={`transaction-icon-circle ${tx.type}`}>
-                  {tx.type === 'income' ? '💰' : '💸'}
-                </div>
-                <div className="transaction-info">
-                  <div className="transaction-category">{tx.category}</div>
-                  <div className="transaction-note">{tx.note} • {tx.account}</div>
+                <div>
+                  <div className="font-bold text-lg text-gray-800">{tx.category}</div>
+                  <div className="text-gray-600 text-sm font-medium">{tx.note} • {tx.account}</div>
                 </div>
               </div>
-              <div className="transaction-right">
-                <div className={`transaction-amount ${tx.type}`}>
-                  {tx.type === 'expense' ? '-' : '+'}${tx.amount.toFixed(2)}
+              <div className="flex items-center gap-3">
+                <div className={`${tx.type==='income'?'text-green-600':'text-red-600'} font-bold text-xl`}>
+                  {tx.type==='expense'?'-':'+'}${tx.amount.toFixed(2)}
                 </div>
-                <div className="transaction-date">
-                  {new Date(tx.date).toLocaleDateString()}
-                </div>
-                <div style={{display:'flex', gap:8, marginTop:8}}>
-                  <button className="btn btn-secondary" style={{padding:'4px 8px', fontSize:12}} onClick={(e) => { e.stopPropagation(); handleEdit(tx) }}>✏️ Edit</button>
-                  <button className="btn btn-danger" style={{padding:'4px 8px', fontSize:12}} onClick={(e) => { e.stopPropagation(); handleDelete(tx._id) }}>🗑️ Delete</button>
-                </div>
+                <button onClick={() => handleDelete(tx._id)} className="p-2 rounded-lg hover:bg-red-100 text-red-600 hover:scale-110 transition-all duration-200">
+                  <FaRegTrashAlt />
+                </button>
               </div>
-            </div>
-            ))
-          })()
+            </motion.div>
+          ))
         )}
-        {error && <div className="msg error" style={{marginTop:12}}>{error}</div>}
       </div>
 
-      {selectedTransaction && (
-        <div className="modal-overlay" onClick={() => setSelectedTransaction(null)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>Transaction Details</h3>
-              <button className="close-btn" onClick={() => setSelectedTransaction(null)}>×</button>
-            </div>
+      {error && <div className="mt-4 text-red-600 font-medium">{error}</div>}
 
-            <div style={{marginBottom: '20px'}}>
-              <div style={{display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px'}}>
-                <div className={`transaction-icon-circle ${selectedTransaction.type}`} style={{fontSize: '28px'}}>
-                  {selectedTransaction.type === 'income' ? '💰' : '💸'}
+      {/* Add Transaction Modal */}
+      <AnimatePresence>
+        {showModal && (
+          <motion.div
+            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setShowModal(false)}
+          >
+            <motion.div
+              className="bg-white rounded-lg w-full max-w-md p-6"
+              initial={{ scale: 0.95 }}
+              animate={{ scale: 1 }}
+              exit={{ scale: 0.95 }}
+              onClick={e => e.stopPropagation()}
+            >
+              <h3 className="text-xl font-bold mb-4">Add Transaction</h3>
+              <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+                {/* Type Toggle */}
+                <div className="flex gap-2">
+                  <button type="button" onClick={() => setValue('type','income')} className={`flex-1 py-2 rounded font-medium ${watch('type')==='income'?'bg-green-600 text-white':'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
+                    Income
+                  </button>
+                  <button type="button" onClick={() => setValue('type','expense')} className={`flex-1 py-2 rounded font-medium ${watch('type')==='expense'?'bg-red-600 text-white':'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
+                    Expense
+                  </button>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1">Category</label>
+                  <input {...register('category',{ required:true })} className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"/>
+                  {errors.category && <span className="text-red-500 text-sm">Category required</span>}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1">Amount</label>
+                  <input type="number" {...register('amount',{ required:true, min:0.01 })} className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"/>
+                  {errors.amount && <span className="text-red-500 text-sm">Valid amount required</span>}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1">Date</label>
+                  <input type="date" {...register('date',{ required:true })} className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"/>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1">Account</label>
+                  <select {...register('account')} className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option>Cash</option>
+                    <option>Bank Account</option>
+                    <option>Credit Card</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1">Note</label>
+                  <textarea {...register('note')} rows={3} className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"/>
+                </div>
+
+                <div className="flex gap-2">
+                  <button type="submit" className="flex-1 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition">Save</button>
+                  <button type="button" onClick={()=>setShowModal(false)} className="flex-1 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 transition">Cancel</button>
+                </div>
+              </form>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Transfer Modal */}
+      <AnimatePresence>
+        {showTransfer && (
+          <motion.div
+            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setShowTransfer(false)}
+          >
+            <motion.div
+              className="bg-white rounded-lg w-full max-w-md p-6"
+              initial={{ scale: 0.95 }}
+              animate={{ scale: 1 }}
+              exit={{ scale: 0.95 }}
+              onClick={e => e.stopPropagation()}
+            >
+              <h3 className="text-xl font-bold mb-4 flex items-center gap-2"><FaExchangeAlt /> Transfer Funds</h3>
+              <form onSubmit={handleSubmitTransfer(onSubmitTransfer)} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1">From</label>
+                  <select {...registerTransfer('from')} className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option>Cash</option>
+                    <option>Bank Account</option>
+                    <option>Credit Card</option>
+                  </select>
                 </div>
                 <div>
-                  <div style={{fontSize: '14px', color: '#7f8c8d'}}>
-                    {selectedTransaction.type === 'expense' ? 'Expense' : 'Income'}
-                  </div>
-                  <div style={{fontSize: '28px', fontWeight: 'bold', color: selectedTransaction.type === 'expense' ? '#e74c3c' : '#27ae60'}}>
-                    {selectedTransaction.type === 'expense' ? '-' : '+'}${selectedTransaction.amount.toFixed(2)}
-                  </div>
-                </div>
-              </div>
-
-              <div style={{backgroundColor: '#f8f9fa', padding: '16px', borderRadius: '8px', marginBottom: '16px'}}>
-                <div style={{marginBottom: '12px'}}>
-                  <div style={{fontSize: '12px', color: '#7f8c8d', marginBottom: '4px'}}>Category</div>
-                  <div style={{fontWeight: '600'}}>{selectedTransaction.category}</div>
-                </div>
-                <div style={{marginBottom: '12px'}}>
-                  <div style={{fontSize: '12px', color: '#7f8c8d', marginBottom: '4px'}}>Account</div>
-                  <div style={{fontWeight: '600'}}>{selectedTransaction.account}</div>
-                </div>
-                <div style={{marginBottom: '12px'}}>
-                  <div style={{fontSize: '12px', color: '#7f8c8d', marginBottom: '4px'}}>Date</div>
-                  <div style={{fontWeight: '600'}}>{new Date(selectedTransaction.date).toLocaleDateString()}</div>
+                  <label className="block text-sm font-medium mb-1">To</label>
+                  <select {...registerTransfer('to')} className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option>Cash</option>
+                    <option>Bank Account</option>
+                    <option>Credit Card</option>
+                  </select>
                 </div>
                 <div>
-                  <div style={{fontSize: '12px', color: '#7f8c8d', marginBottom: '4px'}}>Note</div>
-                  <div style={{fontWeight: '600'}}>{selectedTransaction.note || 'No note'}</div>
+                  <label className="block text-sm font-medium mb-1">Amount</label>
+                  <input type="number" {...registerTransfer('amount',{ required:true, min:0.01 })} className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"/>
                 </div>
-              </div>
-
-              <div style={{marginBottom: '16px'}}>
-                <label style={{display: 'block', marginBottom: '8px', fontWeight: '600'}}>Details & Notes</label>
-                <textarea
-                  className="form-control"
-                  value={detailsNote}
-                  onChange={(e) => setDetailsNote(e.target.value)}
-                  rows="4"
-                  placeholder="Add details, receipt info, or repeat instructions here..."
-                />
-              </div>
-
-              <div style={{display: 'flex', gap: '8px'}}>
-                <button
-                  className="btn btn-primary"
-                  onClick={() => {
-                    const updated = {...selectedTransaction, detailsNote}
-                    const next = transactions.map(t => t._id === updated._id ? updated : t)
-                    setTransactions(next)
-                    localStorage.setItem('transactions_demo', JSON.stringify(next))
-                    setSelectedTransaction(null)
-                  }}
-                >
-                  💾 Save Details
-                </button>
-                <button
-                  className="btn btn-secondary"
-                  onClick={() => setSelectedTransaction(null)}
-                >
-                  Close
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => setShowModal(false)}>
-          <div className="bg-white rounded-lg w-full max-w-md mx-4" onClick={(e) => e.stopPropagation()}>
-            <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
-              <h3 className="text-xl font-bold text-gray-800">Add Transaction</h3>
-              <button 
-                className="text-gray-500 hover:text-gray-700 text-3xl leading-none"
-                onClick={() => setShowModal(false)}
-              >
-                ×
-              </button>
-            </div>
-            <form onSubmit={handleSubmit} className="p-6">
-              <div className="flex gap-2 mb-6">
-                <button
-                  type="button"
-                  className={`flex-1 py-3 rounded-lg font-medium transition-colors ${
-                    formData.type === 'income'
-                      ? 'bg-success text-white'
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                  }`}
-                  onClick={() => setFormData({...formData, type: 'income'})}
-                >
-                  💰 Income
-                </button>
-                <button
-                  type="button"
-                  className={`flex-1 py-3 rounded-lg font-medium transition-colors ${
-                    formData.type === 'expense'
-                      ? 'bg-danger text-white'
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                  }`}
-                  onClick={() => setFormData({...formData, type: 'expense'})}
-                >
-                  💸 Expense
-                </button>
-              </div>
-
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
-                <input
-                  type="text"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                  value={formData.category}
-                  onChange={(e) => setFormData({...formData, category: e.target.value})}
-                  required
-                  placeholder="e.g., Food, Salary, Transport"
-                />
-              </div>
-
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">Amount</label>
-                <input
-                  type="number"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                  value={formData.amount}
-                  onChange={(e) => setFormData({...formData, amount: e.target.value})}
-                  required
-                  min="0"
-                  step="0.01"
-                  placeholder="0.00"
-                />
-              </div>
-
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">Date</label>
-                <input
-                  type="date"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                  value={formData.date}
-                  onChange={(e) => setFormData({...formData, date: e.target.value})}
-                  required
-                />
-              </div>
-
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">Account</label>
-                <select
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                  value={formData.account}
-                  onChange={(e) => setFormData({...formData, account: e.target.value})}
-                >
-                  <option>Cash</option>
-                  <option>Bank Account</option>
-                  <option>Credit Card</option>
-                </select>
-              </div>
-
-              <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-700 mb-2">Note (optional)</label>
-                <textarea
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                  value={formData.note}
-                  onChange={(e) => setFormData({...formData, note: e.target.value})}
-                  rows="3"
-                  placeholder="Add a note..."
-                />
-              </div>
-
-              <div className="flex gap-3">
-                <button 
-                  type="submit" 
-                  className="flex-1 bg-primary text-white py-3 rounded-lg font-medium hover:bg-blue-600 transition-colors"
-                >
-                  Save Transaction
-                </button>
-                <button 
-                  type="button" 
-                  className="flex-1 bg-gray-200 text-gray-700 py-3 rounded-lg font-medium hover:bg-gray-300 transition-colors"
-                  onClick={() => setShowModal(false)}
-                >
-                  Cancel
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {showTransfer && (
-        <div className="modal-overlay" onClick={() => setShowTransfer(false)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>Transfer Funds</h3>
-              <button className="close-btn" onClick={() => setShowTransfer(false)}>×</button>
-            </div>
-            <form onSubmit={async (e) => {
-              e.preventDefault()
-              setError(null)
-              const amt = parseFloat(transferData.amount)
-              if (!amt || amt <= 0) return setError('Enter a valid amount for transfer')
-              if (transferData.from === transferData.to) return setError('Select different source and destination accounts')
-
-              // Create two transactions: expense from source, income to destination
-              const txFrom = {
-                _id: 'tx_' + Date.now() + '_from',
-                amount: amt,
-                type: 'expense',
-                category: `Transfer to ${transferData.to}`,
-                account: transferData.from,
-                date: transferData.date,
-                note: transferData.note || `Transfer to ${transferData.to}`
-              }
-              const txTo = {
-                _id: 'tx_' + (Date.now()+1) + '_to',
-                amount: amt,
-                type: 'income',
-                category: `Transfer from ${transferData.from}`,
-                account: transferData.to,
-                date: transferData.date,
-                note: transferData.note || `Transfer from ${transferData.from}`
-              }
-
-              try {
-                if (useBackend) {
-                  // backend approach: post two transactions (or implement a /transfer endpoint server-side)
-                  await api.post('/transactions', {...txFrom, amount: txFrom.amount})
-                  await api.post('/transactions', {...txTo, amount: txTo.amount})
-                  // re-fetch or optimistically insert
-                  const res = await api.get('/transactions')
-                  setTransactions(res.data)
-                } else {
-                  // client-side: persist both transactions in localStorage
-                  const next = [txTo, txFrom, ...transactions]
-                  setTransactions(next)
-                  localStorage.setItem('transactions_demo', JSON.stringify(next))
-                }
-                setShowTransfer(false)
-                setTransferData({from: 'Bank Account', to: 'Cash', amount: '', date: new Date().toISOString().split('T')[0], note: ''})
-              } catch (err) {
-                setError(err.response?.data?.error || err.message || 'Transfer failed')
-              }
-            }}>
-              <div className="form-group">
-                <label>From (source)</label>
-                <select className="form-control" value={transferData.from} onChange={e => setTransferData({...transferData, from: e.target.value})}>
-                  <option>Cash</option>
-                  <option>Bank Account</option>
-                  <option>Credit Card</option>
-                </select>
-              </div>
-
-              <div className="form-group">
-                <label>To (destination)</label>
-                <select className="form-control" value={transferData.to} onChange={e => setTransferData({...transferData, to: e.target.value})}>
-                  <option>Cash</option>
-                  <option>Bank Account</option>
-                  <option>Credit Card</option>
-                </select>
-              </div>
-
-              <div className="form-group">
-                <label>Amount</label>
-                <input type="number" className="form-control" value={transferData.amount} onChange={e => setTransferData({...transferData, amount: e.target.value})} min="0" step="0.01" required />
-              </div>
-
-              <div className="form-group">
-                <label>Date</label>
-                <input type="date" className="form-control" value={transferData.date} onChange={e => setTransferData({...transferData, date: e.target.value})} required />
-              </div>
-
-              <div className="form-group">
-                <label>Note (optional)</label>
-                <input className="form-control" value={transferData.note} onChange={e => setTransferData({...transferData, note: e.target.value})} />
-              </div>
-
-              <div className="form-actions">
-                <button type="submit" className="btn btn-primary">Save Transaction</button>
-                <button type="button" className="btn btn-secondary" onClick={() => setShowModal(false)}>Cancel</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {showTransfer && (
-        <div className="modal-overlay" onClick={() => setShowTransfer(false)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>Transfer Funds</h3>
-              <button className="close-btn" onClick={() => setShowTransfer(false)}>×</button>
-            </div>
-            <form onSubmit={async (e) => {
-              e.preventDefault()
-              setError(null)
-              const amt = parseFloat(transferData.amount)
-              if (!amt || amt <= 0) return setError('Enter a valid amount for transfer')
-              if (transferData.from === transferData.to) return setError('Select different source and destination accounts')
-
-              // Create two transactions: expense from source, income to destination
-              const txFrom = {
-                _id: 'tx_' + Date.now() + '_from',
-                amount: amt,
-                type: 'expense',
-                category: `Transfer to ${transferData.to}`,
-                account: transferData.from,
-                date: transferData.date,
-                note: transferData.note || `Transfer to ${transferData.to}`
-              }
-              const txTo = {
-                _id: 'tx_' + (Date.now()+1) + '_to',
-                amount: amt,
-                type: 'income',
-                category: `Transfer from ${transferData.from}`,
-                account: transferData.to,
-                date: transferData.date,
-                note: transferData.note || `Transfer from ${transferData.from}`
-              }
-
-              try {
-                if (useBackend) {
-                  // backend approach: post two transactions (or implement a /transfer endpoint server-side)
-                  await api.post('/transactions', {...txFrom, amount: txFrom.amount})
-                  await api.post('/transactions', {...txTo, amount: txTo.amount})
-                  // re-fetch or optimistically insert
-                  const res = await api.get('/transactions')
-                  setTransactions(res.data)
-                } else {
-                  // client-side: persist both transactions in localStorage
-                  const next = [txTo, txFrom, ...transactions]
-                  setTransactions(next)
-                  localStorage.setItem('transactions_demo', JSON.stringify(next))
-                }
-                setShowTransfer(false)
-                setTransferData({from: 'Bank Account', to: 'Cash', amount: '', date: new Date().toISOString().split('T')[0], note: ''})
-              } catch (err) {
-                setError(err.response?.data?.error || err.message || 'Transfer failed')
-              }
-            }}>
-              <div className="form-group">
-                <label>From (source)</label>
-                <select className="form-control" value={transferData.from} onChange={e => setTransferData({...transferData, from: e.target.value})}>
-                  <option>Cash</option>
-                  <option>Bank Account</option>
-                  <option>Credit Card</option>
-                </select>
-              </div>
-
-              <div className="form-group">
-                <label>To (destination)</label>
-                <select className="form-control" value={transferData.to} onChange={e => setTransferData({...transferData, to: e.target.value})}>
-                  <option>Cash</option>
-                  <option>Bank Account</option>
-                  <option>Credit Card</option>
-                </select>
-              </div>
-
-              <div className="form-group">
-                <label>Amount</label>
-                <input type="number" className="form-control" value={transferData.amount} onChange={e => setTransferData({...transferData, amount: e.target.value})} min="0" step="0.01" required />
-              </div>
-
-              <div className="form-group">
-                <label>Date</label>
-                <input type="date" className="form-control" value={transferData.date} onChange={e => setTransferData({...transferData, date: e.target.value})} required />
-              </div>
-
-              <div className="form-group">
-                <label>Note (optional)</label>
-                <input className="form-control" value={transferData.note} onChange={e => setTransferData({...transferData, note: e.target.value})} />
-              </div>
-
-              <div className="form-actions">
-                <button type="submit" className="btn btn-primary">Confirm Transfer</button>
-                <button type="button" className="btn btn-secondary" onClick={() => setShowTransfer(false)}>Cancel</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+                <div>
+                  <label className="block text-sm font-medium mb-1">Date</label>
+                  <input type="date" {...registerTransfer('date',{ required:true })} className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"/>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Note</label>
+                  <input type="text" {...registerTransfer('note')} className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"/>
+                </div>
+                <div className="flex gap-2">
+                  <button type="submit" className="flex-1 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition">Confirm</button>
+                  <button type="button" onClick={()=>setShowTransfer(false)} className="flex-1 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 transition">Cancel</button>
+                </div>
+              </form>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }

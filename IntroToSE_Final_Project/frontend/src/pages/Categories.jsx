@@ -1,4 +1,6 @@
-import React, {useState} from 'react'
+import React, { useState } from 'react'
+import { useForm } from 'react-hook-form'
+import { Plus, FolderOpen, TrendingUp, TrendingDown, Trash2 } from 'lucide-react'
 
 const mockCategories = [
   { id: 1, name: 'Salary', type: 'income', color: '#27ae60', icon: '💼' },
@@ -14,22 +16,25 @@ const mockCategories = [
 export default function Categories() {
   const [categories, setCategories] = useState(mockCategories)
   const [showModal, setShowModal] = useState(false)
-  const [formData, setFormData] = useState({
-    name: '',
-    type: 'expense',
-    icon: '📁',
-    color: '#3498db'
+  const { register, handleSubmit, watch, setValue, reset, formState: { errors } } = useForm({
+    defaultValues: {
+      name: '',
+      type: 'expense',
+      icon: '📁',
+      color: '#3498db'
+    }
   })
 
-  const handleSubmit = (e) => {
-    e.preventDefault()
+  const currentType = watch('type')
+
+  const onSubmit = (data) => {
     const newCategory = {
       id: Date.now(),
-      ...formData
+      ...data
     }
     setCategories([...categories, newCategory])
     setShowModal(false)
-    setFormData({ name: '', type: 'expense', icon: '📁', color: '#3498db' })
+    reset()
   }
 
   const handleDelete = (id) => {
@@ -47,32 +52,32 @@ export default function Categories() {
       </div>
 
       <button 
-        className="bg-primary text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-600 transition-colors mb-6"
+        className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-8 py-3 rounded-xl font-semibold hover:from-blue-600 hover:to-purple-700 hover:shadow-lg hover:scale-105 transition-all duration-300 mb-6 flex items-center gap-2"
         onClick={() => setShowModal(true)}
       >
-        ➕ Add Category
+        <Plus className="w-5 h-5" /> Add Category
       </button>
 
       <div className="mb-10">
         <h3 className="text-xl font-bold text-gray-800 mb-4">Income Categories ({incomeCategories.length})</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
           {incomeCategories.map(cat => (
-            <div key={cat.id} className="bg-white rounded-lg shadow-md p-6 text-center">
+            <div key={cat.id} className="bg-white rounded-xl shadow-md hover:shadow-2xl p-6 text-center transform hover:scale-105 transition-all duration-300 cursor-pointer border border-gray-100">
               <div 
-                className="w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center text-3xl"
+                className="w-20 h-20 rounded-full mx-auto mb-4 flex items-center justify-center text-4xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:rotate-12"
                 style={{backgroundColor: cat.color + '20', color: cat.color}}
               >
                 {cat.icon}
               </div>
-              <h4 className="font-bold text-gray-800 mb-2">{cat.name}</h4>
-              <span className="inline-block px-3 py-1 bg-green-100 text-success rounded-full text-sm font-medium mb-3">
+              <h4 className="font-bold text-gray-800 mb-2 text-lg">{cat.name}</h4>
+              <span className="inline-block px-4 py-1 bg-gradient-to-r from-green-100 to-green-200 text-green-700 rounded-full text-sm font-semibold mb-3">
                 Income
               </span>
               <button 
-                className="w-full bg-danger text-white px-4 py-2 rounded hover:bg-red-600 transition-colors text-sm"
+                className="w-full bg-gradient-to-r from-red-500 to-red-600 text-white px-4 py-2 rounded-lg hover:from-red-600 hover:to-red-700 hover:shadow-lg transition-all duration-300 text-sm font-medium flex items-center justify-center gap-2"
                 onClick={() => handleDelete(cat.id)}
               >
-                Delete
+                <Trash2 className="w-4 h-4" /> Delete
               </button>
             </div>
           ))}
@@ -81,24 +86,24 @@ export default function Categories() {
 
       <div>
         <h3 className="text-xl font-bold text-gray-800 mb-4">Expense Categories ({expenseCategories.length})</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
           {expenseCategories.map(cat => (
-            <div key={cat.id} className="bg-white rounded-lg shadow-md p-6 text-center">
+            <div key={cat.id} className="bg-white rounded-xl shadow-md hover:shadow-2xl p-6 text-center transform hover:scale-105 transition-all duration-300 cursor-pointer border border-gray-100">
               <div 
-                className="w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center text-3xl"
+                className="w-20 h-20 rounded-full mx-auto mb-4 flex items-center justify-center text-4xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:rotate-12"
                 style={{backgroundColor: cat.color + '20', color: cat.color}}
               >
                 {cat.icon}
               </div>
-              <h4 className="font-bold text-gray-800 mb-2">{cat.name}</h4>
-              <span className="inline-block px-3 py-1 bg-red-100 text-danger rounded-full text-sm font-medium mb-3">
+              <h4 className="font-bold text-gray-800 mb-2 text-lg">{cat.name}</h4>
+              <span className="inline-block px-4 py-1 bg-gradient-to-r from-red-100 to-red-200 text-red-700 rounded-full text-sm font-semibold mb-3">
                 Expense
               </span>
               <button 
-                className="w-full bg-danger text-white px-4 py-2 rounded hover:bg-red-600 transition-colors text-sm"
+                className="w-full bg-gradient-to-r from-red-500 to-red-600 text-white px-4 py-2 rounded-lg hover:from-red-600 hover:to-red-700 hover:shadow-lg transition-all duration-300 text-sm font-medium flex items-center justify-center gap-2"
                 onClick={() => handleDelete(cat.id)}
               >
-                Delete
+                <Trash2 className="w-4 h-4" /> Delete
               </button>
             </div>
           ))}
@@ -117,29 +122,29 @@ export default function Categories() {
                 ×
               </button>
             </div>
-            <form onSubmit={handleSubmit} className="p-6">
+            <form onSubmit={handleSubmit(onSubmit)} className="p-6">
               <div className="flex gap-2 mb-6">
                 <button
                   type="button"
-                  className={`flex-1 py-3 rounded-lg font-medium transition-colors ${
-                    formData.type === 'income'
+                  className={`flex-1 py-3 rounded-lg font-medium transition-colors flex items-center justify-center gap-2 ${
+                    currentType === 'income'
                       ? 'bg-success text-white'
                       : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                   }`}
-                  onClick={() => setFormData({...formData, type: 'income'})}
+                  onClick={() => setValue('type', 'income')}
                 >
-                  💰 Income
+                  <TrendingUp className="w-5 h-5" /> Income
                 </button>
                 <button
                   type="button"
-                  className={`flex-1 py-3 rounded-lg font-medium transition-colors ${
-                    formData.type === 'expense'
+                  className={`flex-1 py-3 rounded-lg font-medium transition-colors flex items-center justify-center gap-2 ${
+                    currentType === 'expense'
                       ? 'bg-danger text-white'
                       : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                   }`}
-                  onClick={() => setFormData({...formData, type: 'expense'})}
+                  onClick={() => setValue('type', 'expense')}
                 >
-                  💸 Expense
+                  <TrendingDown className="w-5 h-5" /> Expense
                 </button>
               </div>
 
@@ -147,12 +152,18 @@ export default function Categories() {
                 <label className="block text-sm font-medium text-gray-700 mb-2">Category Name</label>
                 <input
                   type="text"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                  value={formData.name}
-                  onChange={(e) => setFormData({...formData, name: e.target.value})}
-                  required
+                  className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary ${
+                    errors.name ? 'border-red-500' : 'border-gray-300'
+                  }`}
+                  {...register('name', { 
+                    required: 'Category name is required',
+                    minLength: { value: 2, message: 'Name must be at least 2 characters' }
+                  })}
                   placeholder="e.g., Food, Rent, Bonus"
                 />
+                {errors.name && (
+                  <p className="mt-1 text-sm text-red-500">{errors.name.message}</p>
+                )}
               </div>
 
               <div className="mb-4">
@@ -160,8 +171,7 @@ export default function Categories() {
                 <input
                   type="text"
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                  value={formData.icon}
-                  onChange={(e) => setFormData({...formData, icon: e.target.value})}
+                  {...register('icon', { maxLength: 2 })}
                   placeholder="🎯"
                   maxLength="2"
                 />
@@ -172,8 +182,7 @@ export default function Categories() {
                 <input
                   type="color"
                   className="w-full h-12 px-2 py-1 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                  value={formData.color}
-                  onChange={(e) => setFormData({...formData, color: e.target.value})}
+                  {...register('color')}
                 />
               </div>
 
@@ -187,7 +196,7 @@ export default function Categories() {
                 <button 
                   type="button" 
                   className="flex-1 bg-gray-200 text-gray-700 py-3 rounded-lg font-medium hover:bg-gray-300 transition-colors"
-                  onClick={() => setShowModal(false)}
+                  onClick={() => { setShowModal(false); reset(); }}
                 >
                   Cancel
                 </button>

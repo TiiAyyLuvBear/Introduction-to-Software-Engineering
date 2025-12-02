@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { BarChart3, Wallet, FileText, Download, Share2, TrendingUp, TrendingDown, DollarSign, Briefcase } from 'lucide-react'
 
 export default function Reports() {
   const [reportType, setReportType] = useState('category') // 'category' or 'wallet'
@@ -148,28 +149,36 @@ export default function Reports() {
 
   return (
     <div>
-      <div className="page-header">
-        <h2>Financial Reports</h2>
-        <p>Analyze your spending and income patterns</p>
+      <div className="page-header mb-8">
+        <h2 className="text-3xl font-bold text-gray-800 mb-2">Financial Reports</h2>
+        <p className="text-gray-600">Analyze your spending and income patterns</p>
       </div>
 
-      <div style={{ display: 'flex', gap: '12px', marginBottom: '20px', flexWrap: 'wrap' }}>
+      <div className="flex gap-4 mb-6 flex-wrap">
         <button
-          className={`btn ${reportType === 'category' ? 'btn-primary' : 'btn-secondary'}`}
+          className={`px-6 py-3 rounded-xl font-semibold transition-all duration-300 hover:scale-105 hover:shadow-lg ${
+            reportType === 'category' 
+              ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white' 
+              : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+          }`}
           onClick={() => setReportType('category')}
         >
-          📊 By Category
+          <BarChart3 className="w-5 h-5 inline mr-2" /> By Category
         </button>
         <button
-          className={`btn ${reportType === 'wallet' ? 'btn-primary' : 'btn-secondary'}`}
+          className={`px-6 py-3 rounded-xl font-semibold transition-all duration-300 hover:scale-105 hover:shadow-lg ${
+            reportType === 'wallet' 
+              ? 'bg-gradient-to-r from-green-500 to-teal-600 text-white' 
+              : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+          }`}
           onClick={() => setReportType('wallet')}
         >
-          💼 By Wallet
+          <Wallet className="w-5 h-5 inline mr-2" /> By Wallet
         </button>
       </div>
 
-      <div className="card" style={{ marginBottom: '20px', padding: '20px' }}>
-        <h3 style={{ marginBottom: '12px' }}>Filters</h3>
+      <div className="bg-gradient-to-br from-white to-blue-50 rounded-xl shadow-md hover:shadow-xl transition-all duration-300 p-6 mb-6 border border-blue-100">
+        <h3 className="text-xl font-bold text-gray-800 mb-4">Filters</h3>
         <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
           <div style={{ flex: 1, minWidth: '150px' }}>
             <label>Time Range</label>
@@ -240,27 +249,27 @@ export default function Reports() {
         </div>
       </div>
 
-      <div className="dashboard-cards" style={{ marginBottom: '30px' }}>
-        <div className="card">
-          <div className="card-header">
-            <span className="card-title">Total Income</span>
-            <span className="card-icon">📈</span>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div className="bg-gradient-to-br from-green-50 to-white rounded-xl shadow-md hover:shadow-2xl transition-all duration-300 p-6 border-2 border-green-200 hover:border-green-400 hover:scale-105">
+          <div className="flex justify-between items-start mb-4">
+            <span className="text-gray-600 font-semibold">Total Income</span>
+            <TrendingUp className="w-8 h-8 text-green-600 animate-bounce" />
           </div>
-          <div className="card-amount income">${totalIncome.toFixed(2)}</div>
+          <div className="text-3xl font-bold text-green-600">${totalIncome.toFixed(2)}</div>
         </div>
-        <div className="card">
-          <div className="card-header">
-            <span className="card-title">Total Expense</span>
-            <span className="card-icon">📉</span>
+        <div className="bg-gradient-to-br from-red-50 to-white rounded-xl shadow-md hover:shadow-2xl transition-all duration-300 p-6 border-2 border-red-200 hover:border-red-400 hover:scale-105">
+          <div className="flex justify-between items-start mb-4">
+            <span className="text-gray-600 font-semibold">Total Expense</span>
+            <TrendingDown className="w-8 h-8 text-red-600 animate-bounce" />
           </div>
-          <div className="card-amount expense">${totalExpense.toFixed(2)}</div>
+          <div className="text-3xl font-bold text-red-600">${totalExpense.toFixed(2)}</div>
         </div>
-        <div className="card">
-          <div className="card-header">
-            <span className="card-title">Net Balance</span>
-            <span className="card-icon">💰</span>
+        <div className="bg-gradient-to-br from-blue-50 to-white rounded-xl shadow-md hover:shadow-2xl transition-all duration-300 p-6 border-2 border-blue-200 hover:border-blue-400 hover:scale-105">
+          <div className="flex justify-between items-start mb-4">
+            <span className="text-gray-600 font-semibold">Net Balance</span>
+            <DollarSign className="w-8 h-8 text-blue-600 animate-bounce" />
           </div>
-          <div className="card-amount balance">${netBalance.toFixed(2)}</div>
+          <div className="text-3xl font-bold text-blue-600">${netBalance.toFixed(2)}</div>
         </div>
       </div>
 
@@ -272,7 +281,7 @@ export default function Reports() {
 
           {Object.keys(categoryReport).length === 0 ? (
             <div className="empty-state">
-              <div className="empty-state-icon">📊</div>
+              <BarChart3 className="w-16 h-16 text-gray-400 mx-auto mb-4" />
               <h3>No data available</h3>
               <p>Add transactions to see category breakdown</p>
             </div>
@@ -372,7 +381,7 @@ export default function Reports() {
 
           {Object.keys(walletReport).length === 0 ? (
             <div className="empty-state">
-              <div className="empty-state-icon">💼</div>
+              <Briefcase className="w-16 h-16 text-gray-400 mx-auto mb-4" />
               <h3>No wallets available</h3>
               <p>Create a wallet to see wallet summary</p>
             </div>

@@ -20,6 +20,7 @@ import mongoose from 'mongoose'
 import cors from 'cors'
 
 // Import routers
+import authRouter from './routes/auth.js'
 import transactionsRouter from './routes/transactions.js'
 import categoriesRouter from './routes/categories.js'
 import accountsRouter from './routes/accounts.js'
@@ -51,12 +52,13 @@ app.use(express.json())
  * Đăng ký routes (API endpoints)
  * Tất cả endpoints đều có prefix /api để phân biệt với frontend routes
  */
+app.use('/api/auth', authRouter)                  // Authentication (login, register, logout)
 app.use('/api/transactions', transactionsRouter)  // Quản lý giao dịch thu/chi
 app.use('/api/categories', categoriesRouter)      // Quản lý danh mục
 app.use('/api/accounts', accountsRouter)          // Quản lý tài khoản/ví
 app.use('/api/users', usersRouter)                // Quản lý người dùng
 app.use('/api/wallets', walletsRouter)            // Quản lý ví tiền (Use Cases U010-U014)
-app.use('/api/invitations', invitationsRouter)       // Quản lý lời mời ví chia sẻ (Use Case U011)
+app.use('/api/invitations', invitationsRouter)    // Quản lý lời mời ví chia sẻ (Use Case U011)
 
 /**
  * Health check endpoint

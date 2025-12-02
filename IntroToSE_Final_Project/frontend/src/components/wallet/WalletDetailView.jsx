@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { walletAPI, invitationAPI } from '../api.js'
+import { walletAPI, invitationAPI } from '../../api.js'
 
 /**
  * WalletDetailView Component - Chi tiết ví và quản lý shared wallet

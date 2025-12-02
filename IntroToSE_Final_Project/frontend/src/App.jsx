@@ -13,49 +13,44 @@
  */
 import { useState, useEffect } from 'react'
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
-import Sidebar from './components/Sidebar'
-//import Chatbot from './components/Chatbot'
-//import UserInfo from './components/UserInfo'
+import Sidebar from './components/layout/Sidebar'
 import Dashboard from './pages/Dashboard'
 import Transactions from './pages/Transactions'
 import Categories from './pages/Categories'
 import Accounts from './pages/Accounts'
 import Abouts from './pages/Abouts'
-import Authentication from './pages/Authenication'
-import GroupWallet from './pages/GroupWallet'
 import Wallets from './pages/Wallets'
-import Invitations from './pages/Invitations'
+import SavingGoals from './pages/SavingGoals'
+import Budget from './pages/Budget'
+import Reports from './pages/Reports'
+import './App.css'
 
 export default function App() {
-  // State để quản lý sidebar open/close
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true)
+  // State để quản lý mobile menu open/close
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   
   return (
     <Router>
-      <div className="flex min-h-screen bg-gray-50">
-        {/* Sidebar - Fixed left với toggle button */}
-        <Sidebar isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} />
+      <div className="min-h-screen bg-gray-50">
+        {/* Horizontal Navbar - Fixed top */}
+        <Sidebar isOpen={isMobileMenuOpen} setIsOpen={setIsMobileMenuOpen} />
         
-        {/* Main content area - Tự động full width khi sidebar đóng */}
-        <main 
-          className={`flex-1 overflow-y-auto p-8 transition-all duration-300 ${
-            isSidebarOpen ? 'lg:pl-72' : 'pl-20'
-          }`}
-        >
+        {/* Main content area - Add top padding for fixed navbar */}
+        <main className="pt-20 px-4 sm:px-6 lg:px-8 pb-8 max-w-screen-2xl mx-auto">
           <Routes>
             {/* Redirect root "/" về "/dashboard" */}
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
             
-            {/* Các routes cho từng trang */}
+            {/* Các trang chính */}
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/transactions" element={<Transactions />} />
             <Route path="/categories" element={<Categories />} />
-            <Route path="/accounts" element={<Accounts />} />
             <Route path="/wallets" element={<Wallets />} />
-            <Route path="/invitations" element={<Invitations />} />
+            <Route path="/accounts" element={<Accounts />} />
             <Route path="/abouts" element={<Abouts />} />
-            <Route path="/authenication" element={<Authentication />}/>
-            <Route path="/userinfo" element={<UserInfo />}/>
+            <Route path="/savings" element={<SavingGoals />} />
+            <Route path="/budgets" element={<Budget />} />
+            <Route path="/reports" element={<Reports />} />
           </Routes>
         </main>
       </div>

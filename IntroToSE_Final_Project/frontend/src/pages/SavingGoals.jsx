@@ -1,14 +1,19 @@
 import React, { useState, useEffect } from 'react'
+import { useForm } from 'react-hook-form'
+import { Plus, Target, Calendar, CheckCircle, Trash2, DollarSign } from 'lucide-react'
 
 export default function SavingGoals() {
   const [goals, setGoals] = useState([])
   const [showModal, setShowModal] = useState(false)
-  const [formData, setFormData] = useState({
-    name: '',
-    targetAmount: '',
-    currentAmount: '',
-    deadline: '',
-    description: ''
+  
+  const { register, handleSubmit, reset, formState: { errors } } = useForm({
+    defaultValues: {
+      name: '',
+      targetAmount: '',
+      currentAmount: '',
+      deadline: '',
+      description: ''
+    }
   })
 
   useEffect(() => {
@@ -41,28 +46,21 @@ export default function SavingGoals() {
     }
   }, [])
 
-  const handleCreateGoal = (e) => {
-    e.preventDefault()
+  const onCreateGoal = (data) => {
     const newGoal = {
       id: 'sg_' + Date.now(),
-      name: formData.name,
-      targetAmount: parseFloat(formData.targetAmount),
-      currentAmount: parseFloat(formData.currentAmount) || 0,
-      deadline: formData.deadline,
-      description: formData.description,
+      name: data.name,
+      targetAmount: parseFloat(data.targetAmount),
+      currentAmount: parseFloat(data.currentAmount) || 0,
+      deadline: data.deadline,
+      description: data.description,
       createdAt: new Date().toISOString()
     }
     const updated = [...goals, newGoal]
     setGoals(updated)
     localStorage.setItem('saving_goals_demo', JSON.stringify(updated))
     setShowModal(false)
-    setFormData({
-      name: '',
-      targetAmount: '',
-      currentAmount: '',
-      deadline: '',
-      description: ''
-    })
+    reset()
   }
 
   const updateGoalAmount = (id, amount) => {
@@ -96,13 +94,13 @@ export default function SavingGoals() {
 
   return (
     <div>
-      <div className="page-header">
-        <h2>Saving Goals</h2>
-        <p>Create and track your financial goals</p>
+      <div className="mb-8">
+        <h2 className="text-3xl font-bold text-gray-800 mb-2">Saving Goals</h2>
+        <p className="text-gray-600">Create and track your financial goals</p>
       </div>
 
-      <button className="btn btn-primary" onClick={() => setShowModal(true)}>
-        ➕ Create Saving Goal
+      <button className="bg-gradient-to-r from-green-500 to-teal-600 text-white px-8 py-3 rounded-xl font-semibold hover:from-green-600 hover:to-teal-700 hover:shadow-lg hover:scale-105 transition-all duration-300 flex items-center gap-2" onClick={() => setShowModal(true)}>
+        <Plus className="w-5 h-5" /> Create Saving Goal
       </button>
 
       <div style={{ marginTop: '30px' }}>
@@ -119,80 +117,67 @@ export default function SavingGoals() {
             const isCompleted = goal.currentAmount >= goal.targetAmount
 
             return (
-              <div key={goal.id} className="card" style={{ marginBottom: '20px' }}>
-                <div className="card-header">
-                  <span className="card-title">{goal.name}</span>
-                  <span className="card-icon">🎯</span>
+              <div key={goal.id} className="bg-gradient-to-br from-white to-green-50 rounded-xl shadow-md hover:shadow-2xl transition-all duration-300 p-6 mb-6 border border-green-100 transform hover:scale-[1.02]">
+                <div className="flex justify-between items-center mb-4">
+                  <span className="text-xl font-bold text-gray-800">{goal.name}</span>
+                  <Target className="w-8 h-8 text-green-600 animate-bounce" />
                 </div>
 
                 {goal.description && (
-                  <div style={{ fontSize: '13px', color: '#7f8c8d', marginBottom: '12px' }}>
+                  <div className="text-sm text-gray-600 mb-4 italic">
                     {goal.description}
                   </div>
                 )}
 
-                <div style={{ marginBottom: '15px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '14px' }}>
-                    <span>Progress</span>
-                    <span style={{ fontWeight: 600 }}>
+                <div className="mb-4">
+                  <div className="flex justify-between mb-2 text-sm">
+                    <span className="text-gray-600 font-medium">Progress</span>
+                    <span className="font-bold text-gray-800">
                       ${goal.currentAmount.toFixed(2)} / ${goal.targetAmount.toFixed(2)}
                     </span>
                   </div>
 
-                  <div style={{
-                    width: '100%',
-                    height: '12px',
-                    backgroundColor: '#ecf0f1',
-                    borderRadius: '6px',
-                    overflow: 'hidden'
-                  }}>
-                    <div style={{
-                      width: `${Math.min(percentage, 100)}%`,
-                      height: '100%',
-                      backgroundColor: isCompleted ? '#27ae60' : '#3498db',
-                      transition: 'width 0.3s'
-                    }} />
+                  <div className="w-full h-4 bg-gray-200 rounded-full overflow-hidden shadow-inner">
+                    <div 
+                      className={`h-full transition-all duration-700 ${
+                        isCompleted ? 'bg-gradient-to-r from-green-500 to-green-600' : 'bg-gradient-to-r from-blue-500 to-blue-600'
+                      }`}
+                      style={{ width: `${Math.min(percentage, 100)}%` }}
+                    />
                   </div>
 
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '8px', fontSize: '12px', color: '#7f8c8d' }}>
-                    <span>{percentage.toFixed(0)}% completed</span>
-                    <span>${(goal.targetAmount - goal.currentAmount).toFixed(2)} to go</span>
+                  <div className="flex justify-between mt-2 text-xs text-gray-500">
+                    <span className="font-medium">{percentage.toFixed(0)}% completed</span>
+                    <span className="font-bold">${(goal.targetAmount - goal.currentAmount).toFixed(2)} to go</span>
                   </div>
                 </div>
 
-                <div style={{ display: 'flex', gap: '10px', marginBottom: '12px', fontSize: '12px' }}>
-                  <span>📅 Deadline: {new Date(goal.deadline).toLocaleDateString()}</span>
-                  <span style={{ color: daysLeft === 0 ? '#e74c3c' : '#7f8c8d' }}>
-                    ({daysLeft === 0 ? 'Expired' : daysLeft + ' days left'})
+                <div className="flex gap-3 mb-3 text-xs">
+                  <span className="bg-blue-100 px-3 py-1 rounded-full text-blue-700 font-semibold flex items-center gap-1"><Calendar className="w-3 h-3" /> {new Date(goal.deadline).toLocaleDateString()}</span>
+                  <span className={`px-3 py-1 rounded-full font-semibold ${
+                    daysLeft === 0 ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-700'
+                  }`}>
+                    {daysLeft === 0 ? 'Expired' : daysLeft + ' days left'}
                   </span>
                 </div>
 
                 {isCompleted && (
-                  <div style={{
-                    backgroundColor: '#d5f4e6',
-                    color: '#27ae60',
-                    padding: '8px 12px',
-                    borderRadius: '6px',
-                    marginBottom: '12px',
-                    fontSize: '13px',
-                    fontWeight: 500
-                  }}>
-                    ✅ Goal completed! You've reached your target!
+                  <div className="bg-gradient-to-r from-green-100 to-green-200 text-green-700 px-4 py-3 rounded-lg mb-3 text-sm font-bold border border-green-300 animate-pulse flex items-center gap-2">
+                    <CheckCircle className="w-5 h-5" /> Goal completed! You've reached your target!
                   </div>
                 )}
 
-                <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
+                <div className="flex gap-2 mb-3">
                   <input
                     type="number"
-                    className="form-control"
+                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 transition-all"
                     placeholder="Add contribution amount"
                     step="0.01"
                     min="0"
                     id={`contribution-${goal.id}`}
-                    style={{ flex: 1 }}
                   />
                   <button
-                    className="btn btn-success"
+                    className="bg-gradient-to-r from-green-500 to-green-600 text-white px-6 py-2 rounded-lg font-medium hover:from-green-600 hover:to-green-700 hover:shadow-lg transition-all duration-300"
                     onClick={() => {
                       const input = document.getElementById(`contribution-${goal.id}`)
                       if (input.value) {
@@ -200,18 +185,16 @@ export default function SavingGoals() {
                         input.value = ''
                       }
                     }}
-                    style={{ padding: '10px 16px' }}
                   >
                     Add
                   </button>
                 </div>
 
                 <button
-                  className="btn btn-danger"
-                  style={{ padding: '6px 12px', fontSize: '12px' }}
+                  className="bg-gradient-to-r from-red-500 to-red-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:from-red-600 hover:to-red-700 hover:shadow-lg transition-all duration-300 flex items-center gap-2"
                   onClick={() => deleteGoal(goal.id)}
                 >
-                  🗑️ Delete
+                  <Trash2 className="w-4 h-4" /> Delete
                 </button>
               </div>
             )
@@ -226,63 +209,72 @@ export default function SavingGoals() {
               <h3>Create Saving Goal</h3>
               <button className="close-btn" onClick={() => setShowModal(false)}>×</button>
             </div>
-            <form onSubmit={handleCreateGoal}>
+            <form onSubmit={handleSubmit(onCreateGoal)}>
               <div className="form-group">
                 <label>Goal Name</label>
                 <input
                   type="text"
-                  className="form-control"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  required
+                  className={`form-control ${errors.name ? 'border-red-500' : ''}`}
+                  {...register('name', { required: 'Goal name is required' })}
                   placeholder="e.g., Vacation Fund, Emergency Fund"
                 />
+                {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name.message}</p>}
               </div>
 
               <div className="form-group">
                 <label>Target Amount</label>
                 <input
                   type="number"
-                  className="form-control"
-                  value={formData.targetAmount}
-                  onChange={(e) => setFormData({ ...formData, targetAmount: e.target.value })}
-                  required
+                  className={`form-control ${errors.targetAmount ? 'border-red-500' : ''}`}
+                  {...register('targetAmount', { 
+                    required: 'Target amount is required',
+                    min: { value: 0.01, message: 'Target must be greater than 0' }
+                  })}
                   min="0"
                   step="0.01"
                   placeholder="0.00"
                 />
+                {errors.targetAmount && <p className="text-red-500 text-sm mt-1">{errors.targetAmount.message}</p>}
               </div>
 
               <div className="form-group">
                 <label>Current Amount (optional)</label>
                 <input
                   type="number"
-                  className="form-control"
-                  value={formData.currentAmount}
-                  onChange={(e) => setFormData({ ...formData, currentAmount: e.target.value })}
+                  className={`form-control ${errors.currentAmount ? 'border-red-500' : ''}`}
+                  {...register('currentAmount', {
+                    min: { value: 0, message: 'Amount cannot be negative' }
+                  })}
                   min="0"
                   step="0.01"
                   placeholder="0.00"
                 />
+                {errors.currentAmount && <p className="text-red-500 text-sm mt-1">{errors.currentAmount.message}</p>}
               </div>
 
               <div className="form-group">
                 <label>Deadline</label>
                 <input
                   type="date"
-                  className="form-control"
-                  value={formData.deadline}
-                  onChange={(e) => setFormData({ ...formData, deadline: e.target.value })}
-                  required
+                  className={`form-control ${errors.deadline ? 'border-red-500' : ''}`}
+                  {...register('deadline', { 
+                    required: 'Deadline is required',
+                    validate: (value) => {
+                      const selectedDate = new Date(value)
+                      const today = new Date()
+                      today.setHours(0, 0, 0, 0)
+                      return selectedDate >= today || 'Deadline must be today or in the future'
+                    }
+                  })}
                 />
+                {errors.deadline && <p className="text-red-500 text-sm mt-1">{errors.deadline.message}</p>}
               </div>
 
               <div className="form-group">
                 <label>Description (optional)</label>
                 <textarea
                   className="form-control"
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  {...register('description')}
                   rows="3"
                   placeholder="What is this goal for?"
                 />
@@ -290,7 +282,7 @@ export default function SavingGoals() {
 
               <div className="form-actions">
                 <button type="submit" className="btn btn-primary">Create Goal</button>
-                <button type="button" className="btn btn-secondary" onClick={() => setShowModal(false)}>Cancel</button>
+                <button type="button" className="btn btn-secondary" onClick={() => { setShowModal(false); reset(); }}>Cancel</button>
               </div>
             </form>
           </div>
