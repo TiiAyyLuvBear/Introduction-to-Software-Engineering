@@ -1,5 +1,5 @@
 import React from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   FaTachometerAlt,
   FaMoneyBillWave,
@@ -10,11 +10,21 @@ import {
   FaCalendarAlt,
   FaChartLine,
   FaInfoCircle,
+  FaSignOutAlt,
 } from "react-icons/fa";
 import { Menu, X } from "lucide-react";
 
 export default function Sidebar({ isOpen, setIsOpen }) {
   const location = useLocation();
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("isAuthenticated");
+    localStorage.removeItem("currentUser");
+    navigate("/login");
+    window.location.reload(); // Force refresh to update App state
+  };
 
   const menuItems = [
     { path: "/dashboard", label: "Dashboard", icon: <FaTachometerAlt /> },
@@ -69,6 +79,15 @@ export default function Sidebar({ isOpen, setIsOpen }) {
                   </Link>
                 );
               })}
+              {/* Logout Button */}
+              <button
+                onClick={handleLogout}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium
+                  hover:bg-red-600 text-gray-300 hover:text-white transition-all duration-200"
+              >
+                <FaSignOutAlt size={16} />
+                <span>Logout</span>
+              </button>
             </div>
 
             {/* Mobile Menu Button */}
@@ -113,6 +132,18 @@ export default function Sidebar({ isOpen, setIsOpen }) {
                 </Link>
               );
             })}
+            {/* Mobile Logout Button */}
+            <button
+              onClick={() => {
+                setIsOpen(false);
+                handleLogout();
+              }}
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium
+                hover:bg-red-600 text-gray-300 hover:text-white transition-all duration-200"
+            >
+              <FaSignOutAlt size={18} />
+              <span>Logout</span>
+            </button>
           </div>
         </div>
       </nav>

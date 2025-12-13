@@ -27,9 +27,12 @@ export default function UserInfo({ user, onLogout }) {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem("token");
-    if (onLogout) onLogout();
-    navigate("/login");
+    // Clear all auth-related data from localStorage
+    localStorage.removeItem("token")
+    localStorage.removeItem("isAuthenticated")
+    localStorage.removeItem("currentUser")
+    if (onLogout) onLogout()
+    navigate("/login")
   };
 
   // Đóng dropdown khi click bên ngoài
