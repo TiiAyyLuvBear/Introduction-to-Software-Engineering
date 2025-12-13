@@ -176,80 +176,108 @@
 
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useForm } from 'react-hook-form'
+import { FaEnvelope, FaLock, FaUser, FaGoogle, FaFacebook } from 'react-icons/fa'
+import { currentUser } from '../mockData'
 
 export default function Authentication() {
-  // TODO: Implement 2 state cơ bản
-  // const [isLogin, setIsLogin] = useState(true)
-  // const [formData, setFormData] = useState({ name: '', email: '', password: '', confirmPassword: '' })
-
-  // TODO: Implement handleSubmit (chỉ cần console.log để demo)
-  // const handleSubmit = (e) => {
-  //   e.preventDefault()
-  //   console.log('Form submitted:', formData)
-  //   alert(isLogin ? 'Login successful!' : 'Account created!')
-  // }
-
-  // TODO: Implement UI theo hướng dẫn ở trên
-  // return (
-  //   <div className="min-h-screen bg-gradient-to-br from-blue-500 to-purple-600 ...">
-  //     ...
-  //   </div>
-  // )
   // State quản lý hiển thị form login hay register
   const [isLogin, setIsLogin] = useState(true)
-  
-  // State quản lý data form
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    password: '',
-    confirmPassword: ''
-  })
+  const [error, setError] = useState('')
+  const [success, setSuccess] = useState('')
   
   // Hook để redirect sau khi login
   const navigate = useNavigate()
 
+  // React Hook Form cho Login
+  const { register: registerLogin, handleSubmit: handleSubmitLogin, formState: { errors: errorsLogin } } = useForm({
+    defaultValues: {
+      email: 'demo@example.com', // Pre-fill for demo
+      password: '123456'
+    }
+  })
+
+  // React Hook Form cho Register
+  const { register: registerForm, handleSubmit: handleSubmitRegister, watch, formState: { errors: errorsRegister } } = useForm({
+    defaultValues: {
+      name: '',
+      email: '',
+      password: '',
+      confirmPassword: ''
+    }
+  })
+
   /**
    * Handler: Submit form login
-   * 
-   * Flow:
-   * 1. Validate email và password không rỗng
-   * 2. Call API POST /api/auth/login với { email, password }
-   * 3. Lưu JWT token vào localStorage
-   * 4. Redirect về /dashboard
+   * DEMO: Sử dụng mockData để đăng nhập
+   * Credentials: demo@example.com / 123456
    */
-  const handleLogin = async (e) => {
-    e.preventDefault()
-    // TODO: Implement login logic
-    console.log('Login with:', { email: formData.email, password: formData.password })
+  const onSubmitLogin = async (data) => {
+    setError('')
+    setSuccess('')
     
-    // Mock: Redirect to dashboard
-    // navigate('/dashboard')
+    // DEMO: Check credentials với mockData
+    // API Call would be: const response = await authAPI.login(data)
+    
+    if (data.email === currentUser.email && data.password === '123456') {
+      // Save user to localStorage
+      localStorage.setItem('currentUser', JSON.stringify(currentUser))
+      localStorage.setItem('isAuthenticated', 'true')
+      
+      setSuccess('Login successful! Redirecting...')
+      
+      // Redirect to dashboard
+      setTimeout(() => {
+        navigate('/dashboard')
+      }, 1000)
+    } else {
+      setError('Invalid email or password. Use demo@example.com / 123456')
+    }
   }
 
   /**
    * Handler: Submit form register
-   * 
-   * Flow:
-   * 1. Validate: email format, password >= 6 chars, password === confirmPassword
-   * 2. Call API POST /api/auth/register với { name, email, password }
-   * 3. Tự động login hoặc chuyển sang form login
+   * DEMO: Tạo account mới và auto-login
    */
-  const handleRegister = async (e) => {
-    e.preventDefault()
+  const onSubmitRegister = async (data) => {
+    setError('')
+    setSuccess('')
     
-    // Validate password match
-    if (formData.password !== formData.confirmPassword) {
-      alert('Passwords do not match!')
+    // Check password match
+    if (data.password !== data.confirmPassword) {
+      setError('Passwords do not match!')
       return
     }
     
-    // TODO: Implement register logic
-    console.log('Register with:', { 
-      name: formData.name, 
-      email: formData.email, 
-      password: formData.password 
-    })
+    // DEMO: Create new user
+    // API Call would be: const response = await authAPI.register(data)
+    const newUser = {
+      id: 'user_new_' + Date.now(),
+      username: data.name.toLowerCase().replace(/\s+/g, '_'),
+      email: data.email,
+      fullName: data.name,
+      avatar: 'https://i.pravatar.cc/150?img=' + Math.floor(Math.random() * 70),
+      createdAt: new Date().toISOString()
+    }
+    
+    // Save to localStorage
+    localStorage.setItem('currentUser', JSON.stringify(newUser))
+    localStorage.setItem('isAuthenticated', 'true')
+    
+    setSuccess('Account created successfully! Redirecting...')
+    
+    // Redirect to dashboard
+    setTimeout(() => {
+      navigate('/dashboard')
+    }, 1000)
+  }
+
+  /**
+   * Handler: Social login (Demo only)
+   */
+  const handleSocialLogin = (provider) => {
+    console.log('Social login with:', provider)
+    setError('Social login is not available in demo mode')
   }
 
   return (
@@ -288,126 +316,201 @@ export default function Authentication() {
           </button>
         </div>
 
+        {/* Success/Error Messages */}
+        {error && (
+          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+            {error}
+          </div>
+        )}
+        {success && (
+          <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg text-green-700 text-sm">
+            {success}
+          </div>
+        )}
+
+        {/* Demo Credentials Info */}
+        {isLogin && (
+          <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg text-blue-700 text-sm">
+            <strong>Demo Credentials:</strong> demo@example.com / 123456
+          </div>
+        )}
+
         {/* Login Form */}
         {isLogin ? (
-          <form onSubmit={handleLogin} className="space-y-4">
+          <form onSubmit={handleSubmitLogin(onSubmitLogin)} className="space-y-4">
             {/* Email Input */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
+                <FaEnvelope className="inline mr-2" />
                 Email
               </label>
               <input
                 type="email"
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                {...registerLogin('email', { 
+                  required: 'Email is required',
+                  pattern: {
+                    value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                    message: 'Invalid email address'
+                  }
+                })}
+                className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                  errorsLogin.email ? 'border-red-500' : 'border-gray-300'
+                }`}
                 placeholder="your@email.com"
-                value={formData.email}
-                onChange={(e) => setFormData({...formData, email: e.target.value})}
-                required
               />
+              {errorsLogin.email && (
+                <p className="mt-1 text-sm text-red-600">{errorsLogin.email.message}</p>
+              )}
             </div>
 
             {/* Password Input */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
+                <FaLock className="inline mr-2" />
                 Password
               </label>
               <input
                 type="password"
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                {...registerLogin('password', { 
+                  required: 'Password is required',
+                  minLength: {
+                    value: 6,
+                    message: 'Password must be at least 6 characters'
+                  }
+                })}
+                className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                  errorsLogin.password ? 'border-red-500' : 'border-gray-300'
+                }`}
                 placeholder="••••••••"
-                value={formData.password}
-                onChange={(e) => setFormData({...formData, password: e.target.value})}
-                required
               />
+              {errorsLogin.password && (
+                <p className="mt-1 text-sm text-red-600">{errorsLogin.password.message}</p>
+              )}
             </div>
 
             {/* Remember Me & Forgot Password */}
             <div className="flex items-center justify-between text-sm">
-              <label className="flex items-center text-gray-600">
+              <label className="flex items-center text-gray-600 cursor-pointer">
                 <input type="checkbox" className="mr-2" />
                 Remember me
               </label>
-              <a href="#" className="text-blue-600 hover:underline">
+              <button type="button" className="text-blue-600 hover:underline">
                 Forgot password?
-              </a>
+              </button>
             </div>
 
             {/* Submit Button */}
             <button
               type="submit"
-              className="w-full bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors"
+              className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 rounded-lg font-medium hover:from-blue-700 hover:to-purple-700 transition-all shadow-md hover:shadow-lg"
             >
               Login
             </button>
           </form>
         ) : (
           /* Register Form */
-          <form onSubmit={handleRegister} className="space-y-4">
+          <form onSubmit={handleSubmitRegister(onSubmitRegister)} className="space-y-4">
             {/* Name Input */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
+                <FaUser className="inline mr-2" />
                 Full Name
               </label>
               <input
                 type="text"
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                {...registerForm('name', { 
+                  required: 'Name is required',
+                  minLength: {
+                    value: 2,
+                    message: 'Name must be at least 2 characters'
+                  }
+                })}
+                className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                  errorsRegister.name ? 'border-red-500' : 'border-gray-300'
+                }`}
                 placeholder="John Doe"
-                value={formData.name}
-                onChange={(e) => setFormData({...formData, name: e.target.value})}
-                required
               />
+              {errorsRegister.name && (
+                <p className="mt-1 text-sm text-red-600">{errorsRegister.name.message}</p>
+              )}
             </div>
 
             {/* Email Input */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
+                <FaEnvelope className="inline mr-2" />
                 Email
               </label>
               <input
                 type="email"
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                {...registerForm('email', { 
+                  required: 'Email is required',
+                  pattern: {
+                    value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                    message: 'Invalid email address'
+                  }
+                })}
+                className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                  errorsRegister.email ? 'border-red-500' : 'border-gray-300'
+                }`}
                 placeholder="your@email.com"
-                value={formData.email}
-                onChange={(e) => setFormData({...formData, email: e.target.value})}
-                required
               />
+              {errorsRegister.email && (
+                <p className="mt-1 text-sm text-red-600">{errorsRegister.email.message}</p>
+              )}
             </div>
 
             {/* Password Input */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
+                <FaLock className="inline mr-2" />
                 Password
               </label>
               <input
                 type="password"
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                {...registerForm('password', { 
+                  required: 'Password is required',
+                  minLength: {
+                    value: 6,
+                    message: 'Password must be at least 6 characters'
+                  }
+                })}
+                className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                  errorsRegister.password ? 'border-red-500' : 'border-gray-300'
+                }`}
                 placeholder="••••••••"
-                value={formData.password}
-                onChange={(e) => setFormData({...formData, password: e.target.value})}
-                required
-                minLength="6"
               />
+              {errorsRegister.password && (
+                <p className="mt-1 text-sm text-red-600">{errorsRegister.password.message}</p>
+              )}
             </div>
 
             {/* Confirm Password Input */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
+                <FaLock className="inline mr-2" />
                 Confirm Password
               </label>
               <input
                 type="password"
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                {...registerForm('confirmPassword', { 
+                  required: 'Please confirm your password',
+                  validate: value => value === watch('password') || 'Passwords do not match'
+                })}
+                className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                  errorsRegister.confirmPassword ? 'border-red-500' : 'border-gray-300'
+                }`}
                 placeholder="••••••••"
-                value={formData.confirmPassword}
-                onChange={(e) => setFormData({...formData, confirmPassword: e.target.value})}
-                required
               />
+              {errorsRegister.confirmPassword && (
+                <p className="mt-1 text-sm text-red-600">{errorsRegister.confirmPassword.message}</p>
+              )}
             </div>
 
             {/* Submit Button */}
             <button
               type="submit"
-              className="w-full bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors"
+              className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 rounded-lg font-medium hover:from-blue-700 hover:to-purple-700 transition-all shadow-md hover:shadow-lg"
             >
               Create Account
             </button>
@@ -424,21 +527,22 @@ export default function Authentication() {
           </div>
         </div>
 
-        {/* Social Login Buttons (Optional) */}
+        {/* Social Login Buttons */}
         <div className="grid grid-cols-2 gap-4">
-          <button className="flex items-center justify-center gap-2 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
-            <svg className="w-5 h-5" viewBox="0 0 24 24">
-              <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-              <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-              <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-              <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-            </svg>
+          <button 
+            type="button"
+            onClick={() => handleSocialLogin('Google')}
+            className="flex items-center justify-center gap-2 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+          >
+            <FaGoogle className="text-red-500" />
             Google
           </button>
-          <button className="flex items-center justify-center gap-2 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
-            <svg className="w-5 h-5" fill="#1877F2" viewBox="0 0 24 24">
-              <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
-            </svg>
+          <button 
+            type="button"
+            onClick={() => handleSocialLogin('Facebook')}
+            className="flex items-center justify-center gap-2 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+          >
+            <FaFacebook className="text-blue-600" />
             Facebook
           </button>
         </div>

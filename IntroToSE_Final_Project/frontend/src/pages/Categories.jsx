@@ -1,17 +1,7 @@
 import React, { useState } from 'react'
 import { useForm } from 'react-hook-form'
-import { Plus, FolderOpen, TrendingUp, TrendingDown, Trash2 } from 'lucide-react'
-
-const mockCategories = [
-  { id: 1, name: 'Salary', type: 'income', color: '#27ae60', icon: '💼' },
-  { id: 2, name: 'Freelance', type: 'income', color: '#3498db', icon: '💻' },
-  { id: 3, name: 'Investment', type: 'income', color: '#9b59b6', icon: '📈' },
-  { id: 4, name: 'Groceries', type: 'expense', color: '#e74c3c', icon: '🛒' },
-  { id: 5, name: 'Restaurant', type: 'expense', color: '#e67e22', icon: '🍽️' },
-  { id: 6, name: 'Transportation', type: 'expense', color: '#f39c12', icon: '🚗' },
-  { id: 7, name: 'Shopping', type: 'expense', color: '#c0392b', icon: '🛍️' },
-  { id: 8, name: 'Utilities', type: 'expense', color: '#34495e', icon: '💡' },
-]
+import { FaPlus, FaFolder, FaArrowUp, FaArrowDown, FaTrash } from 'react-icons/fa'
+import { mockCategories } from '../mockData'
 
 export default function Categories() {
   const [categories, setCategories] = useState(mockCategories)
@@ -55,7 +45,7 @@ export default function Categories() {
         className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-8 py-3 rounded-xl font-semibold hover:from-blue-600 hover:to-purple-700 hover:shadow-lg hover:scale-105 transition-all duration-300 mb-6 flex items-center gap-2"
         onClick={() => setShowModal(true)}
       >
-        <Plus className="w-5 h-5" /> Add Category
+        <FaPlus className="w-5 h-5" /> Add Category
       </button>
 
       <div className="mb-10">
@@ -77,7 +67,7 @@ export default function Categories() {
                 className="w-full bg-gradient-to-r from-red-500 to-red-600 text-white px-4 py-2 rounded-lg hover:from-red-600 hover:to-red-700 hover:shadow-lg transition-all duration-300 text-sm font-medium flex items-center justify-center gap-2"
                 onClick={() => handleDelete(cat.id)}
               >
-                <Trash2 className="w-4 h-4" /> Delete
+                <FaTrash className="w-4 h-4" /> Delete
               </button>
             </div>
           ))}
@@ -103,7 +93,7 @@ export default function Categories() {
                 className="w-full bg-gradient-to-r from-red-500 to-red-600 text-white px-4 py-2 rounded-lg hover:from-red-600 hover:to-red-700 hover:shadow-lg transition-all duration-300 text-sm font-medium flex items-center justify-center gap-2"
                 onClick={() => handleDelete(cat.id)}
               >
-                <Trash2 className="w-4 h-4" /> Delete
+                <FaTrash className="w-4 h-4" /> Delete
               </button>
             </div>
           ))}
@@ -133,7 +123,7 @@ export default function Categories() {
                   }`}
                   onClick={() => setValue('type', 'income')}
                 >
-                  <TrendingUp className="w-5 h-5" /> Income
+                  <FaArrowUp className="w-5 h-5" /> Income
                 </button>
                 <button
                   type="button"
@@ -144,7 +134,7 @@ export default function Categories() {
                   }`}
                   onClick={() => setValue('type', 'expense')}
                 >
-                  <TrendingDown className="w-5 h-5" /> Expense
+                  <FaArrowDown className="w-5 h-5" /> Expense
                 </button>
               </div>
 

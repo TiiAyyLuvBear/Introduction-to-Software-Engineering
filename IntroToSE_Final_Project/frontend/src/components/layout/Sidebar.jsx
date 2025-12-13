@@ -38,7 +38,7 @@ export default function Sidebar({ isOpen, setIsOpen }) {
             <div className="flex items-center gap-3 flex-shrink-0">
               <span className="text-3xl">💸</span>
               <div>
-                <h1 className="text-xl font-bold text-white">Money Lover</h1>
+                <h1 className="text-xl font-bold text-white">4 Money</h1>
                 <p className="text-gray-400 text-xs hidden sm:block">Finance Manager</p>
               </div>
             </div>

@@ -43,17 +43,24 @@ export default function Wallets() {
     loadWallets()
   }, [])
 
-  // Load user's wallets from API
+  // Load user's wallets - DEMO: Using mockData
   const loadWallets = async () => {
     try {
       setLoading(true)
-      const response = await walletAPI.getUserWallets()
-      if (response.success) {
-        setWallets(response.data.wallets || [])
-      }
+      
+      // DEMO NOTE: API call đã được comment
+      // const response = await walletAPI.getUserWallets()
+      // if (response.success) {
+      //   setWallets(response.data.wallets || [])
+      // }
+      
+      // DEMO: Load from mockData
+      const { mockWallets } = await import('../mockData')
+      setWallets(mockWallets)
+      
     } catch (error) {
       console.error('Failed to load wallets:', error)
-      // Use mock data as fallback with shared wallet example
+      // Fallback to hardcoded data
       setWallets([
         { id: 1, name: 'Main Cash', type: 'Cash', balance: 500, currency: 'USD', status: 'active', isShared: false, createdAt: new Date() },
         { id: 2, name: 'Family Budget', type: 'Bank', balance: 12500, currency: 'USD', status: 'active', isShared: true, ownerId: 'user123', memberCount: 3, pendingInvitations: 1, createdAt: new Date() },
@@ -89,41 +96,41 @@ export default function Wallets() {
       const startTime = Date.now()
       
       const walletData = {
+        id: 'wallet_' + Date.now(),
         name: data.name.trim(),
         type: data.type,
-        initialBalance: parseFloat(data.initialBalance || 0),
+        balance: parseFloat(data.initialBalance || 0),
+        currentBalance: parseFloat(data.initialBalance || 0),
         currency: data.currency,
         description: data.description.trim(),
-        isShared: data.isShared || false
+        isShared: data.isShared || false,
+        status: 'active',
+        ownerId: currentUserId,
+        createdAt: new Date().toISOString(),
+        memberCount: data.isShared ? 1 : 0,
+        pendingInvitations: 0
       }
 
-      const response = await walletAPI.createWallet(walletData)
+      // DEMO NOTE: API call đã được comment
+      // const response = await walletAPI.createWallet(walletData)
+      // if (response.success) {
+      //   setWallets(prev => [response.data, ...prev])
+      // }
       
-      if (response.success) {
-        // Step 9: Wallet appears in user's wallet list
-        setWallets(prev => [response.data, ...prev])
-        
-        // Reset form and close modal
-        reset()
-        setShowCreateModal(false)
+      // DEMO: Add to local state
+      setWallets(prev => [walletData, ...prev])
+      
+      // Reset form and close modal
+      reset()
+      setShowCreateModal(false)
 
-        const endTime = Date.now()
-        console.log(`Wallet created in ${endTime - startTime}ms`) // Performance tracking
-      } else {
-        setSubmitError(response.error || 'Failed to create wallet')
-      }
+      const endTime = Date.now()
+      console.log(`✅ Wallet created in ${endTime - startTime}ms`) // Performance tracking
+      alert('Wallet created successfully!')
 
     } catch (error) {
       console.error('Error creating wallet:', error)
-      
-      // Handle specific error cases (Alternative Scenarios)
-      if (error.response?.data?.code === 'DUPLICATE_WALLET_NAME') {
-        setSubmitError('Wallet name already in use')
-      } else if (error.response?.data?.error) {
-        setSubmitError(error.response.data.error)
-      } else {
-        setSubmitError('Failed to create wallet. Please try again.')
-      }
+      setSubmitError('Failed to create wallet. Please try again.')
     } finally {
       setIsSubmitting(false)
     }
