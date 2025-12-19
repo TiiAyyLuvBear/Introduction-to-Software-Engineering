@@ -1,262 +1,92 @@
-/**
- * ============================================================================
- * AUTHENTICATION PAGE - TRANG ĐĂNG NHẬP/ĐĂNG KÝ
- * ============================================================================
- * 
- * NHIỆM VỤ: Xây dựng GIAO DIỆN đăng nhập/đăng ký (chỉ UI, không cần API)
- * 
- * ============================================================================
- * YÊU CẦU GIAO DIỆN:
- * ============================================================================
- * 
- * 1. LAYOUT TỔNG THỂ:
- *    ✅ Background gradient (blue to purple)
- *    ✅ Card trắng ở giữa màn hình
- *    ✅ Logo "💸 Money Lover" ở đầu
- *    ✅ Responsive (đẹp trên mobile và desktop)
- * 
- * 2. TOGGLE TABS:
- *    ✅ 2 tabs: "Login" và "Register"
- *    ✅ Tab active: background trắng, text xanh, có shadow
- *    ✅ Tab inactive: background xám nhạt
- *    ✅ Click để chuyển đổi
- * 
- * 3. FORM ĐĂNG NHẬP:
- *    ✅ Input Email (type="email", icon 📧)
- *    ✅ Input Password (type="password", icon 🔒)
- *    ✅ Checkbox "Remember me"
- *    ✅ Link "Forgot password?" bên phải
- *    ✅ Button "Login" full width, màu xanh
- * 
- * 4. FORM ĐĂNG KÝ:
- *    ✅ Input Full Name (type="text", icon 👤)
- *    ✅ Input Email (type="email", icon 📧)
- *    ✅ Input Password (type="password", icon 🔒)
- *    ✅ Input Confirm Password (type="password", icon 🔒)
- *    ✅ Button "Create Account" full width, màu xanh
- * 
- * 5. DIVIDER & SOCIAL LOGIN:
- *    ✅ Đường kẻ ngang với text "Or continue with"
- *    ✅ 2 buttons: Google và Facebook
- *    ✅ Có logo/icon của từng service
- *    ✅ Border, hover effect
- * 
- * ============================================================================
- * HƯỚNG DẪN IMPLEMENT (CHỈ FRONTEND):
- * ============================================================================
- * 
- * BƯỚC 1: Setup State (2 state cần thiết)
- * ----------------------------------------
- * const [isLogin, setIsLogin] = useState(true)
- * → Quản lý hiển thị form Login hay Register
- * → true = Login, false = Register
- * 
- * const [formData, setFormData] = useState({
- *   name: '',
- *   email: '',
- *   password: '',
- *   confirmPassword: ''
- * })
- * → Lưu dữ liệu từ input
- * 
- * BƯỚC 2: Tạo Container & Background
- * -----------------------------------
- * <div className="min-h-screen flex items-center justify-center 
- *                 bg-gradient-to-br from-blue-500 to-purple-600 p-4">
- *   <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-8">
- *     ...
- *   </div>
- * </div>
- * 
- * BƯỚC 3: Tạo Logo & Tabs
- * ------------------------
- * <div className="text-center mb-8">
- *   <h1 className="text-4xl font-bold">💸 Money Lover</h1>
- *   <p>Welcome back!</p>
- * </div>
- * 
- * <div className="flex bg-gray-100 rounded-lg p-1 mb-8">
- *   <button onClick={() => setIsLogin(true)} 
- *           className={isLogin ? 'bg-white shadow' : ''}>
- *     Login
- *   </button>
- *   <button onClick={() => setIsLogin(false)}
- *           className={!isLogin ? 'bg-white shadow' : ''}>
- *     Register
- *   </button>
- * </div>
- * 
- * BƯỚC 4: Tạo Forms (Conditional Rendering)
- * ------------------------------------------
- * {isLogin ? (
- *   <form className="space-y-4">
- *     <input type="email" placeholder="Email" />
- *     <input type="password" placeholder="Password" />
- *     <button type="submit">Login</button>
- *   </form>
- * ) : (
- *   <form className="space-y-4">
- *     <input type="text" placeholder="Full Name" />
- *     <input type="email" placeholder="Email" />
- *     <input type="password" placeholder="Password" />
- *     <input type="password" placeholder="Confirm Password" />
- *     <button type="submit">Create Account</button>
- *   </form>
- * )}
- * 
- * BƯỚC 5: Social Login Buttons (Optional nhưng đẹp)
- * --------------------------------------------------
- * <div className="grid grid-cols-2 gap-4">
- *   <button className="border rounded-lg py-3">
- *     🔵 Google
- *   </button>
- *   <button className="border rounded-lg py-3">
- *     📘 Facebook
- *   </button>
- * </div>
- * 
- * ============================================================================
- * TAILWIND CSS CLASSES CHỦ YẾU:
- * ============================================================================
- * 
- * Container:
- * - min-h-screen → Full height màn hình
- * - flex items-center justify-center → Căn giữa
- * - bg-gradient-to-br from-blue-500 to-purple-600 → Gradient background
- * - p-4 → Padding responsive
- * 
- * Card:
- * - bg-white → Nền trắng
- * - rounded-2xl → Bo góc tròn
- * - shadow-2xl → Đổ bóng đậm
- * - w-full max-w-md → Width responsive
- * - p-8 → Padding trong card
- * 
- * Input:
- * - w-full → Full width
- * - px-4 py-3 → Padding ngang và dọc
- * - border border-gray-300 → Viền xám
- * - rounded-lg → Bo góc
- * - focus:outline-none focus:ring-2 focus:ring-blue-500 → Focus effect
- * 
- * Button:
- * - w-full → Full width
- * - bg-blue-600 text-white → Màu xanh, chữ trắng
- * - py-3 rounded-lg → Padding và bo góc
- * - font-medium → Chữ đậm vừa
- * - hover:bg-blue-700 → Hover tối hơn
- * - transition-colors → Animation mượt
- * 
- * ============================================================================
- * DEMO CHECKLIST (Những gì cần hiển thị):
- * ============================================================================
- * ✅ Background gradient đẹp
- * ✅ Card trắng nổi bật ở giữa
- * ✅ Logo Money Lover với emoji
- * ✅ 2 tabs Login/Register toggle được
- * ✅ Form Login: Email + Password + Remember me + Forgot password
- * ✅ Form Register: Name + Email + Password + Confirm Password
- * ✅ Button submit màu xanh, full width
- * ✅ Divider "Or continue with"
- * ✅ 2 buttons Google + Facebook với icon
- * ✅ Responsive trên mobile
- * ✅ Hover effects trên buttons
- * ✅ Focus effects trên inputs
- * 
- * ============================================================================
- * LƯU Ý:
- * ============================================================================
- * - KHÔNG CẦN implement API, validation, authentication logic
- * - CHỈ CẦN UI đẹp, responsive, interactive (click toggle được)
- * - Dùng console.log() để test form submit (không cần thật)
- * - Mock data nếu cần: email: "demo@example.com", password: "123456"
- * 
- * ============================================================================
- */
-
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useAuth } from '../context/AuthContext'
 
 export default function Authentication() {
-  // TODO: Implement 2 state cơ bản
-  // const [isLogin, setIsLogin] = useState(true)
-  // const [formData, setFormData] = useState({ name: '', email: '', password: '', confirmPassword: '' })
-
-  // TODO: Implement handleSubmit (chỉ cần console.log để demo)
-  // const handleSubmit = (e) => {
-  //   e.preventDefault()
-  //   console.log('Form submitted:', formData)
-  //   alert(isLogin ? 'Login successful!' : 'Account created!')
-  // }
-
-  // TODO: Implement UI theo hướng dẫn ở trên
-  // return (
-  //   <div className="min-h-screen bg-gradient-to-br from-blue-500 to-purple-600 ...">
-  //     ...
-  //   </div>
-  // )
-  // State quản lý hiển thị form login hay register
   const [isLogin, setIsLogin] = useState(true)
-  
-  // State quản lý data form
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     password: '',
     confirmPassword: ''
   })
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
   
-  // Hook để redirect sau khi login
   const navigate = useNavigate()
+  const { currentUser, login, register, loginWithGoogle } = useAuth()
 
-  /**
-   * Handler: Submit form login
-   * 
-   * Flow:
-   * 1. Validate email và password không rỗng
-   * 2. Call API POST /api/auth/login với { email, password }
-   * 3. Lưu JWT token vào localStorage
-   * 4. Redirect về /dashboard
-   */
+  // Auto-redirect if already logged in
+  useEffect(() => {
+    if (currentUser) {
+      navigate('/dashboard', { replace: true })
+    }
+  }, [currentUser, navigate])
+
   const handleLogin = async (e) => {
     e.preventDefault()
-    // TODO: Implement login logic
-    console.log('Login with:', { email: formData.email, password: formData.password })
+    setError('')
+    setLoading(true)
     
-    // Mock: Redirect to dashboard
-    // navigate('/dashboard')
+    try {
+      await login(formData.email, formData.password)
+      // Small delay to ensure currentUser is set
+      setTimeout(() => navigate('/dashboard'), 100)
+    } catch (error) {
+      console.error('Login error:', error)
+      setError(error.message || 'Login failed. Please try again.')
+    } finally {
+      setLoading(false)
+    }
   }
 
-  /**
-   * Handler: Submit form register
-   * 
-   * Flow:
-   * 1. Validate: email format, password >= 6 chars, password === confirmPassword
-   * 2. Call API POST /api/auth/register với { name, email, password }
-   * 3. Tự động login hoặc chuyển sang form login
-   */
   const handleRegister = async (e) => {
     e.preventDefault()
+    setError('')
     
-    // Validate password match
     if (formData.password !== formData.confirmPassword) {
-      alert('Passwords do not match!')
+      setError('Passwords do not match!')
       return
     }
     
-    // TODO: Implement register logic
-    console.log('Register with:', { 
-      name: formData.name, 
-      email: formData.email, 
-      password: formData.password 
-    })
+    if (formData.password.length < 6) {
+      setError('Password must be at least 6 characters')
+      return
+    }
+    
+    setLoading(true)
+    
+    try {
+      await register(formData.email, formData.password, formData.name)
+      // Small delay to ensure currentUser is set
+      setTimeout(() => navigate('/dashboard'), 100)
+    } catch (error) {
+      console.error('Register error:', error)
+      setError(error.message || 'Registration failed. Please try again.')
+    } finally {
+      setLoading(false)
+    }
+  }
+  
+  const handleGoogleLogin = async () => {
+    setError('')
+    setLoading(true)
+    
+    try {
+      await loginWithGoogle()
+      // Small delay to ensure currentUser is set
+      setTimeout(() => navigate('/dashboard'), 100)
+    } catch (error) {
+      console.error('Google login error:', error)
+      setError(error.message || 'Google login failed. Please try again.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-500 to-purple-600 p-4">
-      {/* Container Card */}
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-8">
-        {/* Logo và Title */}
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold text-gray-800 mb-2">💸 Money Lover</h1>
           <p className="text-gray-600">
@@ -264,7 +94,6 @@ export default function Authentication() {
           </p>
         </div>
 
-        {/* Toggle Tabs: Login / Register */}
         <div className="flex mb-8 bg-gray-100 rounded-lg p-1">
           <button
             onClick={() => setIsLogin(true)}
@@ -288,7 +117,12 @@ export default function Authentication() {
           </button>
         </div>
 
-        {/* Login Form */}
+        {error && (
+          <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg">
+            {error}
+          </div>
+        )}
+
         {isLogin ? (
           <form onSubmit={handleLogin} className="space-y-4">
             {/* Email Input */}
@@ -332,12 +166,12 @@ export default function Authentication() {
               </a>
             </div>
 
-            {/* Submit Button */}
             <button
               type="submit"
-              className="w-full bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors"
+              disabled={loading}
+              className="w-full bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Login
+              {loading ? 'Logging in...' : 'Login'}
             </button>
           </form>
         ) : (
@@ -404,12 +238,12 @@ export default function Authentication() {
               />
             </div>
 
-            {/* Submit Button */}
             <button
               type="submit"
-              className="w-full bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors"
+              disabled={loading}
+              className="w-full bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Create Account
+              {loading ? 'Creating account...' : 'Create Account'}
             </button>
           </form>
         )}
@@ -424,9 +258,13 @@ export default function Authentication() {
           </div>
         </div>
 
-        {/* Social Login Buttons (Optional) */}
         <div className="grid grid-cols-2 gap-4">
-          <button className="flex items-center justify-center gap-2 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+          <button 
+            type="button"
+            onClick={handleGoogleLogin}
+            disabled={loading}
+            className="flex items-center justify-center gap-2 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
             <svg className="w-5 h-5" viewBox="0 0 24 24">
               <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
               <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>

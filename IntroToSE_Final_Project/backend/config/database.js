@@ -26,18 +26,23 @@ const connectDB = async () => {
       socketTimeoutMS: 45000, // Close sockets after 45s
     };
 
+    // Debug: Show connection string (hide password)
+    const uriWithoutPassword = process.env.MONGODB_URI?.replace(/:([^@]+)@/, ':****@');
+    console.log('Connecting to:', uriWithoutPassword);
+
     // Connect to MongoDB
     const conn = await mongoose.connect(process.env.MONGODB_URI, options);
 
-    console.log(`✅ MongoDB Connected: ${conn.connection.host}`);
+    console.log(`MongoDB Connected: ${conn.connection.host}`);
+    console.log(`Database Name: ${conn.connection.name}`);
 
     // Connection events
     mongoose.connection.on('error', (err) => {
-      console.error(`❌ MongoDB connection error: ${err}`);
+      console.error(`MongoDB connection error: ${err}`);
     });
 
     mongoose.connection.on('disconnected', () => {
-      console.log('⚠️  MongoDB disconnected');
+      console.log('MongoDB disconnected');
     });
 
     // Graceful shutdown
@@ -48,7 +53,7 @@ const connectDB = async () => {
     });
 
   } catch (error) {
-    console.error(`❌ Error connecting to MongoDB: ${error.message}`);
+    console.error(`Error connecting to MongoDB: ${error.message}`);
     process.exit(1);
   }
 };

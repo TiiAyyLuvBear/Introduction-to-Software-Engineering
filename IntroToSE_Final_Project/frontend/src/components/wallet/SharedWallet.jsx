@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react'
-import { walletAPI, invitationAPI } from '../../api.js'
 
 /**
  * SharedWallet Component - Implement Use Cases U011-U014

@@ -1,45 +1,40 @@
 /**
- * Firebase Admin Configuration
+ * Firebase Admin SDK Configuration (Backend)
  * 
- * Chức năng:
- * - Initialize Firebase Admin SDK
- * - Verify ID tokens từ client
- * - Quản lý user authentication
- * 
- * Luồng xử lý:
- * 1. Import firebase-admin
- * 2. Đọc credentials từ .env (hoặc service account JSON)
- * 3. Initialize app với credentials
- * 4. Export auth instance để verify tokens
- * 
- * Sử dụng:
- * - Middleware sẽ dùng auth.verifyIdToken() để validate Firebase token
- * - Lấy user info từ decoded token
+ * Dùng để verify ID tokens từ frontend
  */
 
 import admin from 'firebase-admin';
+import { readFileSync } from 'fs';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
 
-// Initialize Firebase Admin
-// Option 1: Using environment variables
-const serviceAccount = {
-  projectId: process.env.FIREBASE_PROJECT_ID,
-  privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
-  clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-};
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
-// Option 2: Using service account file (more secure for production)
-// const serviceAccount = require('./serviceAccountKey.json');
+// Try to load service account from file
+let serviceAccount;
+let firebaseInitialized = false;
 
 try {
+  const serviceAccountPath = join(__dirname, '..', 'serviceAccountKey.json');
+  console.log(serviceAccountPath);
+  serviceAccount = JSON.parse(readFileSync(serviceAccountPath, 'utf8'));
+  console.log('Loaded Firebase serviceAccountKey.json');
+
+  // Initialize Firebase Admin
   admin.initializeApp({
     credential: admin.credential.cert(serviceAccount),
   });
-  console.log('✅ Firebase Admin initialized');
+  console.log('Firebase Admin SDK initialized');
+  firebaseInitialized = true;
+
 } catch (error) {
-  console.error('❌ Firebase Admin initialization error:', error.message);
+  console.log('Firebase not initialized - serviceAccountKey.json not found');
+  console.log('Authentication will not work until you add the service account key');
+  console.log('Download from: https://console.firebase.google.com/project/se-4-money/settings/serviceaccounts/adminsdk');
 }
 
-// Export auth instance
-export const auth = admin.auth();
-
+// Export auth instance (will be null if not initialized)
+export const auth = firebaseInitialized ? admin.auth() : null;
 export default admin;

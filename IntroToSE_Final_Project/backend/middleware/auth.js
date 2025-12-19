@@ -16,171 +16,85 @@ import { auth as firebaseAuth } from '../config/firebase.js'
 import { sendUnauthorized, sendServerError } from '../utils/response.js'
 import User from '../models/User.js'
 
-/**
- * MIDDLEWARE: Authenticate (Required)
- * 
- * Verify Firebase ID token và require authentication
- * Nếu không có token hoặc token invalid → return 401
- * 
- * Usage trong routes:
- * router.get('/protected', authenticate, controller)
- * 
- * Sau khi pass middleware, req.user sẽ có:
- * {
- *   _id: MongoDB ObjectId,
- *   firebaseUid: Firebase UID,
- *   email: User email,
- *   name: Display name
- * }
- */
 export const authenticate = async (req, res, next) => {
   try {
-    // 1. Lấy token từ Authorization header
-    const authHeader = req.headers.authorization
-    
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return sendUnauthorized(res, 'No token provided. Header must be: Authorization: Bearer <token>')
+    // 0. Check if Firebase is initialized
+    if (!firebaseAuth) {
+      console.error('Firebase Admin SDK not initialized');
+      return sendServerError(res, 'Authentication service unavailable. Please contact administrator.');
     }
-    
-    // 2. Extract token (bỏ prefix 'Bearer ')
-    const idToken = authHeader.substring(7)
-    
-    if (!idToken) {
-      return sendUnauthorized(res, 'Token is empty')
-    }
-    
-    // 3. Verify token với Firebase Admin SDK
-    // Nếu token valid, Firebase trả về decoded token chứa user info
-    let decodedToken
-    try {
-      decodedToken = await firebaseAuth.verifyIdToken(idToken)
-    } catch (firebaseError) {
-      console.error('Firebase token verification failed:', firebaseError.message)
-      
-      if (firebaseError.code === 'auth/id-token-expired') {
-        return sendUnauthorized(res, 'Token expired. Please login again.')
-      }
-      
-      if (firebaseError.code === 'auth/argument-error') {
-        return sendUnauthorized(res, 'Invalid token format')
-      }
-      
-      return sendUnauthorized(res, 'Invalid token')
-    }
-    
-    // 4. Lấy Firebase UID và email từ decoded token
-    const { uid: firebaseUid, email, name: firebaseName } = decodedToken
-    
-    if (!firebaseUid || !email) {
-      return sendUnauthorized(res, 'Token missing required fields (uid or email)')
-    }
-    
-    // 5. Tìm hoặc tạo user trong MongoDB
-    // Sync Firebase user với MongoDB database
-    let user = await User.findOne({ firebaseUid })
-    
-    if (!user) {
-      // User chưa tồn tại trong MongoDB → Tạo mới
-      user = await User.create({
-        firebaseUid,
-        email,
-        name: firebaseName || email.split('@')[0]
-      })
-      
-      console.log('Created new user in MongoDB:', { firebaseUid, email })
-    }
-    
-    // 6. Attach user object vào request
-    // Controllers có thể access thông qua req.user
-    req.user = {
-      _id: user._id,           // MongoDB ObjectId
-      firebaseUid: user.firebaseUid,
-      email: user.email,
-      name: user.name
-    }
-    
-    // 7. Continue đến controller
-    next()
-    
-  } catch (error) {
-    console.error('Authentication middleware error:', error)
-    return sendServerError(res, 'Authentication failed')
-  }
-}
 
-/**
- * MIDDLEWARE: Optional Authenticate
- * 
- * Tương tự authenticate nhưng KHÔNG block request nếu không có token
- * Dùng cho routes có thể access bởi cả authenticated và guest users
- * 
- * Nếu có token valid → attach req.user
- * Nếu không có token hoặc invalid → req.user = null và vẫn pass
- * 
- * Usage:
- * router.get('/public-but-personalized', optionalAuthenticate, controller)
- * 
- * Controller check:
- * if (req.user) {
- *   // User logged in, show personalized content
- * } else {
- *   // Guest user, show default content
- * }
- */
-export const optionalAuthenticate = async (req, res, next) => {
-  try {
-    const authHeader = req.headers.authorization
-    
-    // Nếu không có auth header, skip authentication
+    // 1. Lấy token từ header
+    const authHeader = req.headers.authorization;
+
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      req.user = null
-      return next()
+      return sendUnauthorized(res, 'No token provided');
     }
-    
-    const idToken = authHeader.substring(7)
-    
-    if (!idToken) {
-      req.user = null
-      return next()
+
+    const token = authHeader.substring(7);
+
+    if (!token) {
+      return sendUnauthorized(res, 'Token is empty');
     }
-    
-    // Try verify token
-    try {
-      const decodedToken = await firebaseAuth.verifyIdToken(idToken)
-      const { uid: firebaseUid, email, name: firebaseName } = decodedToken
-      
-      if (firebaseUid && email) {
-        let user = await User.findOne({ firebaseUid })
-        
-        if (!user) {
-          user = await User.create({
-            firebaseUid,
-            email,
-            name: firebaseName || email.split('@')[0]
-          })
+
+    // 2. Verify với Firebase
+    const decodedToken = await firebaseAuth.verifyIdToken(token);
+
+    // 3. Extract user info từ decoded token
+    const { uid, email, name, picture } = decodedToken;
+
+    if (!uid || !email) {
+      return sendUnauthorized(res, 'Token missing required fields');
+    }
+
+    // 4. Tìm hoặc tạo user trong MongoDB
+    console.log('Looking for user with uid:', uid);
+    let user = await User.findById(uid);
+
+    if (!user) {
+      console.log('User not found, creating new user...');
+      try {
+        user = await User.create({
+          _id: uid,  // Dùng Firebase UID làm MongoDB _id
+          email: email,
+          name: name || email.split('@')[0],
+          avatarURL: picture || null
+        });
+
+        console.log('✅ Created new user:', { uid, email });
+      } catch (createError) {
+        // Nếu lỗi duplicate, có thể user vừa được tạo bởi request khác
+        if (createError.code === 11000) {
+          console.log('⚠️  User already exists (race condition), fetching...');
+          user = await User.findById(uid);
+          if (!user) {
+            throw new Error('User exists but cannot be found');
+          }
+        } else {
+          throw createError;
         }
-        
-        req.user = {
-          _id: user._id,
-          firebaseUid: user.firebaseUid,
-          email: user.email,
-          name: user.name
-        }
-      } else {
-        req.user = null
       }
-    } catch (firebaseError) {
-      // Token invalid, nhưng không block request
-      console.log('Optional auth: Token invalid, continuing as guest')
-      req.user = null
+    } else {
+      console.log('✅ Found existing user:', { uid, email: user.email });
     }
-    
-    next()
-    
+
+    // 5. Gán req.user
+    req.user = user;
+
+    // 6. Continue đến controller
+    next();
+
   } catch (error) {
-    // Có lỗi xảy ra, nhưng vẫn cho pass với guest mode
-    console.error('Optional authentication error:', error)
-    req.user = null
-    next()
+    console.error('Authentication error:', error);
+
+    if (error.code === 'auth/id-token-expired') {
+      return sendUnauthorized(res, 'Token expired. Please login again.');
+    }
+
+    if (error.code === 'auth/argument-error') {
+      return sendUnauthorized(res, 'Invalid token format');
+    }
+
+    return sendServerError(res, 'Authentication failed');
   }
-}
+};

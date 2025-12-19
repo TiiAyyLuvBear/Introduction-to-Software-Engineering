@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { Plus, Target, Calendar, CheckCircle, Trash2, DollarSign } from 'lucide-react'
-import { savingGoalAPI } from '../api.js'
 import Chatbot from '../components/chatbot/Chatbot.jsx'
 
 export default function SavingGoals() {

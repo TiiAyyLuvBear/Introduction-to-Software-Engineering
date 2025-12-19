@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { Plus, FolderOpen, TrendingUp, TrendingDown, Trash2 } from 'lucide-react'
-import { categoryAPI } from '../api.js'
 import Chatbot from '../components/chatbot/Chatbot.jsx'
 
 export default function Categories() {

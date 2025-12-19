@@ -19,7 +19,6 @@
  */
 import React, { useState, useEffect } from 'react'
 import { TrendingUp, TrendingDown, Wallet, Receipt } from 'lucide-react'
-import { transactionAPI, walletAPI } from '../api.js'
 import Chatbot from '../components/chatbot/Chatbot.jsx'
 
 export default function Dashboard() {

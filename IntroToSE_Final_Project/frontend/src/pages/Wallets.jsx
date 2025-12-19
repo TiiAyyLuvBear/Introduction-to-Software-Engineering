@@ -8,7 +8,6 @@ import {
   PiggyBank,
   Users,
 } from "lucide-react";
-import { walletAPI } from "../api.js";
 import WalletDetailView from "../components/wallet/WalletDetailView.jsx";
 import Chatbot from "../components/chatbot/Chatbot.jsx";
 

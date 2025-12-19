@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { FaEnvelope, FaLock } from 'react-icons/fa'
+import authService from '../../services/authService'
 
 export default function Login({ onLogin, onNavigate }) {
   const navigate = useNavigate()
@@ -11,54 +12,27 @@ export default function Login({ onLogin, onNavigate }) {
   const [message, setMessage] = useState(null)
   const [loading, setLoading] = useState(false)
 
-  // Demo credentials
-  const demoEmail = 'demo@example.com'
-  const demoPassword = 'password123'
-
   const handleSubmit = async (e) => {
     e.preventDefault()
     setMessage(null)
-    
-    if (!email || !password) {
-      setMessage({ type: 'error', text: 'Please fill in all fields' })
-      return
-    }
-
     setLoading(true)
-    // Simulate API call delay
-    setTimeout(() => {
-      if (email === demoEmail && password === demoPassword) {
-        localStorage.setItem('isAuthenticated', 'true')
-        localStorage.setItem('currentUser', JSON.stringify({
-          id: 'demo-user-1',
-          name: 'Demo User',
-          email: email
-        }))
+    try {
+      const response = await authService.login(email, password)
+      if (response.success) {
         setMessage({ type: 'success', text: 'Login successful!' })
         setTimeout(() => {
           if (onLogin) onLogin({ email })
           navigate('/dashboard')
         }, 500)
       } else {
-        setMessage({ type: 'error', text: `Invalid credentials. Try demo@example.com / password123` })
+        setMessage({ type: 'error', text: response.message })
       }
+    } catch (error) {
+      console.error('Login failed:', error)
+      setMessage({ type: 'error', text: 'Login failed. Please try again.' })
+    } finally {
       setLoading(false)
-    }, 800)
-  }
-
-  const validateEmail = (email) => {
-    return /^\S+@\S+\.\S+$/.test(email)
-  }
-
-  const handleSendReset = () => {
-    setMessage(null)
-    if (!validateEmail(forgotEmail)) {
-      setMessage({ type: 'error', text: 'Please enter a valid email.' })
-      return
     }
-    // Demo: simulate sending reset email
-    setMessage({ type: 'success', text: 'Password reset email sent to your inbox.' })
-    setTimeout(() => setShowForgot(false), 2000)
   }
 
   return (

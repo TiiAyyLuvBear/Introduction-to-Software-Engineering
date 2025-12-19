@@ -1,5 +1,6 @@
 import React from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext";
 import {
   FaTachometerAlt,
   FaMoneyBillWave,
@@ -17,13 +18,15 @@ import { Menu, X } from "lucide-react";
 export default function Sidebar({ isOpen, setIsOpen }) {
   const location = useLocation();
   const navigate = useNavigate();
+  const { logout } = useAuth();
 
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("isAuthenticated");
-    localStorage.removeItem("currentUser");
-    navigate("/login");
-    window.location.reload(); // Force refresh to update App state
+  const handleLogout = async () => {
+    try {
+      await logout();
+      navigate("/auth");
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
   };
 
   const menuItems = [

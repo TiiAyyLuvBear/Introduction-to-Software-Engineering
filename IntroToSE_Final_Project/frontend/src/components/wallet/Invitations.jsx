@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react'
-import { invitationAPI } from '../../api.js'
 
 /**
  * Invitations Component - Handle Use Case U011 Response Phase

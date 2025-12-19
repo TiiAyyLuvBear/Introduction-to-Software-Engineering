@@ -1,18 +1,9 @@
-/**
- * RESPONSE HELPERS
- * 
- * Các hàm helper để format response thống nhất cho toàn bộ API
- * Đảm bảo structure nhất quán: { success, data/error, message }
- */
+/** 
+ * Status 200: OK
+ * GET, PUT response on success
+*/
 
-/**
- * Format success response
- * @param {Object} res - Express response object
- * @param {Object} data - Dữ liệu trả về cho client
- * @param {String} message - Thông báo thành công (optional)
- * @param {Number} statusCode - HTTP status code (default: 200)
- */
-const sendSuccess = (res, data = {}, message = 'Success', statusCode = 200) => {
+export const sendSuccess = (res, data = {}, message = 'Success', statusCode = 200) => {
   return res.status(statusCode).json({
     success: true,
     data,
@@ -20,93 +11,87 @@ const sendSuccess = (res, data = {}, message = 'Success', statusCode = 200) => {
   });
 };
 
-/**
- * Format error response
- * @param {Object} res - Express response object
- * @param {String} error - Thông báo lỗi
- * @param {String} code - Error code để frontend xử lý
- * @param {Number} statusCode - HTTP status code (default: 400)
- */
-const sendError = (res, error = 'An error occurred', code = 'UNKNOWN_ERROR', statusCode = 400) => {
+/** 
+ * Status 201: Created
+ * POST response on success
+*/
+
+export const sendCreated = (res, data = {}, message = 'Created', statusCode = 201) => {
+  return res.status(statusCode).json({
+    success: true,
+    data,
+    message
+  });
+};
+
+/** 
+ * Status 204: No Content
+ * DELETE response on success
+*/
+
+export const sendNoContent = (res, message = 'No Content', statusCode = 204) => {
+  return res.status(statusCode).json({
+    success: true,
+    message
+  });
+};
+
+/** 
+ * Status 400: Bad Request
+ * POST response on success
+*/
+
+export const sendBadRequest = (res, message = 'Bad Request', statusCode = 400) => {
   return res.status(statusCode).json({
     success: false,
-    error,
-    code
+    message
   });
 };
 
-/**
- * Format validation error response
- * @param {Object} res - Express response object
- * @param {Object|Array} errors - Chi tiết các lỗi validation
- */
-const sendValidationError = (res, errors) => {
-  return res.status(400).json({
+/** 
+ * Status 401: Unauthorized
+ * POST response on success
+*/
+
+export const sendUnauthorized = (res, message = 'Unauthorized', statusCode = 401) => {
+  return res.status(statusCode).json({
     success: false,
-    error: 'Validation failed',
-    code: 'VALIDATION_ERROR',
-    details: errors
+    message
   });
 };
 
-/**
- * Format unauthorized error response
- * @param {Object} res - Express response object
- * @param {String} message - Thông báo lỗi authentication
- */
-const sendUnauthorized = (res, message = 'Authentication required') => {
-  return res.status(401).json({
+/** 
+ * Status 403: Forbidden
+ * POST response on success
+*/
+
+export const sendForbidden = (res, message = 'Forbidden', statusCode = 403) => {
+  return res.status(statusCode).json({
     success: false,
-    error: message,
-    code: 'UNAUTHORIZED'
+    message
   });
 };
 
-/**
- * Format forbidden error response
- * @param {Object} res - Express response object
- * @param {String} message - Thông báo lỗi authorization
- */
-const sendForbidden = (res, message = 'Permission denied') => {
-  return res.status(403).json({
+/** 
+ * Status 404: Not Found
+ * POST response on success
+*/
+
+export const sendNotFound = (res, message = 'Not Found', statusCode = 404) => {
+  return res.status(statusCode).json({
     success: false,
-    error: message,
-    code: 'FORBIDDEN'
+    message
   });
 };
 
-/**
- * Format not found error response
- * @param {Object} res - Express response object
- * @param {String} resource - Tài nguyên không tìm thấy
- */
-const sendNotFound = (res, resource = 'Resource') => {
-  return res.status(404).json({
+/** 
+ * Status 500: Internal Server Error
+ * POST response on success
+*/
+
+export const sendServerError = (res, message = 'Internal Server Error', statusCode = 500) => {
+  return res.status(statusCode).json({
     success: false,
-    error: `${resource} not found`,
-    code: 'NOT_FOUND'
+    message
   });
-};
-
-/**
- * Format server error response
- * @param {Object} res - Express response object
- * @param {String} message - Thông báo lỗi server
- */
-const sendServerError = (res, message = 'Internal server error') => {
-  return res.status(500).json({
-    success: false,
-    error: message,
-    code: 'SERVER_ERROR'
-  });
-};
-
-module.exports = {
-  sendSuccess,
-  sendError,
-  sendValidationError,
-  sendUnauthorized,
-  sendForbidden,
-  sendNotFound,
-  sendServerError
 };

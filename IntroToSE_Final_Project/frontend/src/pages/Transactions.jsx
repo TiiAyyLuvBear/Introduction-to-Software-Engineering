@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { motion, AnimatePresence } from 'framer-motion'
 import { FaMoneyBillWave, FaRegTrashAlt, FaPlus, FaExchangeAlt } from 'react-icons/fa'
-import api from '../api'
 import Chatbot from '../components/chatbot/Chatbot.jsx'
 
 export default function Transactions() {
