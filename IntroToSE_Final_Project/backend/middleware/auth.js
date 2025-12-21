@@ -14,7 +14,10 @@
 
 import { auth as firebaseAuth } from '../config/firebase.js'
 import { sendUnauthorized, sendServerError } from '../utils/response.js'
+import jwt from 'jsonwebtoken'
 import User from '../models/User.js'
+
+const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production'
 
 /**
  * MIDDLEWARE: Authenticate (Required)
@@ -49,54 +52,74 @@ export const authenticate = async (req, res, next) => {
       return sendUnauthorized(res, 'Token is empty')
     }
     
-    // 3. Verify token với Firebase Admin SDK
-    // Nếu token valid, Firebase trả về decoded token chứa user info
+    // 3) Try verify as our own JWT first (used by /api/auth/*)
+    try {
+      const decoded = jwt.verify(idToken, JWT_SECRET)
+      if (decoded?.type !== 'access' || !decoded?.id) throw new Error('Not an access token')
+      const user = await User.findById(decoded.id).select('-password')
+      if (!user) return sendUnauthorized(res, 'User not found')
+
+      req.user = {
+        id: String(user._id),
+        _id: user._id,
+        email: user.email,
+        name: user.name,
+        firebaseUid: user.firebaseUid || null,
+      }
+      return next()
+    } catch {
+      // Not a valid project JWT -> fallback to Firebase
+    }
+
+    // 4) Verify token with Firebase Admin SDK
+    if (!firebaseAuth) {
+      return sendUnauthorized(
+        res,
+        'Firebase auth is not configured. Set FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, FIREBASE_PRIVATE_KEY or use JWT login.'
+      )
+    }
+
     let decodedToken
     try {
       decodedToken = await firebaseAuth.verifyIdToken(idToken)
     } catch (firebaseError) {
       console.error('Firebase token verification failed:', firebaseError.message)
-      
+
       if (firebaseError.code === 'auth/id-token-expired') {
         return sendUnauthorized(res, 'Token expired. Please login again.')
       }
-      
+
       if (firebaseError.code === 'auth/argument-error') {
         return sendUnauthorized(res, 'Invalid token format')
       }
-      
+
       return sendUnauthorized(res, 'Invalid token')
     }
-    
-    // 4. Lấy Firebase UID và email từ decoded token
+
+    // 5) Sync Firebase user with MongoDB
     const { uid: firebaseUid, email, name: firebaseName } = decodedToken
-    
+
     if (!firebaseUid || !email) {
       return sendUnauthorized(res, 'Token missing required fields (uid or email)')
     }
-    
-    // 5. Tìm hoặc tạo user trong MongoDB
-    // Sync Firebase user với MongoDB database
+
     let user = await User.findOne({ firebaseUid })
-    
+
     if (!user) {
-      // User chưa tồn tại trong MongoDB → Tạo mới
       user = await User.create({
         firebaseUid,
         email,
-        name: firebaseName || email.split('@')[0]
+        name: firebaseName || email.split('@')[0],
       })
-      
       console.log('Created new user in MongoDB:', { firebaseUid, email })
     }
-    
-    // 6. Attach user object vào request
-    // Controllers có thể access thông qua req.user
+
     req.user = {
-      _id: user._id,           // MongoDB ObjectId
+      id: String(user._id),
+      _id: user._id,
       firebaseUid: user.firebaseUid,
       email: user.email,
-      name: user.name
+      name: user.name,
     }
     
     // 7. Continue đến controller
@@ -144,33 +167,58 @@ export const optionalAuthenticate = async (req, res, next) => {
       return next()
     }
     
-    // Try verify token
+    // Try verify token (JWT first)
+    try {
+      const decoded = jwt.verify(idToken, JWT_SECRET)
+      if (decoded?.type === 'access' && decoded?.id) {
+        const user = await User.findById(decoded.id).select('-password')
+        if (user) {
+          req.user = {
+            id: String(user._id),
+            _id: user._id,
+            email: user.email,
+            name: user.name,
+            firebaseUid: user.firebaseUid || null,
+          }
+          return next()
+        }
+      }
+    } catch {
+      // ignore
+    }
+
+    // Firebase fallback
+    if (!firebaseAuth) {
+      req.user = null
+      return next()
+    }
+
     try {
       const decodedToken = await firebaseAuth.verifyIdToken(idToken)
       const { uid: firebaseUid, email, name: firebaseName } = decodedToken
-      
+
       if (firebaseUid && email) {
         let user = await User.findOne({ firebaseUid })
-        
+
         if (!user) {
           user = await User.create({
             firebaseUid,
             email,
-            name: firebaseName || email.split('@')[0]
+            name: firebaseName || email.split('@')[0],
           })
         }
-        
+
         req.user = {
+          id: String(user._id),
           _id: user._id,
           firebaseUid: user.firebaseUid,
           email: user.email,
-          name: user.name
+          name: user.name,
         }
       } else {
         req.user = null
       }
-    } catch (firebaseError) {
-      // Token invalid, nhưng không block request
+    } catch {
       console.log('Optional auth: Token invalid, continuing as guest')
       req.user = null
     }

@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Money Lover - About Us</title>
+<!-- Google Fonts: Manrope -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200..800&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS with Config -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "primary": "#19e65e",
+              "background-light": "#f6f8f6",
+              "background-dark": "#112116", // Deep dark green/black
+              "surface-dark": "#1c261f",     // Slightly lighter for cards
+              "border-dark": "#3c5344",      // Border color
+            },
+            fontFamily: {
+              "display": ["Manrope", "sans-serif"]
+            },
+            borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+        body {
+            font-family: 'Manrope', sans-serif;
+        }
+        .material-symbols-outlined {
+            font-variation-settings:
+            'FILL' 1,
+            'wght' 400,
+            'GRAD' 0,
+            'opsz' 24
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-white overflow-x-hidden transition-colors duration-300">
+<div class="relative flex h-auto min-h-screen w-full flex-col group/design-root">
+<!-- TopNavBar -->
+<header class="sticky top-0 z-50 bg-background-light/90 dark:bg-background-dark/90 backdrop-blur-md border-b border-gray-200 dark:border-border-dark">
+<div class="layout-container flex h-full grow flex-col">
+<div class="px-4 md:px-10 flex flex-1 justify-center">
+<div class="layout-content-container flex flex-col max-w-[1200px] flex-1">
+<div class="flex items-center justify-between whitespace-nowrap py-4">
+<div class="flex items-center gap-4 text-slate-900 dark:text-white">
+<div class="size-8 text-primary">
+<svg class="w-full h-full" fill="none" viewbox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+<path d="M39.5563 34.1455V13.8546C39.5563 15.708 36.8773 17.3437 32.7927 18.3189C30.2914 18.916 27.263 19.2655 24 19.2655C20.737 19.2655 17.7086 18.916 15.2073 18.3189C11.1227 17.3437 8.44365 15.708 8.44365 13.8546V34.1455C8.44365 35.9988 11.1227 37.6346 15.2073 38.6098C17.7086 39.2069 20.737 39.5564 24 39.5564C27.263 39.5564 30.2914 39.2069 32.7927 38.6098C36.8773 37.6346 39.5563 35.9988 39.5563 34.1455Z" fill="currentColor"></path>
+<path clip-rule="evenodd" d="M10.4485 13.8519C10.4749 13.9271 10.6203 14.246 11.379 14.7361C12.298 15.3298 13.7492 15.9145 15.6717 16.3735C18.0007 16.9296 20.8712 17.2655 24 17.2655C27.1288 17.2655 29.9993 16.9296 32.3283 16.3735C34.2508 15.9145 35.702 15.3298 36.621 14.7361C37.3796 14.246 37.5251 13.9271 37.5515 13.8519C37.5287 13.7876 37.4333 13.5973 37.0635 13.2931C36.5266 12.8516 35.6288 12.3647 34.343 11.9175C31.79 11.0295 28.1333 10.4437 24 10.4437C19.8667 10.4437 16.2099 11.0295 13.657 11.9175C12.3712 12.3647 11.4734 12.8516 10.9365 13.2931C10.5667 13.5973 10.4713 13.7876 10.4485 13.8519ZM37.5563 18.7877C36.3176 19.3925 34.8502 19.8839 33.2571 20.2642C30.5836 20.9025 27.3973 21.2655 24 21.2655C20.6027 21.2655 17.4164 20.9025 14.7429 20.2642C13.1498 19.8839 11.6824 19.3925 10.4436 18.7877V34.1275C10.4515 34.1545 10.5427 34.4867 11.379 35.027C12.298 35.6207 13.7492 36.2054 15.6717 36.6644C18.0007 37.2205 20.8712 37.5564 24 37.5564C27.1288 37.5564 29.9993 37.2205 32.3283 36.6644C34.2508 36.2054 35.702 35.6207 36.621 35.027C37.4573 34.4867 37.5485 34.1546 37.5563 34.1275V18.7877ZM41.5563 13.8546V34.1455C41.5563 36.1078 40.158 37.5042 38.7915 38.3869C37.3498 39.3182 35.4192 40.0389 33.2571 40.5551C30.5836 41.1934 27.3973 41.5564 24 41.5564C20.6027 41.5564 17.4164 41.1934 14.7429 40.5551C12.5808 40.0389 10.6502 39.3182 9.20848 38.3869C7.84205 37.5042 6.44365 36.1078 6.44365 34.1455L6.44365 13.8546C6.44365 12.2684 7.37223 11.0454 8.39581 10.2036C9.43325 9.3505 10.8137 8.67141 12.343 8.13948C15.4203 7.06909 19.5418 6.44366 24 6.44366C28.4582 6.44366 32.5797 7.06909 35.657 8.13948C37.1863 8.67141 38.5667 9.3505 39.6042 10.2036C40.6278 11.0454 41.5563 12.2684 41.5563 13.8546Z" fill="currentColor" fill-rule="evenodd"></path>
+</svg>
+</div>
+<h2 class="text-lg font-bold leading-tight tracking-[-0.015em]">Money Lover</h2>
+</div>
+<div class="hidden md:flex flex-1 justify-end gap-8">
+<nav class="flex items-center gap-9">
+<a class="text-slate-600 dark:text-slate-300 hover:text-primary dark:hover:text-primary transition-colors text-sm font-medium leading-normal" href="#">Home</a>
+<a class="text-slate-600 dark:text-slate-300 hover:text-primary dark:hover:text-primary transition-colors text-sm font-medium leading-normal" href="#">Features</a>
+<a class="text-primary text-sm font-bold leading-normal" href="#">About Us</a>
+<a class="text-slate-600 dark:text-slate-300 hover:text-primary dark:hover:text-primary transition-colors text-sm font-medium leading-normal" href="#">Help Center</a>
+</nav>
+<button class="flex min-w-[84px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-4 bg-primary text-background-dark text-sm font-bold leading-normal tracking-[0.015em] hover:brightness-110 transition-all">
+<span class="truncate">Download App</span>
+</button>
+</div>
+<div class="md:hidden text-slate-900 dark:text-white">
+<span class="material-symbols-outlined">menu</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</header>
+<!-- HeroSection -->
+<section class="flex flex-col">
+<div class="layout-container flex h-full grow flex-col">
+<div class="px-4 md:px-10 lg:px-40 flex flex-1 justify-center py-5">
+<div class="layout-content-container flex flex-col max-w-[960px] flex-1">
+<div class="@container">
+<div class="flex flex-col-reverse gap-6 py-10 @[864px]:flex-row @[864px]:items-center">
+<div class="flex flex-col gap-6 flex-1 @[864px]:justify-center">
+<div class="flex flex-col gap-4 text-left">
+<h1 class="text-slate-900 dark:text-white text-4xl font-black leading-tight tracking-[-0.033em] @[480px]:text-5xl">
+                                          Empowering your <span class="text-primary">financial freedom</span>
+</h1>
+<h2 class="text-slate-600 dark:text-slate-300 text-lg font-normal leading-relaxed">
+                                          Meet the team dedicated to bringing you clarity, control, and confidence in your financial life. We believe managing money should be simple, transparent, and secure.
+                                        </h2>
+</div>
+<div class="flex flex-col sm:flex-row gap-4">
+<button class="flex min-w-[84px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-12 px-6 bg-primary text-background-dark text-base font-bold leading-normal tracking-[0.015em] hover:brightness-110 transition-all">
+<span class="truncate">Read Our Story</span>
+</button>
+<button class="flex min-w-[84px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-12 px-6 bg-transparent border border-gray-300 dark:border-border-dark text-slate-900 dark:text-white text-base font-bold leading-normal tracking-[0.015em] hover:bg-slate-100 dark:hover:bg-surface-dark transition-all">
+<span class="truncate">Join the Team</span>
+</button>
+</div>
+</div>
+<div class="w-full flex-1 aspect-video rounded-xl overflow-hidden shadow-2xl bg-surface-dark relative">
+<div class="absolute inset-0 bg-gradient-to-tr from-background-dark/80 to-transparent z-10"></div>
+<div class="w-full h-full bg-center bg-no-repeat bg-cover" data-alt="Abstract visualization of financial growth with neon green glowing graphs on a dark background" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuDJD5XKTnFRwaEVV-o2rccbnW6RrxOj2bOY5RQ6kcn8G64tV3HT7f6uSOTfa8DL_nMYJ8FWYI5BSgQZinU8gGz6Rrpk3NM8l3NwSiUPMqi1htPRNgVkyL5FjICryNwjRDAPndI4YkoSLUJYmap8aV7fawLPyx_V-uDdoO2JMrnFpvvC_ctpO60OJBypwXU_5ENWvR1QScTXAb6XP9lHXuTTaacuhcgPZLQDK3TRiVVtSsDcOaAA77dzjol4glf7qqmqSGg4GUi0OT2f");'>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Stats Section -->
+<section class="border-y border-gray-200 dark:border-border-dark bg-white/50 dark:bg-surface-dark/30">
+<div class="layout-container flex h-full grow flex-col">
+<div class="px-4 md:px-10 lg:px-40 flex flex-1 justify-center py-5">
+<div class="layout-content-container flex flex-col max-w-[960px] flex-1">
+<div class="flex flex-wrap gap-4 p-4 justify-between">
+<div class="flex min-w-[158px] flex-1 flex-col gap-1 items-center text-center">
+<p class="text-primary tracking-tight text-3xl font-black leading-tight">5M+</p>
+<p class="text-slate-600 dark:text-slate-400 text-sm font-medium uppercase tracking-wide">Total Downloads</p>
+</div>
+<div class="hidden sm:block w-px bg-gray-300 dark:bg-border-dark"></div>
+<div class="flex min-w-[158px] flex-1 flex-col gap-1 items-center text-center">
+<p class="text-primary tracking-tight text-3xl font-black leading-tight">4.8/5</p>
+<p class="text-slate-600 dark:text-slate-400 text-sm font-medium uppercase tracking-wide">Average Rating</p>
+</div>
+<div class="hidden sm:block w-px bg-gray-300 dark:bg-border-dark"></div>
+<div class="flex min-w-[158px] flex-1 flex-col gap-1 items-center text-center">
+<p class="text-primary tracking-tight text-3xl font-black leading-tight">150+</p>
+<p class="text-slate-600 dark:text-slate-400 text-sm font-medium uppercase tracking-wide">Countries Supported</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Mission & Values Section -->
+<section class="py-16">
+<div class="layout-container flex h-full grow flex-col">
+<div class="px-4 md:px-10 lg:px-40 flex flex-1 justify-center">
+<div class="layout-content-container flex flex-col max-w-[960px] flex-1">
+<div class="flex flex-col gap-10 @container">
+<div class="flex flex-col gap-4 text-center items-center">
+<span class="text-primary text-sm font-bold uppercase tracking-wider">Our Core Values</span>
+<h2 class="text-slate-900 dark:text-white tracking-light text-[32px] font-bold leading-tight max-w-[720px]">
+                                  Why We Exist
+                                </h2>
+<p class="text-slate-600 dark:text-slate-300 text-base font-normal leading-normal max-w-[600px]">
+                                  Our mission is to help everyone, everywhere, track their spending and save for what matters most. We build tools that empower you.
+                                </p>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+<!-- Value 1 -->
+<div class="flex flex-col gap-4 rounded-xl border border-gray-200 dark:border-border-dark bg-white dark:bg-surface-dark p-6 hover:border-primary/50 transition-colors group">
+<div class="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-background-dark transition-colors">
+<span class="material-symbols-outlined">visibility</span>
+</div>
+<div class="flex flex-col gap-2">
+<h3 class="text-slate-900 dark:text-white text-lg font-bold leading-tight">Transparency</h3>
+<p class="text-slate-600 dark:text-slate-400 text-sm font-normal leading-relaxed">
+                                            We believe in open financial data and clear insights. No hidden fees, no confusing jargon.
+                                        </p>
+</div>
+</div>
+<!-- Value 2 -->
+<div class="flex flex-col gap-4 rounded-xl border border-gray-200 dark:border-border-dark bg-white dark:bg-surface-dark p-6 hover:border-primary/50 transition-colors group">
+<div class="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-background-dark transition-colors">
+<span class="material-symbols-outlined">security</span>
+</div>
+<div class="flex flex-col gap-2">
+<h3 class="text-slate-900 dark:text-white text-lg font-bold leading-tight">Security</h3>
+<p class="text-slate-600 dark:text-slate-400 text-sm font-normal leading-relaxed">
+                                            Your trust is our currency. Bank-grade encryption keeps your data safe and private.
+                                        </p>
+</div>
+</div>
+<!-- Value 3 -->
+<div class="flex flex-col gap-4 rounded-xl border border-gray-200 dark:border-border-dark bg-white dark:bg-surface-dark p-6 hover:border-primary/50 transition-colors group">
+<div class="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-background-dark transition-colors">
+<span class="material-symbols-outlined">check_circle</span>
+</div>
+<div class="flex flex-col gap-2">
+<h3 class="text-slate-900 dark:text-white text-lg font-bold leading-tight">Simplicity</h3>
+<p class="text-slate-600 dark:text-slate-400 text-sm font-normal leading-relaxed">
+                                            Managing money shouldn't be a chore. We design for clarity and ease of use.
+                                        </p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Our Story Timeline -->
+<section class="py-16 bg-gray-100 dark:bg-surface-dark/50">
+<div class="layout-container flex h-full grow flex-col">
+<div class="px-4 md:px-10 lg:px-40 flex flex-1 justify-center">
+<div class="layout-content-container flex flex-col max-w-[960px] flex-1">
+<div class="flex flex-col gap-10">
+<div class="flex flex-col gap-2">
+<h2 class="text-slate-900 dark:text-white text-2xl font-bold leading-tight">Our Journey</h2>
+<p class="text-slate-600 dark:text-slate-400">How we grew from a garage project to a global platform.</p>
+</div>
+<!-- Timeline Container -->
+<div class="relative border-l border-primary/30 ml-3 md:ml-6 space-y-12">
+<!-- Item 1 -->
+<div class="relative pl-8 md:pl-12">
+<div class="absolute -left-[9px] top-1 h-5 w-5 rounded-full border-4 border-background-light dark:border-background-dark bg-primary"></div>
+<div class="flex flex-col gap-2">
+<span class="text-primary font-bold text-sm tracking-widest">2018</span>
+<h3 class="text-slate-900 dark:text-white text-xl font-bold">The Idea was Born</h3>
+<p class="text-slate-600 dark:text-slate-400 max-w-2xl">
+                                            Frustrated with complex spreadsheets, our founders built the first version of Money Lover to simply track daily expenses.
+                                        </p>
+</div>
+</div>
+<!-- Item 2 -->
+<div class="relative pl-8 md:pl-12">
+<div class="absolute -left-[9px] top-1 h-5 w-5 rounded-full border-4 border-background-light dark:border-background-dark bg-primary"></div>
+<div class="flex flex-col gap-2">
+<span class="text-primary font-bold text-sm tracking-widest">2020</span>
+<h3 class="text-slate-900 dark:text-white text-xl font-bold">Hitting 1 Million Users</h3>
+<p class="text-slate-600 dark:text-slate-400 max-w-2xl">
+                                            Without any major marketing, the community grew. We expanded the team and introduced bank syncing features.
+                                        </p>
+</div>
+</div>
+<!-- Item 3 -->
+<div class="relative pl-8 md:pl-12">
+<div class="absolute -left-[9px] top-1 h-5 w-5 rounded-full border-4 border-background-light dark:border-background-dark bg-primary"></div>
+<div class="flex flex-col gap-2">
+<span class="text-primary font-bold text-sm tracking-widest">2023</span>
+<h3 class="text-slate-900 dark:text-white text-xl font-bold">Going Global</h3>
+<p class="text-slate-600 dark:text-slate-400 max-w-2xl">
+                                            Now supporting over 150 countries and 30+ currencies. Money Lover becomes the go-to app for travelers and expats.
+                                        </p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Team Section -->
+<section class="py-16">
+<div class="layout-container flex h-full grow flex-col">
+<div class="px-4 md:px-10 lg:px-40 flex flex-1 justify-center">
+<div class="layout-content-container flex flex-col max-w-[960px] flex-1">
+<h2 class="text-slate-900 dark:text-white text-[28px] font-bold mb-10 text-center">Meet the Leadership</h2>
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+<!-- Member 1 -->
+<div class="flex flex-col gap-3 group">
+<div class="aspect-[3/4] w-full rounded-lg overflow-hidden bg-surface-dark relative">
+<div class="w-full h-full bg-cover bg-center transition-transform duration-500 group-hover:scale-105 filter grayscale group-hover:grayscale-0" data-alt="Portrait of Sarah Jenkins, CEO, smiling professionally" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuA8xLfIEdTB2c98GjHJRNn_tS9l1uybItbJHQ91eYjHNN_LN5nQ1bMU9t1ZGDLNm5r8UZicSWHofl6lScWIvaNuUR3RmeyktcuRbbZEXXdNUS-2eefIdmOFiZZ_f_oBkL_08znFwGDXOaz2dr4VzWXDSFcUIglk_uitjPe3344Msv7wGxMi-Ion9d2gkF_zvcJzQoLes8BcgFnwVQ0Zy0SFBCoeae1wH19imX6k9ovA1Qj-_B8Cq9_zTox2kvGEG40lml6EregS3ixA");'></div>
+<!-- Social Overlay -->
+<div class="absolute bottom-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
+<div class="bg-white text-slate-900 p-2 rounded-full cursor-pointer hover:bg-primary">
+<span class="material-symbols-outlined text-[16px]">link</span>
+</div>
+</div>
+</div>
+<div>
+<h3 class="text-slate-900 dark:text-white font-bold text-lg">Sarah Jenkins</h3>
+<p class="text-primary text-sm font-medium">CEO &amp; Founder</p>
+</div>
+</div>
+<!-- Member 2 -->
+<div class="flex flex-col gap-3 group">
+<div class="aspect-[3/4] w-full rounded-lg overflow-hidden bg-surface-dark relative">
+<div class="w-full h-full bg-cover bg-center transition-transform duration-500 group-hover:scale-105 filter grayscale group-hover:grayscale-0" data-alt="Portrait of David Chen, Head of Product, looking at camera" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuD_mjAanSPQ8vWAYHOl6p4rDnrBXyhYgQmOYe7cLPJ8HPAFEZI54LyzakEsV1ZLxj5EyleaFNVf5VMSmfel6Fh34baGb8yKJacc51VQBo0m26ycKFenQd5mO2vOi8QkzgYDBinogC7rU70tBpwWpR7VpWh5QLoeX361M-ssSovMZAKSBtvu4cGhWgDZrO25G4eXI1ekxu8J_xQONZbvIoK2LRMZ6jCM8QaGNTzCmqYJq2JxEjN-X9oliYGzPHoyXZzg3k6yxU49f2p2");'></div>
+</div>
+<div>
+<h3 class="text-slate-900 dark:text-white font-bold text-lg">David Chen</h3>
+<p class="text-primary text-sm font-medium">Head of Product</p>
+</div>
+</div>
+<!-- Member 3 -->
+<div class="flex flex-col gap-3 group">
+<div class="aspect-[3/4] w-full rounded-lg overflow-hidden bg-surface-dark relative">
+<div class="w-full h-full bg-cover bg-center transition-transform duration-500 group-hover:scale-105 filter grayscale group-hover:grayscale-0" data-alt="Portrait of Elena Rodriguez, Lead Developer" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuCH-4yDcUGlZoPE6PTRtGaS_nW_TS1r5cdB4c_1XWMNKV2Ylo2vxB_vwW22AGLefeD__yjXOdzZhmWyDViRBGF87n8E5NjxpejDLX7vNP_ONUXmu1rncJ4qfFoiU6RsdVit_FmbDGU77HRCwOGkB7DKXCYOs1-1LjHyQ5ESqNN6vTDZcY7Q-1XNTKRf55zKi6CyxPSnBC_jm6XQdd-lIqE-QBSA0CKzRkCp86yPVfSLlKd8DayykBx-fNfi7UC8RaUdVKhxF_0b9LV9");'></div>
+</div>
+<div>
+<h3 class="text-slate-900 dark:text-white font-bold text-lg">Elena Rodriguez</h3>
+<p class="text-primary text-sm font-medium">Lead Developer</p>
+</div>
+</div>
+<!-- Member 4 -->
+<div class="flex flex-col gap-3 group">
+<div class="aspect-[3/4] w-full rounded-lg overflow-hidden bg-surface-dark relative">
+<div class="w-full h-full bg-cover bg-center transition-transform duration-500 group-hover:scale-105 filter grayscale group-hover:grayscale-0" data-alt="Portrait of Michael Ross, Design Lead" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuDxoBh3W1RU6OsPOJvinChGeexhxTf7PHIzf086xv3fYuDr8PLXtiCxOFSr6Tzo0qkRRwIdXXC8z40OL1S4Pqfe_JvpIg8lwoWT5luQYEm1dNE5eYSM52q5kbGlUznIxTYg7VE3dFrI1soGxmSe_wuF9u9wsdpVqFdKgoJY7eueFSYR9MRNEzkHrRAMK8qtynMdtdXt51gzAHApknUo7fEsaLhLkecPU0au_dBXaJT27rmeGOHI5e7vHCxsU9ROo9Vek3h_66Z9tNA8");'></div>
+</div>
+<div>
+<h3 class="text-slate-900 dark:text-white font-bold text-lg">Michael Ross</h3>
+<p class="text-primary text-sm font-medium">Design Lead</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- CTA & Footer -->
+<footer class="mt-auto border-t border-gray-200 dark:border-border-dark bg-white dark:bg-surface-dark pt-16 pb-8">
+<div class="layout-container flex h-full grow flex-col">
+<div class="px-4 md:px-10 lg:px-40 flex flex-1 justify-center">
+<div class="layout-content-container flex flex-col max-w-[960px] flex-1">
+<!-- CTA Block -->
+<div class="rounded-2xl bg-gradient-to-br from-[#1c2e22] to-background-dark p-8 md:p-12 text-center mb-16 border border-border-dark relative overflow-hidden">
+<!-- Decorative glow -->
+<div class="absolute top-0 left-1/2 -translate-x-1/2 w-64 h-64 bg-primary/20 blur-[100px] rounded-full pointer-events-none"></div>
+<h2 class="relative z-10 text-white text-3xl md:text-4xl font-black mb-4">Ready to take control?</h2>
+<p class="relative z-10 text-slate-300 mb-8 max-w-lg mx-auto">Join millions of people who are mastering their money with Money Lover.</p>
+<div class="relative z-10 flex flex-col sm:flex-row justify-center gap-4">
+<button class="flex items-center justify-center gap-2 rounded-lg h-12 px-6 bg-primary text-background-dark text-base font-bold hover:brightness-110 transition-all">
+<span class="material-symbols-outlined">download</span>
+<span>Download for iOS</span>
+</button>
+<button class="flex items-center justify-center gap-2 rounded-lg h-12 px-6 bg-white/10 text-white backdrop-blur-sm border border-white/10 text-base font-bold hover:bg-white/20 transition-all">
+<span class="material-symbols-outlined">android</span>
+<span>Download for Android</span>
+</button>
+</div>
+</div>
+<!-- Footer Links -->
+<div class="flex flex-col md:flex-row justify-between items-center gap-6 border-t border-gray-200 dark:border-border-dark/50 pt-8">
+<div class="flex items-center gap-2 text-slate-900 dark:text-white">
+<div class="size-6 text-primary">
+<svg class="w-full h-full" fill="none" viewbox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+<path d="M39.5563 34.1455V13.8546C39.5563 15.708 36.8773 17.3437 32.7927 18.3189C30.2914 18.916 27.263 19.2655 24 19.2655C20.737 19.2655 17.7086 18.916 15.2073 18.3189C11.1227 17.3437 8.44365 15.708 8.44365 13.8546V34.1455C8.44365 35.9988 11.1227 37.6346 15.2073 38.6098C17.7086 39.2069 20.737 39.5564 24 39.5564C27.263 39.5564 30.2914 39.2069 32.7927 38.6098C36.8773 37.6346 39.5563 35.9988 39.5563 34.1455Z" fill="currentColor"></path>
+</svg>
+</div>
+<span class="font-bold text-lg">Money Lover</span>
+</div>
+<div class="flex gap-6 text-sm font-medium text-slate-500 dark:text-slate-400">
+<a class="hover:text-primary transition-colors" href="#">Privacy Policy</a>
+<a class="hover:text-primary transition-colors" href="#">Terms of Service</a>
+<a class="hover:text-primary transition-colors" href="#">Contact Support</a>
+</div>
+<div class="text-sm text-slate-500 dark:text-slate-600">
+                                © 2023 Finsify. All rights reserved.
+                            </div>
+</div>
+</div>
+</div>
+</div>
+</footer>
+</div>
+</body></html>

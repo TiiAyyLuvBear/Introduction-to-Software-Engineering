@@ -14,8 +14,8 @@
  * - CORS: Cho phép frontend gọi API từ domain khác
  * - dotenv: Load biến môi trường từ .env file
  */
+import 'dotenv/config'
 import express from 'express'
-import dotenv from 'dotenv'
 import mongoose from 'mongoose'
 import cors from 'cors'
 
@@ -27,9 +27,9 @@ import accountsRouter from './routes/accounts.js'
 import usersRouter from './routes/users.js'
 import walletsRouter from './routes/wallets.js'
 import invitationsRouter from './routes/invitations.js'
-
-// Load biến môi trường từ .env file (MONGODB_URI, PORT)
-dotenv.config()
+import budgetsRouter from './routes/budgets.js'
+import goalsRouter from './routes/goals.js'
+import reportsRouter from './routes/reports.js'
 
 // Khởi tạo Express app
 const app = express()
@@ -59,6 +59,9 @@ app.use('/api/accounts', accountsRouter)          // Quản lý tài khoản/ví
 app.use('/api/users', usersRouter)                // Quản lý người dùng
 app.use('/api/wallets', walletsRouter)            // Quản lý ví tiền (Use Cases U010-U014)
 app.use('/api/invitations', invitationsRouter)    // Quản lý lời mời ví chia sẻ (Use Case U011)
+app.use('/api/budgets', budgetsRouter)            // Quản lý ngân sách (Budgets)
+app.use('/api/goals', goalsRouter)                // Quản lý mục tiêu tiết kiệm (Saving Goals)
+app.use('/api/reports', reportsRouter)            // Báo cáo tổng hợp (Reports)
 
 /**
  * Health check endpoint

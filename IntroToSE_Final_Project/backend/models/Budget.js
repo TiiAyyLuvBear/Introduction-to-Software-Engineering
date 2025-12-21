@@ -15,6 +15,13 @@ const BudgetSchema = new mongoose.Schema({
     ref: 'User', 
     required: true 
   },
+
+  // Wallet áp dụng budget (M3-01)
+  walletId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Wallet',
+    required: true
+  },
   
   // Category áp dụng budget
   // Chỉ áp dụng cho expense categories
@@ -90,7 +97,7 @@ const BudgetSchema = new mongoose.Schema({
 
 // Index để query nhanh budgets của user
 BudgetSchema.index({ userId: 1, status: 1 })
-BudgetSchema.index({ userId: 1, categoryId: 1, period: 1 })
+BudgetSchema.index({ userId: 1, walletId: 1, categoryId: 1, period: 1 })
 
 /**
  * METHOD: Tính % chi tiêu so với budget
@@ -130,6 +137,7 @@ BudgetSchema.methods.getRemainingDays = function() {
 BudgetSchema.methods.getDisplayInfo = function() {
   return {
     id: this._id,
+    walletId: this.walletId,
     name: this.name,
     categoryId: this.categoryId,
     amount: this.amount,
@@ -151,17 +159,16 @@ BudgetSchema.methods.getDisplayInfo = function() {
  */
 BudgetSchema.statics.createBudget = async function(budgetData) {
   // Validate: không tạo budget trùng category + period
-  if (budgetData.categoryId) {
-    const existing = await this.findOne({
-      userId: budgetData.userId,
-      categoryId: budgetData.categoryId,
-      period: budgetData.period,
-      status: 'active'
-    })
-    
-    if (existing) {
-      throw new Error(`Budget for this category and period already exists`)
-    }
+  const existing = await this.findOne({
+    userId: budgetData.userId,
+    walletId: budgetData.walletId,
+    categoryId: budgetData.categoryId || null,
+    period: budgetData.period,
+    status: 'active'
+  })
+
+  if (existing) {
+    throw new Error('Budget for this wallet/category/period already exists')
   }
   
   const budget = new this(budgetData)
@@ -200,6 +207,7 @@ BudgetSchema.statics.updateSpentAmount = async function(userId, categoryId, peri
   await this.updateMany(
     {
       userId,
+      walletId: { $exists: true },
       categoryId,
       startDate: { $lte: periodEnd },
       $or: [
@@ -218,13 +226,15 @@ BudgetSchema.statics.updateSpentAmount = async function(userId, categoryId, peri
  * STATIC METHOD: Lấy tất cả budgets của user
  */
 BudgetSchema.statics.getUserBudgets = async function(userId, options = {}) {
-  const { status = 'active', period } = options
+  const { status = 'active', period, walletId } = options
   
   const query = { userId, status }
   if (period) query.period = period
+  if (walletId) query.walletId = walletId
   
   const budgets = await this.find(query)
     .populate('categoryId', 'name type color')
+    .populate('walletId', 'name type currency')
     .sort({ createdAt: -1 })
   
   return budgets.map(budget => budget.getDisplayInfo())

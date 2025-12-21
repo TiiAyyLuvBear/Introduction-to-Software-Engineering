@@ -12,6 +12,9 @@ import mongoose from 'mongoose'
 const CategorySchema = new mongoose.Schema({
   // Tên danh mục (VD: "Groceries", "Salary", "Transportation")
   name: { type: String, required: true },
+
+  // Icon identifier for UI (M4-01)
+  icon: { type: String },
   
   // Loại danh mục: 'income' (thu nhập) hoặc 'expense' (chi tiêu)
   // enum giới hạn chỉ nhận 2 giá trị này
@@ -19,12 +22,18 @@ const CategorySchema = new mongoose.Schema({
   
   // Màu sắc để hiển thị trên UI (VD: "#3498db", "#e74c3c")
   color: { type: String },
+
+  // Default categories seeded by system (M4-01)
+  isDefault: { type: Boolean, default: false },
   
   // ID của user sở hữu danh mục này
   // ref: 'User' cho phép populate() để lấy thông tin user
   // required: false nghĩa là có thể có danh mục chung (không thuộc user nào)
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: false }
 }, { timestamps: true })
+
+CategorySchema.index({ userId: 1, type: 1 })
+CategorySchema.index({ isDefault: 1, type: 1 })
 
 /**
  * Export model Category

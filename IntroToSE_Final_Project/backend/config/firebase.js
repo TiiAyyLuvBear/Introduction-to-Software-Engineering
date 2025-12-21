@@ -31,15 +31,20 @@ const serviceAccount = {
 // const serviceAccount = require('./serviceAccountKey.json');
 
 try {
-  admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount),
-  });
-  console.log('✅ Firebase Admin initialized');
+  // Only initialize if credentials are present
+  if (serviceAccount.projectId && serviceAccount.clientEmail && serviceAccount.privateKey) {
+    admin.initializeApp({
+      credential: admin.credential.cert(serviceAccount),
+    });
+    console.log('✅ Firebase Admin initialized');
+  } else {
+    console.warn('⚠️  Firebase Admin not initialized (missing FIREBASE_* env vars)');
+  }
 } catch (error) {
   console.error('❌ Firebase Admin initialization error:', error.message);
 }
 
 // Export auth instance
-export const auth = admin.auth();
+export const auth = admin.apps?.length ? admin.auth() : null;
 
 export default admin;

@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Money Lover - Transfer Money</title>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#19e65e",
+                        "background-light": "#f6f8f6",
+                        "background-dark": "#112116",
+                    },
+                    fontFamily: {
+                        "display": ["Manrope", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-[#111813] dark:text-white overflow-x-hidden min-h-screen flex flex-col">
+<!-- Top Navigation -->
+<header class="flex items-center justify-between whitespace-nowrap border-b border-solid border-b-[#e0e2e0] dark:border-b-[#29382e] px-10 py-3 bg-white dark:bg-[#111813]">
+<div class="flex items-center gap-4 text-[#111813] dark:text-white">
+<div class="size-8 text-primary">
+<span class="material-symbols-outlined" style="font-size: 32px;">account_balance_wallet</span>
+</div>
+<h2 class="text-lg font-bold leading-tight tracking-[-0.015em]">Money Lover</h2>
+</div>
+<div class="flex flex-1 justify-end gap-8">
+<div class="hidden md:flex items-center gap-9">
+<a class="text-sm font-medium leading-normal hover:text-primary transition-colors" href="#">Dashboard</a>
+<a class="text-sm font-medium leading-normal hover:text-primary transition-colors" href="#">Transactions</a>
+<a class="text-sm font-medium leading-normal hover:text-primary transition-colors" href="#">Budget</a>
+<a class="text-sm font-medium leading-normal hover:text-primary transition-colors" href="#">Report</a>
+</div>
+<div class="flex items-center gap-4">
+<button class="flex min-w-[84px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-4 bg-primary text-[#111813] text-sm font-bold leading-normal tracking-[0.015em] hover:brightness-110 transition-all">
+<span class="material-symbols-outlined text-lg mr-2">add</span>
+<span class="truncate">Add Transaction</span>
+</button>
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10 border border-[#e0e2e0] dark:border-[#29382e]" data-alt="User profile picture placeholder" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuBZ1azG8QaQK8jXhvNtWYA8ToVPp0x5oHYyp17oTwDF45J5JmfjAMIKFsSBsOvN3t9qfS0lNuj1Soh3c9etajhiGSEFB-HPEKZuWKiekl1Ct1ydTNQGeml0rVkhEbdLuvMS0b3jd_U6NDRn7IdaOi5jmYNQgEuxGG6IL_jO_qmbl5x7NF1_n-qUQmD5KDdaGSlMcpjBTDPd1L-L-nkHikrtlNAJWfAFSol3oxxRfy8LZ70gFRBYMNLvPKV3YG9-1jPf7sZY8qsI38Os");'></div>
+</div>
+</div>
+</header>
+<!-- Main Content Area -->
+<main class="flex-1 flex justify-center py-10 px-4 md:px-10">
+<div class="flex flex-col w-full max-w-[640px] gap-6">
+<!-- Page Heading & Breadcrumb -->
+<div class="flex flex-col gap-2">
+<div class="flex items-center gap-2 text-sm text-[#637588] dark:text-[#9db8a6]">
+<a class="hover:text-primary hover:underline" href="#">Dashboard</a>
+<span class="material-symbols-outlined text-sm">chevron_right</span>
+<span>Transfer</span>
+</div>
+<h1 class="text-3xl md:text-[32px] font-bold leading-tight tracking-tight">Transfer Money</h1>
+<p class="text-[#637588] dark:text-[#9db8a6] text-sm font-normal">Move funds securely between your wallets.</p>
+</div>
+<!-- Transaction Card -->
+<div class="flex flex-col gap-6 p-6 md:p-8 rounded-xl bg-white dark:bg-[#1c261f] shadow-sm border border-[#e0e2e0] dark:border-[#29382e]">
+<!-- Wallets Row -->
+<div class="flex flex-col md:flex-row gap-4 items-center md:items-end">
+<!-- From Wallet -->
+<label class="flex flex-col w-full md:flex-1 gap-2">
+<span class="text-sm font-medium leading-normal">From Wallet</span>
+<div class="relative">
+<select class="appearance-none flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-[#111813] dark:text-white focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-[#e0e2e0] dark:border-[#3c5344] bg-[#f6f8f6] dark:bg-[#111813] h-14 pl-4 pr-10 text-base font-normal leading-normal transition-colors cursor-pointer">
+<option value="checking">Checking Account (****4521)</option>
+<option value="savings">Savings Vault</option>
+<option value="cash">Cash on Hand</option>
+</select>
+<div class="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-[#637588] dark:text-[#9db8a6]">
+<span class="material-symbols-outlined">expand_more</span>
+</div>
+</div>
+<span class="text-xs text-[#637588] dark:text-[#9db8a6]">Balance: $4,250.00</span>
+</label>
+<!-- Swap Icon (Desktop: Horizontal, Mobile: Vertical) -->
+<button class="flex items-center justify-center size-10 rounded-full bg-primary/10 text-primary hover:bg-primary hover:text-[#111813] transition-all shrink-0 mt-4 md:mb-6">
+<span class="material-symbols-outlined">sync_alt</span>
+</button>
+<!-- To Wallet -->
+<label class="flex flex-col w-full md:flex-1 gap-2">
+<span class="text-sm font-medium leading-normal">To Wallet</span>
+<div class="relative">
+<select class="appearance-none flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-[#111813] dark:text-white focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-[#e0e2e0] dark:border-[#3c5344] bg-[#f6f8f6] dark:bg-[#111813] h-14 pl-4 pr-10 text-base font-normal leading-normal transition-colors cursor-pointer">
+<option disabled="" selected="" value="">Select destination</option>
+<option value="savings">Savings Goal: Europe Trip</option>
+<option value="cash">Cash Wallet</option>
+<option value="investment">Investment Portfolio</option>
+</select>
+<div class="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-[#637588] dark:text-[#9db8a6]">
+<span class="material-symbols-outlined">expand_more</span>
+</div>
+</div>
+<span class="text-xs text-[#637588] dark:text-[#9db8a6]"> </span>
+</label>
+</div>
+<!-- Amount Input -->
+<div class="flex flex-col gap-2">
+<label class="text-sm font-medium leading-normal" for="amount">Amount</label>
+<div class="relative">
+<span class="absolute left-4 top-1/2 -translate-y-1/2 text-xl font-bold text-[#637588] dark:text-[#9db8a6]">$</span>
+<input class="flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-[#111813] dark:text-white focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-[#e0e2e0] dark:border-[#3c5344] bg-[#f6f8f6] dark:bg-[#111813] h-16 pl-10 pr-4 text-3xl font-bold leading-normal placeholder:text-[#a0aec0] dark:placeholder:text-[#4a5568] tabular-nums" id="amount" placeholder="0.00" type="number"/>
+</div>
+</div>
+<!-- Date & Note Row -->
+<div class="flex flex-col md:flex-row gap-4">
+<!-- Date Picker -->
+<label class="flex flex-col w-full md:w-1/3 gap-2">
+<span class="text-sm font-medium leading-normal">Date</span>
+<div class="relative">
+<input class="appearance-none flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-[#111813] dark:text-white focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-[#e0e2e0] dark:border-[#3c5344] bg-[#f6f8f6] dark:bg-[#111813] h-14 px-4 text-base font-normal leading-normal [color-scheme:light] dark:[color-scheme:dark]" type="date" value="2023-10-24"/>
+</div>
+</label>
+<!-- Note Input -->
+<label class="flex flex-col w-full md:w-2/3 gap-2">
+<span class="text-sm font-medium leading-normal">Note (Optional)</span>
+<input class="flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-[#111813] dark:text-white focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-[#e0e2e0] dark:border-[#3c5344] bg-[#f6f8f6] dark:bg-[#111813] h-14 px-4 text-base font-normal leading-normal placeholder:text-[#637588] dark:placeholder:text-[#587563]" placeholder="What's this for?" type="text"/>
+</label>
+</div>
+<!-- Action Buttons -->
+<div class="flex gap-3 mt-4 pt-4 border-t border-[#e0e2e0] dark:border-[#29382e]">
+<button class="flex-1 h-12 flex items-center justify-center rounded-lg bg-primary hover:bg-[#14cc52] text-[#111813] text-base font-bold transition-all shadow-lg shadow-primary/20">
+                        Save Transfer
+                    </button>
+<button class="h-12 px-6 flex items-center justify-center rounded-lg border border-transparent hover:border-[#e0e2e0] dark:hover:border-[#3c5344] text-[#637588] dark:text-[#9db8a6] hover:text-[#111813] dark:hover:text-white font-medium transition-all">
+                        Cancel
+                    </button>
+</div>
+</div>
+<!-- Recent Transfers Quick Access (Optional Context) -->
+<div class="mt-4">
+<h3 class="text-sm font-bold text-[#637588] dark:text-[#9db8a6] uppercase tracking-wider mb-3">Recent Transfers</h3>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+<!-- Recent Item 1 -->
+<div class="flex items-center gap-3 p-3 rounded-lg bg-white dark:bg-[#1c261f] border border-[#e0e2e0] dark:border-[#29382e] cursor-pointer hover:border-primary/50 transition-colors group">
+<div class="size-10 rounded-full bg-primary/10 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-[#111813] transition-colors">
+<span class="material-symbols-outlined">history</span>
+</div>
+<div class="flex flex-col">
+<span class="text-sm font-bold text-[#111813] dark:text-white">To Savings</span>
+<span class="text-xs text-[#637588] dark:text-[#9db8a6]">Last on Oct 20 • $200.00</span>
+</div>
+<div class="ml-auto">
+<span class="material-symbols-outlined text-[#637588] dark:text-[#9db8a6]">arrow_forward</span>
+</div>
+</div>
+<!-- Recent Item 2 -->
+<div class="flex items-center gap-3 p-3 rounded-lg bg-white dark:bg-[#1c261f] border border-[#e0e2e0] dark:border-[#29382e] cursor-pointer hover:border-primary/50 transition-colors group">
+<div class="size-10 rounded-full bg-primary/10 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-[#111813] transition-colors">
+<span class="material-symbols-outlined">history</span>
+</div>
+<div class="flex flex-col">
+<span class="text-sm font-bold text-[#111813] dark:text-white">To Investments</span>
+<span class="text-xs text-[#637588] dark:text-[#9db8a6]">Last on Oct 15 • $500.00</span>
+</div>
+<div class="ml-auto">
+<span class="material-symbols-outlined text-[#637588] dark:text-[#9db8a6]">arrow_forward</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+</body></html>

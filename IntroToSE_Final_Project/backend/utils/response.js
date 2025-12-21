@@ -12,7 +12,7 @@
  * @param {String} message - Thông báo thành công (optional)
  * @param {Number} statusCode - HTTP status code (default: 200)
  */
-const sendSuccess = (res, data = {}, message = 'Success', statusCode = 200) => {
+export const sendSuccess = (res, data = {}, message = 'Success', statusCode = 200) => {
   return res.status(statusCode).json({
     success: true,
     data,
@@ -27,7 +27,7 @@ const sendSuccess = (res, data = {}, message = 'Success', statusCode = 200) => {
  * @param {String} code - Error code để frontend xử lý
  * @param {Number} statusCode - HTTP status code (default: 400)
  */
-const sendError = (res, error = 'An error occurred', code = 'UNKNOWN_ERROR', statusCode = 400) => {
+export const sendError = (res, error = 'An error occurred', code = 'UNKNOWN_ERROR', statusCode = 400) => {
   return res.status(statusCode).json({
     success: false,
     error,
@@ -40,7 +40,7 @@ const sendError = (res, error = 'An error occurred', code = 'UNKNOWN_ERROR', sta
  * @param {Object} res - Express response object
  * @param {Object|Array} errors - Chi tiết các lỗi validation
  */
-const sendValidationError = (res, errors) => {
+export const sendValidationError = (res, errors) => {
   return res.status(400).json({
     success: false,
     error: 'Validation failed',
@@ -54,7 +54,7 @@ const sendValidationError = (res, errors) => {
  * @param {Object} res - Express response object
  * @param {String} message - Thông báo lỗi authentication
  */
-const sendUnauthorized = (res, message = 'Authentication required') => {
+export const sendUnauthorized = (res, message = 'Authentication required') => {
   return res.status(401).json({
     success: false,
     error: message,
@@ -67,7 +67,7 @@ const sendUnauthorized = (res, message = 'Authentication required') => {
  * @param {Object} res - Express response object
  * @param {String} message - Thông báo lỗi authorization
  */
-const sendForbidden = (res, message = 'Permission denied') => {
+export const sendForbidden = (res, message = 'Permission denied') => {
   return res.status(403).json({
     success: false,
     error: message,
@@ -80,7 +80,7 @@ const sendForbidden = (res, message = 'Permission denied') => {
  * @param {Object} res - Express response object
  * @param {String} resource - Tài nguyên không tìm thấy
  */
-const sendNotFound = (res, resource = 'Resource') => {
+export const sendNotFound = (res, resource = 'Resource') => {
   return res.status(404).json({
     success: false,
     error: `${resource} not found`,
@@ -93,7 +93,7 @@ const sendNotFound = (res, resource = 'Resource') => {
  * @param {Object} res - Express response object
  * @param {String} message - Thông báo lỗi server
  */
-const sendServerError = (res, message = 'Internal server error') => {
+export const sendServerError = (res, message = 'Internal server error') => {
   return res.status(500).json({
     success: false,
     error: message,
@@ -101,12 +101,12 @@ const sendServerError = (res, message = 'Internal server error') => {
   });
 };
 
-module.exports = {
+export default {
   sendSuccess,
   sendError,
   sendValidationError,
   sendUnauthorized,
   sendForbidden,
   sendNotFound,
-  sendServerError
-};
+  sendServerError,
+}

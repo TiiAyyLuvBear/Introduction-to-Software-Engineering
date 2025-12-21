@@ -1,4 +1,5 @@
 import express from 'express'
+import { authenticate } from '../middleware/auth.js'
 import {
   createWallet,
   getUserWallets,
@@ -9,8 +10,6 @@ import {
   checkWalletName,
   getWalletStats,
   inviteMember,
-  respondToInvitation,
-  getPendingInvitations,
   leaveWallet,
   transferOwnership,
   removeMemberFromWallet,
@@ -19,6 +18,9 @@ import {
 } from '../controllers/walletsController.js'
 
 const router = express.Router()
+
+// All wallet routes require auth
+router.use(authenticate)
 
 /**
  * Wallets Routes - API endpoints for Wallet Management Use Cases

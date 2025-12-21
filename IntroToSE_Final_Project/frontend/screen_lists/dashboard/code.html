@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Money Lover - Dashboard</title>
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200..800&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#19e65e",
+                        "background-light": "#f6f8f6",
+                        "background-dark": "#112116",
+                        "surface-dark": "#1c2a21", // Slightly lighter than background-dark for cards
+                        "surface-highlight": "#29382e", // Even lighter for hovers/borders
+                    },
+                    fontFamily: {
+                        "display": ["Manrope", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "2xl": "1rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        /* Custom scrollbar for Webkit */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #112116; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #29382e; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #3a4d40; 
+        }
+        
+        .material-symbols-outlined {
+            font-variation-settings:
+            'FILL' 0,
+            'wght' 400,
+            'GRAD' 0,
+            'opsz' 24;
+            vertical-align: middle;
+        }
+        
+        /* Active nav item icon fill */
+        .nav-active .material-symbols-outlined {
+            font-variation-settings: 'FILL' 1;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-white font-display overflow-hidden h-screen flex">
+<!-- Side Navigation -->
+<aside class="hidden md:flex flex-col w-64 h-full bg-background-dark border-r border-surface-highlight flex-shrink-0">
+<div class="p-6 flex items-center gap-3">
+<div class="size-10 rounded-full bg-surface-highlight flex items-center justify-center bg-cover bg-center" data-alt="Abstract green finance app logo" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuDdd81HOXSKlUWNXLzxvdpMXkEK64pHaLg1ASlYqHXi4gsij3GHv7Y1TJlkEUHYYDLxNdwcRuLivo0DaEORcvOmXa8gTPGe_jXtMhCEaJjQ8Rb9piS3iI6JSxyGmyjgf1-c2zJTOQOQplx79Fo4dDomRM-9k81lkEmWoSnpwqQpiQtuxRkJHOkod5_rn-xbQzWNi22PBSTgKN_-HnR6KxEpYilmCOvocB4vWbzrtbyaQuGTsTJ_W1iPtOyEaq1OVhh2Zg8RMebGYwh5");'>
+</div>
+<div class="flex flex-col">
+<h1 class="text-white text-base font-bold leading-normal">Money Lover</h1>
+<p class="text-gray-400 text-xs font-medium">Manage your finances</p>
+</div>
+</div>
+<nav class="flex flex-col gap-2 px-4 mt-2">
+<a class="nav-active flex items-center gap-3 px-3 py-3 rounded-xl bg-primary/10 text-primary transition-colors" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="text-sm font-bold">Dashboard</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-3 rounded-xl text-gray-400 hover:text-white hover:bg-surface-highlight transition-colors" href="#">
+<span class="material-symbols-outlined">receipt_long</span>
+<span class="text-sm font-medium">Transactions</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-3 rounded-xl text-gray-400 hover:text-white hover:bg-surface-highlight transition-colors" href="#">
+<span class="material-symbols-outlined">savings</span>
+<span class="text-sm font-medium">Budget</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-3 rounded-xl text-gray-400 hover:text-white hover:bg-surface-highlight transition-colors" href="#">
+<span class="material-symbols-outlined">pie_chart</span>
+<span class="text-sm font-medium">Reports</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-3 rounded-xl text-gray-400 hover:text-white hover:bg-surface-highlight transition-colors" href="#">
+<span class="material-symbols-outlined">track_changes</span>
+<span class="text-sm font-medium">Goals</span>
+</a>
+</nav>
+<div class="mt-auto p-4 mb-4">
+<div class="bg-surface-highlight rounded-2xl p-4 flex flex-col gap-3">
+<div class="flex items-center gap-2 text-white">
+<span class="material-symbols-outlined text-primary">diamond</span>
+<span class="text-sm font-bold">Go Premium</span>
+</div>
+<p class="text-xs text-gray-400 leading-relaxed">Unlock unlimited budgets and sync across devices.</p>
+<button class="w-full py-2 bg-primary text-background-dark text-xs font-bold rounded-lg hover:brightness-110 transition-all">
+                     Upgrade Now
+                 </button>
+</div>
+</div>
+</aside>
+<!-- Main Content Area -->
+<main class="flex-1 flex flex-col h-full overflow-hidden relative">
+<!-- Top Navigation -->
+<header class="flex items-center justify-between border-b border-surface-highlight px-6 py-4 bg-background-dark sticky top-0 z-20">
+<div class="flex items-center gap-4">
+<button class="md:hidden text-gray-400">
+<span class="material-symbols-outlined">menu</span>
+</button>
+<h2 class="text-white text-xl font-bold tracking-tight">Dashboard</h2>
+</div>
+<div class="flex items-center gap-4">
+<div class="flex gap-2">
+<button class="size-10 flex items-center justify-center rounded-full bg-surface-highlight hover:bg-[#3a4d40] text-gray-300 transition-colors">
+<span class="material-symbols-outlined" style="font-size: 20px;">visibility_off</span>
+</button>
+<button class="size-10 flex items-center justify-center rounded-full bg-surface-highlight hover:bg-[#3a4d40] text-gray-300 transition-colors relative">
+<span class="material-symbols-outlined" style="font-size: 20px;">notifications</span>
+<span class="absolute top-2.5 right-2.5 size-2 bg-red-500 rounded-full border border-surface-highlight"></span>
+</button>
+</div>
+<div class="w-px h-8 bg-surface-highlight mx-2"></div>
+<button class="flex items-center gap-3 group">
+<div class="size-10 rounded-full bg-cover bg-center border-2 border-transparent group-hover:border-primary transition-all" data-alt="User profile picture of a woman" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuDBbVy7474LaK2UYOV1a2R9ROz5aRzOrlgx0fB9-DrSoH4N08Dfm1EQ0kRMFK8U-UMoK5YnAu4eS-xia0TDT2_-yU_UWMroymq9z0B4gCN__KNf8RgessHVWub1CtE5eW6wgIYN-46zm7sxEwwEKU0Twgkb2UvcMNen4D2UdLGxtx5ZYADiRVRMJjkmfN2NiGdCzkrDbLq-jHFVkyEFR7HZu2v4Wk4WtpSSihXXXK3U90uILgIMCXBAQs_YZva1L9iSl4uL1ZXFJpX6");'>
+</div>
+</button>
+</div>
+</header>
+<!-- Scrollable Dashboard Content -->
+<div class="flex-1 overflow-y-auto p-4 md:p-8 space-y-8">
+<!-- Welcome Header Mobile Only (Optional) -->
+<div class="md:hidden">
+<p class="text-gray-400 text-sm">Welcome back,</p>
+<h3 class="text-2xl font-bold text-white">Jessica Doe</h3>
+</div>
+<!-- Stats Overview -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+<!-- Total Balance -->
+<div class="bg-surface-dark rounded-2xl p-6 border border-surface-highlight flex flex-col gap-4 relative overflow-hidden group">
+<div class="absolute right-0 top-0 w-32 h-32 bg-primary/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 group-hover:bg-primary/10 transition-all"></div>
+<div class="flex items-start justify-between z-10">
+<div>
+<p class="text-gray-400 text-sm font-medium mb-1">Total Balance</p>
+<h3 class="text-3xl font-bold text-white tracking-tight">$14,250.00</h3>
+</div>
+<div class="size-10 rounded-full bg-primary/20 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined">account_balance_wallet</span>
+</div>
+</div>
+<div class="flex items-center gap-2 z-10 mt-auto">
+<span class="bg-primary/20 text-primary text-xs font-bold px-2 py-1 rounded-md flex items-center gap-1">
+<span class="material-symbols-outlined" style="font-size: 14px;">trending_up</span>
+                            12%
+                        </span>
+<span class="text-gray-500 text-xs">vs last month</span>
+</div>
+</div>
+<!-- Monthly Income -->
+<div class="bg-surface-dark rounded-2xl p-6 border border-surface-highlight flex flex-col gap-4">
+<div class="flex items-start justify-between">
+<div>
+<p class="text-gray-400 text-sm font-medium mb-1">Monthly Income</p>
+<h3 class="text-3xl font-bold text-white tracking-tight">$5,200.00</h3>
+</div>
+<div class="size-10 rounded-full bg-surface-highlight flex items-center justify-center text-white">
+<span class="material-symbols-outlined">arrow_downward</span> <!-- Icon conceptually implies money coming in to pocket, or use generic arrow -->
+</div>
+</div>
+<div class="flex items-center gap-2 mt-auto">
+<span class="text-primary text-sm font-medium">+5%</span>
+<span class="text-gray-500 text-xs">than last month</span>
+</div>
+</div>
+<!-- Monthly Expense -->
+<div class="bg-surface-dark rounded-2xl p-6 border border-surface-highlight flex flex-col gap-4">
+<div class="flex items-start justify-between">
+<div>
+<p class="text-gray-400 text-sm font-medium mb-1">Monthly Expense</p>
+<h3 class="text-3xl font-bold text-white tracking-tight">$3,150.00</h3>
+</div>
+<div class="size-10 rounded-full bg-surface-highlight flex items-center justify-center text-white">
+<span class="material-symbols-outlined">arrow_upward</span>
+</div>
+</div>
+<div class="flex items-center gap-2 mt-auto">
+<span class="text-[#fa5538] text-sm font-medium">-2%</span>
+<span class="text-gray-500 text-xs">than last month</span>
+</div>
+</div>
+</div>
+<!-- Main Chart + Side Panel -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+<!-- Chart Area -->
+<div class="lg:col-span-2 bg-surface-dark rounded-2xl p-6 border border-surface-highlight flex flex-col">
+<div class="flex items-center justify-between mb-6">
+<div>
+<h3 class="text-white text-lg font-bold">Cashflow</h3>
+<p class="text-gray-400 text-sm">Income vs Expenses Analysis</p>
+</div>
+<div class="flex bg-surface-highlight rounded-lg p-1">
+<button class="px-3 py-1 text-xs font-bold text-background-dark bg-primary rounded shadow-sm">Month</button>
+<button class="px-3 py-1 text-xs font-bold text-gray-400 hover:text-white">Year</button>
+</div>
+</div>
+<div class="flex items-end gap-4 mb-4">
+<div>
+<p class="text-gray-400 text-xs mb-1">Net Income</p>
+<p class="text-2xl font-bold text-white">$2,050</p>
+</div>
+<div class="h-8 w-px bg-surface-highlight"></div>
+<div>
+<p class="text-gray-400 text-xs mb-1">Growth</p>
+<p class="text-primary text-lg font-bold flex items-center">
+                                +15% <span class="material-symbols-outlined ml-1 text-sm">trending_up</span>
+</p>
+</div>
+</div>
+<!-- SVG Chart -->
+<div class="flex-1 min-h-[250px] w-full relative">
+<svg class="w-full h-full overflow-visible" preserveaspectratio="none" viewbox="0 0 478 150" xmlns="http://www.w3.org/2000/svg">
+<!-- Gradient Definition -->
+<defs>
+<lineargradient id="chartGradient" x1="0" x2="0" y1="0" y2="1">
+<stop offset="0%" stop-color="#19e65e" stop-opacity="0.2"></stop>
+<stop offset="100%" stop-color="#19e65e" stop-opacity="0"></stop>
+</lineargradient>
+</defs>
+<!-- Area Fill -->
+<path d="M0 109C18.1538 109 18.1538 21 36.3077 21C54.4615 21 54.4615 41 72.6154 41C90.7692 41 90.7692 93 108.923 93C127.077 93 127.077 33 145.231 33C163.385 33 163.385 101 181.538 101C199.692 101 199.692 61 217.846 61C236 61 236 45 254.154 45C272.308 45 272.308 121 290.462 121C308.615 121 308.615 149 326.769 149C344.923 149 344.923 1 363.077 1C381.231 1 381.231 81 399.385 81C417.538 81 417.538 129 435.692 129C453.846 129 453.846 25 472 25V150H0V109Z" fill="url(#chartGradient)"></path>
+<!-- Line Stroke -->
+<path d="M0 109C18.1538 109 18.1538 21 36.3077 21C54.4615 21 54.4615 41 72.6154 41C90.7692 41 90.7692 93 108.923 93C127.077 93 127.077 33 145.231 33C163.385 33 163.385 101 181.538 101C199.692 101 199.692 61 217.846 61C236 61 236 45 254.154 45C272.308 45 272.308 121 290.462 121C308.615 121 308.615 149 326.769 149C344.923 149 344.923 1 363.077 1C381.231 1 381.231 81 399.385 81C417.538 81 417.538 129 435.692 129C453.846 129 453.846 25 472 25" fill="none" stroke="#19e65e" stroke-linecap="round" stroke-width="3"></path>
+</svg>
+</div>
+<div class="flex justify-between mt-4 px-2">
+<p class="text-gray-500 text-xs font-medium">Week 1</p>
+<p class="text-gray-500 text-xs font-medium">Week 2</p>
+<p class="text-gray-500 text-xs font-medium">Week 3</p>
+<p class="text-gray-500 text-xs font-medium">Week 4</p>
+</div>
+</div>
+<!-- Right Side: Budgets & Quick Actions -->
+<div class="lg:col-span-1 flex flex-col gap-6">
+<!-- Budgets -->
+<div class="bg-surface-dark rounded-2xl p-6 border border-surface-highlight">
+<div class="flex items-center justify-between mb-5">
+<h3 class="text-white text-lg font-bold">Budgets</h3>
+<button class="text-primary text-sm font-bold">See All</button>
+</div>
+<div class="flex flex-col gap-5">
+<!-- Budget Item 1 -->
+<div class="flex flex-col gap-2">
+<div class="flex justify-between items-center text-sm">
+<div class="flex items-center gap-2">
+<div class="size-2 rounded-full bg-orange-400"></div>
+<span class="text-white font-medium">Food &amp; Dining</span>
+</div>
+<span class="text-gray-400">$450 / $600</span>
+</div>
+<div class="h-2 w-full bg-surface-highlight rounded-full overflow-hidden">
+<div class="h-full bg-orange-400 w-3/4 rounded-full"></div>
+</div>
+</div>
+<!-- Budget Item 2 -->
+<div class="flex flex-col gap-2">
+<div class="flex justify-between items-center text-sm">
+<div class="flex items-center gap-2">
+<div class="size-2 rounded-full bg-blue-400"></div>
+<span class="text-white font-medium">Transport</span>
+</div>
+<span class="text-gray-400">$120 / $200</span>
+</div>
+<div class="h-2 w-full bg-surface-highlight rounded-full overflow-hidden">
+<div class="h-full bg-blue-400 w-3/5 rounded-full"></div>
+</div>
+</div>
+<!-- Budget Item 3 -->
+<div class="flex flex-col gap-2">
+<div class="flex justify-between items-center text-sm">
+<div class="flex items-center gap-2">
+<div class="size-2 rounded-full bg-primary"></div>
+<span class="text-white font-medium">Entertainment</span>
+</div>
+<span class="text-gray-400">$30 / $150</span>
+</div>
+<div class="h-2 w-full bg-surface-highlight rounded-full overflow-hidden">
+<div class="h-full bg-primary w-[20%] rounded-full"></div>
+</div>
+</div>
+</div>
+<button class="w-full mt-6 py-2.5 rounded-xl border border-dashed border-gray-600 text-gray-400 hover:text-white hover:border-gray-400 hover:bg-surface-highlight transition-all flex items-center justify-center gap-2 text-sm font-bold">
+<span class="material-symbols-outlined">add</span>
+                            Create Budget
+                        </button>
+</div>
+<!-- Wallets / Cards -->
+<div class="bg-gradient-to-br from-primary to-green-600 rounded-2xl p-6 relative overflow-hidden text-background-dark">
+<div class="absolute right-[-20px] top-[-20px] size-32 rounded-full border-[10px] border-white/10"></div>
+<div class="relative z-10 flex flex-col h-full justify-between gap-6">
+<div class="flex justify-between items-start">
+<span class="material-symbols-outlined text-3xl">contactless</span>
+<span class="font-bold text-lg opacity-80">VISA</span>
+</div>
+<div>
+<p class="font-mono text-xl tracking-widest mb-1">**** **** **** 4289</p>
+<div class="flex justify-between items-end">
+<div>
+<p class="text-xs uppercase font-bold opacity-70 mb-1">Card Holder</p>
+<p class="font-bold text-sm">Jessica Doe</p>
+</div>
+<div>
+<p class="text-xs uppercase font-bold opacity-70 mb-1">Expires</p>
+<p class="font-bold text-sm">12/26</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Recent Transactions Section -->
+<div class="pb-6">
+<div class="flex items-center justify-between mb-4">
+<h3 class="text-white text-lg font-bold">Recent Transactions</h3>
+<div class="flex gap-2">
+<button class="size-8 rounded-lg bg-surface-highlight flex items-center justify-center text-gray-400 hover:text-white">
+<span class="material-symbols-outlined" style="font-size: 18px;">filter_list</span>
+</button>
+<button class="size-8 rounded-lg bg-surface-highlight flex items-center justify-center text-gray-400 hover:text-white">
+<span class="material-symbols-outlined" style="font-size: 18px;">download</span>
+</button>
+</div>
+</div>
+<div class="bg-surface-dark rounded-2xl overflow-hidden border border-surface-highlight">
+<!-- Table Header -->
+<div class="grid grid-cols-12 gap-4 p-4 border-b border-surface-highlight bg-background-dark/30 text-xs font-bold text-gray-400 uppercase tracking-wider">
+<div class="col-span-6 md:col-span-5">Transaction</div>
+<div class="hidden md:block md:col-span-3">Category</div>
+<div class="hidden md:block md:col-span-2">Date</div>
+<div class="col-span-6 md:col-span-2 text-right">Amount</div>
+</div>
+<!-- Row 1 -->
+<div class="grid grid-cols-12 gap-4 p-4 items-center hover:bg-surface-highlight/50 transition-colors border-b border-surface-highlight last:border-0">
+<div class="col-span-6 md:col-span-5 flex items-center gap-4">
+<div class="size-10 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-500 shrink-0">
+<span class="material-symbols-outlined">shopping_cart</span>
+</div>
+<div class="min-w-0">
+<p class="text-white font-bold text-sm truncate">Whole Foods Market</p>
+<p class="text-gray-500 text-xs truncate md:hidden">Food &amp; Dining • Today</p>
+</div>
+</div>
+<div class="hidden md:block md:col-span-3">
+<span class="px-2.5 py-1 rounded-full bg-surface-highlight text-gray-300 text-xs font-medium">Food &amp; Dining</span>
+</div>
+<div class="hidden md:block md:col-span-2 text-sm text-gray-400">
+                            Today, 10:42 AM
+                        </div>
+<div class="col-span-6 md:col-span-2 text-right">
+<p class="text-white font-bold text-sm">-$125.00</p>
+</div>
+</div>
+<!-- Row 2 -->
+<div class="grid grid-cols-12 gap-4 p-4 items-center hover:bg-surface-highlight/50 transition-colors border-b border-surface-highlight last:border-0">
+<div class="col-span-6 md:col-span-5 flex items-center gap-4">
+<div class="size-10 rounded-full bg-red-500/10 flex items-center justify-center text-red-500 shrink-0">
+<span class="material-symbols-outlined">movie</span>
+</div>
+<div class="min-w-0">
+<p class="text-white font-bold text-sm truncate">Netflix Subscription</p>
+<p class="text-gray-500 text-xs truncate md:hidden">Entertainment • Yesterday</p>
+</div>
+</div>
+<div class="hidden md:block md:col-span-3">
+<span class="px-2.5 py-1 rounded-full bg-surface-highlight text-gray-300 text-xs font-medium">Entertainment</span>
+</div>
+<div class="hidden md:block md:col-span-2 text-sm text-gray-400">
+                            Yesterday
+                        </div>
+<div class="col-span-6 md:col-span-2 text-right">
+<p class="text-white font-bold text-sm">-$15.99</p>
+</div>
+</div>
+<!-- Row 3 -->
+<div class="grid grid-cols-12 gap-4 p-4 items-center hover:bg-surface-highlight/50 transition-colors border-b border-surface-highlight last:border-0">
+<div class="col-span-6 md:col-span-5 flex items-center gap-4">
+<div class="size-10 rounded-full bg-primary/10 flex items-center justify-center text-primary shrink-0">
+<span class="material-symbols-outlined">payments</span>
+</div>
+<div class="min-w-0">
+<p class="text-white font-bold text-sm truncate">Salary Deposit</p>
+<p class="text-gray-500 text-xs truncate md:hidden">Income • 2 days ago</p>
+</div>
+</div>
+<div class="hidden md:block md:col-span-3">
+<span class="px-2.5 py-1 rounded-full bg-surface-highlight text-gray-300 text-xs font-medium">Income</span>
+</div>
+<div class="hidden md:block md:col-span-2 text-sm text-gray-400">
+                            2 days ago
+                        </div>
+<div class="col-span-6 md:col-span-2 text-right">
+<p class="text-primary font-bold text-sm">+$2,500.00</p>
+</div>
+</div>
+<!-- Row 4 -->
+<div class="grid grid-cols-12 gap-4 p-4 items-center hover:bg-surface-highlight/50 transition-colors border-b border-surface-highlight last:border-0">
+<div class="col-span-6 md:col-span-5 flex items-center gap-4">
+<div class="size-10 rounded-full bg-purple-500/10 flex items-center justify-center text-purple-500 shrink-0">
+<span class="material-symbols-outlined">fitness_center</span>
+</div>
+<div class="min-w-0">
+<p class="text-white font-bold text-sm truncate">Gym Membership</p>
+<p class="text-gray-500 text-xs truncate md:hidden">Health • 3 days ago</p>
+</div>
+</div>
+<div class="hidden md:block md:col-span-3">
+<span class="px-2.5 py-1 rounded-full bg-surface-highlight text-gray-300 text-xs font-medium">Health</span>
+</div>
+<div class="hidden md:block md:col-span-2 text-sm text-gray-400">
+                            3 days ago
+                        </div>
+<div class="col-span-6 md:col-span-2 text-right">
+<p class="text-white font-bold text-sm">-$45.00</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Footer (Simple) -->
+<div class="flex justify-center pb-8 pt-4">
+<p class="text-gray-600 text-xs">© 2023 Money Lover App. All rights reserved.</p>
+</div>
+</div>
+<!-- Floating Action Button (Mobile) -->
+<button class="md:hidden fixed bottom-6 right-6 size-14 bg-primary rounded-full shadow-lg shadow-primary/30 flex items-center justify-center text-background-dark z-50">
+<span class="material-symbols-outlined">add</span>
+</button>
+</main>
+</body></html>

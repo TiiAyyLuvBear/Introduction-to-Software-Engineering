@@ -1,6 +1,24 @@
 import Wallet from '../models/Wallet.js'
 import Invitation from '../models/Invitation.js'
 import User from '../models/User.js'
+import Transaction from '../models/Transaction.js'
+
+function canViewWallet(wallet, userId) {
+  if (!wallet || !userId) return false
+  const uid = userId.toString()
+  if (wallet.userId?.toString() === uid) return true
+  if (wallet.ownerId?.toString() === uid) return true
+  if (Array.isArray(wallet.members) && wallet.members.some(m => m.userId?.toString() === uid)) return true
+  return false
+}
+
+function isWalletOwner(wallet, userId) {
+  if (!wallet || !userId) return false
+  const uid = userId.toString()
+  if (wallet.ownerId?.toString() === uid) return true
+  if (wallet.userId?.toString() === uid) return true
+  return false
+}
 
 /**
  * Wallets Controller - Handle Wallet Management Use Cases
@@ -31,7 +49,7 @@ import User from '../models/User.js'
 // @access  Private (requires authentication)
 export const createWallet = async (req, res) => {
   try {
-    const { name, type, initialBalance, currency, description } = req.body
+    const { name, type, initialBalance, currency, description, isShared } = req.body
     const userId = req.user?.id // From auth middleware
 
     // Step 7: System validates wallet information
@@ -63,7 +81,8 @@ export const createWallet = async (req, res) => {
         currentBalance: parseFloat(initialBalance || 0),
         currency: currency || 'USD',
         description: description?.trim(),
-        userId
+        userId,
+        isShared: Boolean(isShared)
       })
 
       const endTime = Date.now()
@@ -145,16 +164,19 @@ export const getWallet = async (req, res) => {
     const { id } = req.params
     const userId = req.user?.id
 
-    const wallet = await Wallet.findOne({ 
-      _id: id, 
-      userId,
-      status: 'active'
-    })
+    const wallet = await Wallet.findOne({ _id: id, status: 'active' })
 
     if (!wallet) {
       return res.status(404).json({
         success: false,
         error: 'Wallet not found'
+      })
+    }
+
+    if (!canViewWallet(wallet, userId)) {
+      return res.status(403).json({
+        success: false,
+        error: 'You do not have permission to view this wallet'
       })
     }
 
@@ -182,15 +204,19 @@ export const updateWallet = async (req, res) => {
     const { name, type, currency, description, status } = req.body
     const userId = req.user?.id
 
-    const wallet = await Wallet.findOne({ 
-      _id: id, 
-      userId 
-    })
+    const wallet = await Wallet.findOne({ _id: id })
 
     if (!wallet) {
       return res.status(404).json({
         success: false,
         error: 'Wallet not found'
+      })
+    }
+
+    if (!isWalletOwner(wallet, userId)) {
+      return res.status(403).json({
+        success: false,
+        error: 'Only wallet owner can update wallet'
       })
     }
 
@@ -204,6 +230,15 @@ export const updateWallet = async (req, res) => {
     }
 
     if (currency && ['USD', 'VND', 'EUR', 'JPY'].includes(currency)) {
+      // Only allow currency change if wallet has no transactions
+      const hasTx = await Transaction.exists({ walletId: wallet._id })
+      if (hasTx) {
+        return res.status(400).json({
+          success: false,
+          error: 'Cannot change currency after transactions exist',
+          code: 'CURRENCY_CHANGE_NOT_ALLOWED'
+        })
+      }
       wallet.currency = currency
     }
 
@@ -250,16 +285,19 @@ export const deleteWallet = async (req, res) => {
     const { id } = req.params
     const userId = req.user?.id
 
-    const wallet = await Wallet.findOne({ 
-      _id: id, 
-      userId,
-      status: 'active' 
-    })
+    const wallet = await Wallet.findOne({ _id: id, status: 'active' })
 
     if (!wallet) {
       return res.status(404).json({
         success: false,
         error: 'Wallet not found'
+      })
+    }
+
+    if (!isWalletOwner(wallet, userId)) {
+      return res.status(403).json({
+        success: false,
+        error: 'Only wallet owner can delete wallet'
       })
     }
 
@@ -530,7 +568,8 @@ export const inviteMember = async (req, res) => {
           inviteeName: invitee.name,
           status: invitation.status,
           invitedAt: invitation.invitedAt,
-          expiresAt: invitation.expiresAt
+          expiresAt: invitation.expiresAt,
+          token: invitation.invitationToken
         }
       },
       processingTime: `${endTime - startTime}ms`,

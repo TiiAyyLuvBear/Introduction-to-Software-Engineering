@@ -1,11 +1,13 @@
 import express from 'express'
-import { getTransactions, createTransaction, deleteTransaction, updateTransaction } from '../controllers/transactionsController.js'
+import { getTransactions, createTransaction, deleteTransaction, updateTransaction, transferMoney } from '../controllers/transactionsController.js'
+import { authenticate } from '../middleware/auth.js'
 
 const router = express.Router()
 
-router.get('/', getTransactions)
-router.post('/', createTransaction)
-router.put('/:id', updateTransaction)
-router.delete('/:id', deleteTransaction)
+router.get('/', authenticate, getTransactions)
+router.post('/', authenticate, createTransaction)
+router.post('/transfer', authenticate, transferMoney)
+router.put('/:id', authenticate, updateTransaction)
+router.delete('/:id', authenticate, deleteTransaction)
 
 export default router

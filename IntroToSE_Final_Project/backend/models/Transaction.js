@@ -15,7 +15,13 @@ import mongoose from 'mongoose'
 const TransactionSchema = new mongoose.Schema({
   // ID của user sở hữu transaction này
   // Dùng để filter: mỗi user chỉ thấy transactions của mình
-  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: false },
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+
+  // Ví thực hiện giao dịch
+  walletId: { type: mongoose.Schema.Types.ObjectId, ref: 'Wallet', required: true, index: true },
+
+  // Danh mục (reference)
+  categoryId: { type: mongoose.Schema.Types.ObjectId, ref: 'Category', required: false, index: true },
   
   // Số tiền giao dịch (luôn là số dương, type quyết định +/-)
   amount: { type: Number, required: true },
@@ -37,6 +43,9 @@ const TransactionSchema = new mongoose.Schema({
   // Ghi chú thêm về giao dịch (tùy chọn)
   note: { type: String }
 }, { timestamps: true })
+
+TransactionSchema.index({ userId: 1, walletId: 1, date: -1 })
+TransactionSchema.index({ userId: 1, categoryId: 1, date: -1 })
 
 /**
  * Export model Transaction

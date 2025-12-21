@@ -14,9 +14,24 @@
  * app.use('/api/users', usersRouter)
  */
 import express from 'express'
-import { getUsers, getUser, createUser, updateUser, deleteUser } from '../controllers/usersController.js'
+import {
+	getUsers,
+	getUser,
+	createUser,
+	updateUser,
+	deleteUser,
+	syncUser,
+	getMe,
+	updateMe,
+} from '../controllers/usersController.js'
+import { authenticate } from '../middleware/auth.js'
 
 const router = express.Router()
+
+// ===== Authenticated profile endpoints (Task M1-04) =====
+router.post('/sync-user', authenticate, syncUser)
+router.get('/me', authenticate, getMe)
+router.put('/me', authenticate, updateMe)
 
 // GET /api/users - Lấy danh sách users
 router.get('/', getUsers)

@@ -8,13 +8,13 @@
  * app.use(errorHandler);
  */
 
-const { sendServerError } = require('../utils/response');
+import { sendServerError } from '../utils/response.js'
 
 /**
  * Error handler middleware
  * Express tự động detect đây là error handler bằng 4 parameters
  */
-const errorHandler = (err, req, res, next) => {
+export const errorHandler = (err, req, res, _next) => {
   // Log error details cho debugging
   console.error('Error occurred:', {
     message: err.message,
@@ -83,19 +83,17 @@ const errorHandler = (err, req, res, next) => {
   }
 
   // Default server error
-  sendServerError(res, process.env.NODE_ENV === 'development' ? err.message : 'Internal server error');
+  sendServerError(res, process.env.NODE_ENV === 'development' ? err.message : 'Internal server error')
 };
 
 /**
  * Not found handler
  * Xử lý khi client request đến route không tồn tại
  */
-const notFoundHandler = (req, res) => {
+export const notFoundHandler = (req, res) => {
   res.status(404).json({
     success: false,
     error: `Route ${req.method} ${req.path} not found`,
     code: 'ROUTE_NOT_FOUND'
   });
 };
-
-module.exports = { errorHandler, notFoundHandler };

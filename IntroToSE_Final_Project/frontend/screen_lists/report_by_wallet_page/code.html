@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Report by Wallet - Money Lover</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#19e65e",
+                        "background-light": "#f6f8f6",
+                        "background-dark": "#112116",
+                        "card-dark": "#29382e",
+                        "text-muted": "#9db8a6",
+                    },
+                    fontFamily: {
+                        "display": ["Manrope", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-[#111813] dark:text-white font-display overflow-hidden">
+<div class="flex h-screen w-full">
+<!-- Sidebar -->
+<aside class="hidden lg:flex flex-col w-64 border-r border-[#29382e] bg-background-dark flex-shrink-0">
+<div class="p-6 flex flex-col gap-8">
+<!-- User Profile -->
+<div class="flex items-center gap-3">
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-12 border-2 border-primary/20" data-alt="User profile picture with abstract green gradient pattern" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuDosLrQMuFkN6roLGpW-zJaOAK5RGa2nyVB1b1H0VYgV3DdIfCr9rqgqtdwSTh2-pqHhkKARyC56rlpZfR954_jf2CtLkTJRLNpwzz6IPZWNeT5emXMa5Da2Sqpeu4i8iuYUb1Ap9_KeWxBaBpInGy3anyVoos4PPZl9UdWD_YzLeBJbetmG1DEngKwTk2Yv9dHqNdTrhypfA16fEDi_WSZTrrFgC-SzLl1rNP9oa1qbVwK1NAaV02Jir3NbDXfE2FROSDb9SgjC0ta");'>
+</div>
+<div class="flex flex-col">
+<h1 class="text-white text-base font-bold leading-tight">Money Lover</h1>
+<p class="text-text-muted text-xs font-medium">Premium Plan</p>
+</div>
+</div>
+<!-- Navigation -->
+<nav class="flex flex-col gap-2">
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg text-text-muted hover:bg-[#29382e] hover:text-white transition-colors group" href="#">
+<span class="material-symbols-outlined group-hover:text-primary transition-colors">receipt_long</span>
+<span class="text-sm font-medium">Transactions</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg text-text-muted hover:bg-[#29382e] hover:text-white transition-colors group" href="#">
+<span class="material-symbols-outlined group-hover:text-primary transition-colors">account_balance_wallet</span>
+<span class="text-sm font-medium">Budget</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg bg-[#29382e] text-primary" href="#">
+<span class="material-symbols-outlined text-primary fill-1">bar_chart</span>
+<span class="text-sm font-bold">Reports</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg text-text-muted hover:bg-[#29382e] hover:text-white transition-colors group" href="#">
+<span class="material-symbols-outlined group-hover:text-primary transition-colors">settings</span>
+<span class="text-sm font-medium">Settings</span>
+</a>
+</nav>
+</div>
+<div class="mt-auto p-6">
+<button class="flex w-full items-center justify-center gap-2 rounded-lg bg-[#1F2B23] p-3 text-sm font-medium text-text-muted hover:text-white transition-colors">
+<span class="material-symbols-outlined text-[20px]">logout</span>
+                    Sign Out
+                </button>
+</div>
+</aside>
+<!-- Main Content -->
+<main class="flex-1 flex flex-col h-full overflow-y-auto bg-background-light dark:bg-background-dark relative">
+<div class="w-full max-w-[1200px] mx-auto p-4 md:p-8 flex flex-col gap-6">
+<!-- Page Heading -->
+<div class="flex flex-col md:flex-row md:items-end justify-between gap-4">
+<div class="flex flex-col gap-1">
+<h2 class="text-3xl md:text-4xl font-black tracking-tight text-[#111813] dark:text-white">Report by Wallet</h2>
+<p class="text-text-muted text-base">Financial summary by funding source</p>
+</div>
+<div class="flex gap-3">
+<button class="flex h-10 items-center justify-center gap-2 rounded-lg border border-[#29382e] px-4 text-sm font-bold text-text-muted hover:bg-[#29382e] hover:text-white transition-colors">
+<span class="material-symbols-outlined text-[18px]">filter_list</span>
+                            Filter
+                        </button>
+<button class="flex h-10 cursor-pointer items-center justify-center gap-2 rounded-lg bg-primary px-5 text-[#112116] text-sm font-bold shadow-lg shadow-primary/20 hover:bg-primary/90 transition-colors">
+<span class="material-symbols-outlined text-[18px]">add</span>
+                            Manage Wallets
+                        </button>
+</div>
+</div>
+<!-- Calendar Picker Strip -->
+<div class="w-full bg-white dark:bg-card-dark rounded-xl p-4 shadow-sm border border-black/5 dark:border-white/5">
+<div class="flex items-center justify-between mb-4">
+<button class="p-2 hover:bg-white/10 rounded-full transition-colors text-text-muted hover:text-white">
+<span class="material-symbols-outlined">chevron_left</span>
+</button>
+<p class="text-lg font-bold">October 2023</p>
+<button class="p-2 hover:bg-white/10 rounded-full transition-colors text-text-muted hover:text-white">
+<span class="material-symbols-outlined">chevron_right</span>
+</button>
+</div>
+<div class="grid grid-cols-7 gap-1 md:gap-2">
+<!-- Days Header -->
+<div class="text-center text-xs font-bold text-text-muted pb-2">S</div>
+<div class="text-center text-xs font-bold text-text-muted pb-2">M</div>
+<div class="text-center text-xs font-bold text-text-muted pb-2">T</div>
+<div class="text-center text-xs font-bold text-text-muted pb-2">W</div>
+<div class="text-center text-xs font-bold text-text-muted pb-2">T</div>
+<div class="text-center text-xs font-bold text-text-muted pb-2">F</div>
+<div class="text-center text-xs font-bold text-text-muted pb-2">S</div>
+<!-- Days -->
+<button class="h-10 w-full rounded-full text-sm font-medium text-text-muted hover:bg-white/5 opacity-50">28</button>
+<button class="h-10 w-full rounded-full text-sm font-medium text-text-muted hover:bg-white/5 opacity-50">29</button>
+<button class="h-10 w-full rounded-full text-sm font-medium text-text-muted hover:bg-white/5 opacity-50">30</button>
+<button class="h-10 w-full rounded-full text-sm font-medium hover:bg-white/10 dark:text-white">1</button>
+<button class="h-10 w-full rounded-full text-sm font-medium hover:bg-white/10 dark:text-white">2</button>
+<button class="h-10 w-full rounded-full text-sm font-medium hover:bg-white/10 dark:text-white">3</button>
+<button class="h-10 w-full rounded-full text-sm font-medium hover:bg-white/10 dark:text-white">4</button>
+<!-- Selected Range visual approximation -->
+<div class="col-span-7 grid grid-cols-7 gap-1 md:gap-2 mt-1">
+<button class="h-10 w-full rounded-full bg-primary text-[#112116] text-sm font-bold shadow-md shadow-primary/30">5</button>
+<button class="h-10 w-full rounded-full bg-[#1F2B23] text-white text-sm font-medium border border-primary/30">6</button>
+<button class="h-10 w-full rounded-full bg-[#1F2B23] text-white text-sm font-medium border border-primary/30">7</button>
+<button class="h-10 w-full rounded-full bg-[#1F2B23] text-white text-sm font-medium border border-primary/30">8</button>
+<button class="h-10 w-full rounded-full bg-[#1F2B23] text-white text-sm font-medium border border-primary/30">9</button>
+<button class="h-10 w-full rounded-full bg-[#1F2B23] text-white text-sm font-medium border border-primary/30">10</button>
+<button class="h-10 w-full rounded-full bg-[#1F2B23] text-white text-sm font-medium border border-primary/30">11</button>
+</div>
+</div>
+</div>
+<!-- Stats Summary -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+<!-- Income -->
+<div class="bg-white dark:bg-card-dark rounded-xl p-6 border border-black/5 dark:border-white/5 shadow-sm flex flex-col gap-1">
+<div class="flex items-center gap-2 mb-2">
+<div class="p-1.5 rounded-md bg-green-500/10">
+<span class="material-symbols-outlined text-green-500 text-[20px]">arrow_downward</span>
+</div>
+<p class="text-text-muted text-sm font-medium uppercase tracking-wider">Total Income</p>
+</div>
+<p class="text-[#111813] dark:text-white text-3xl font-bold tracking-tight">$6,500.00</p>
+<p class="text-green-500 text-sm font-bold flex items-center mt-1">
+<span class="material-symbols-outlined text-[16px] mr-1">trending_up</span>
+                            +12% <span class="text-text-muted font-normal ml-1">vs last month</span>
+</p>
+</div>
+<!-- Expense -->
+<div class="bg-white dark:bg-card-dark rounded-xl p-6 border border-black/5 dark:border-white/5 shadow-sm flex flex-col gap-1">
+<div class="flex items-center gap-2 mb-2">
+<div class="p-1.5 rounded-md bg-red-500/10">
+<span class="material-symbols-outlined text-red-500 text-[20px]">arrow_upward</span>
+</div>
+<p class="text-text-muted text-sm font-medium uppercase tracking-wider">Total Expense</p>
+</div>
+<p class="text-[#111813] dark:text-white text-3xl font-bold tracking-tight">$1,750.00</p>
+<p class="text-red-500 text-sm font-bold flex items-center mt-1">
+<span class="material-symbols-outlined text-[16px] mr-1">trending_up</span>
+                            +5% <span class="text-text-muted font-normal ml-1">vs last month</span>
+</p>
+</div>
+<!-- Net Balance -->
+<div class="bg-white dark:bg-card-dark rounded-xl p-6 border border-black/5 dark:border-white/5 shadow-sm flex flex-col gap-1 relative overflow-hidden group">
+<div class="absolute right-0 top-0 p-32 bg-primary/5 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none group-hover:bg-primary/10 transition-colors"></div>
+<div class="flex items-center gap-2 mb-2 relative z-10">
+<div class="p-1.5 rounded-md bg-primary/20">
+<span class="material-symbols-outlined text-primary text-[20px]">account_balance</span>
+</div>
+<p class="text-text-muted text-sm font-medium uppercase tracking-wider">Net Balance</p>
+</div>
+<p class="text-[#111813] dark:text-white text-3xl font-bold tracking-tight relative z-10">$4,750.00</p>
+<p class="text-primary text-sm font-bold flex items-center mt-1 relative z-10">
+<span class="material-symbols-outlined text-[16px] mr-1">trending_up</span>
+                            +8% <span class="text-text-muted font-normal ml-1">vs last month</span>
+</p>
+</div>
+</div>
+<!-- Charts Section -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+<!-- Income vs Expense Chart -->
+<div class="bg-white dark:bg-card-dark rounded-xl p-6 border border-black/5 dark:border-white/5 shadow-sm flex flex-col gap-4">
+<div class="flex items-center justify-between">
+<div>
+<h3 class="text-lg font-bold text-[#111813] dark:text-white">Income vs Expense</h3>
+<p class="text-text-muted text-sm">Monthly comparison by wallet</p>
+</div>
+<p class="text-xl font-bold text-white tracking-tight">$8,250 <span class="text-sm font-normal text-text-muted">Total Flow</span></p>
+</div>
+<div class="mt-4 grid grid-cols-3 gap-6 h-[200px] items-end px-4">
+<!-- Bar 1 -->
+<div class="flex flex-col items-center gap-2 h-full justify-end group cursor-pointer">
+<div class="w-full max-w-[60px] flex items-end gap-1 h-[80%] relative">
+<div class="w-1/2 bg-primary/30 group-hover:bg-primary/50 transition-colors rounded-t-sm h-[60%]"></div>
+<div class="w-1/2 bg-red-500/30 group-hover:bg-red-500/50 transition-colors rounded-t-sm h-[30%]"></div>
+</div>
+<p class="text-text-muted text-xs font-bold uppercase tracking-wide">Cash</p>
+</div>
+<!-- Bar 2 -->
+<div class="flex flex-col items-center gap-2 h-full justify-end group cursor-pointer">
+<div class="w-full max-w-[60px] flex items-end gap-1 h-[100%] relative">
+<div class="w-1/2 bg-primary/80 group-hover:bg-primary transition-colors rounded-t-sm h-[90%]"></div>
+<div class="w-1/2 bg-red-500/80 group-hover:bg-red-500 transition-colors rounded-t-sm h-[45%]"></div>
+</div>
+<p class="text-text-muted text-xs font-bold uppercase tracking-wide">Visa</p>
+</div>
+<!-- Bar 3 -->
+<div class="flex flex-col items-center gap-2 h-full justify-end group cursor-pointer">
+<div class="w-full max-w-[60px] flex items-end gap-1 h-[50%] relative">
+<div class="w-1/2 bg-primary/30 group-hover:bg-primary/50 transition-colors rounded-t-sm h-[40%]"></div>
+<div class="w-1/2 bg-red-500/30 group-hover:bg-red-500/50 transition-colors rounded-t-sm h-[10%]"></div>
+</div>
+<p class="text-text-muted text-xs font-bold uppercase tracking-wide">Savings</p>
+</div>
+</div>
+<div class="flex items-center justify-center gap-4 mt-2">
+<div class="flex items-center gap-2">
+<div class="size-2 rounded-full bg-primary"></div>
+<span class="text-xs text-text-muted font-medium">Income</span>
+</div>
+<div class="flex items-center gap-2">
+<div class="size-2 rounded-full bg-red-500"></div>
+<span class="text-xs text-text-muted font-medium">Expense</span>
+</div>
+</div>
+</div>
+<!-- Balance Distribution -->
+<div class="bg-white dark:bg-card-dark rounded-xl p-6 border border-black/5 dark:border-white/5 shadow-sm flex flex-col gap-4">
+<div class="flex items-center justify-between">
+<div>
+<h3 class="text-lg font-bold text-[#111813] dark:text-white">Balance Distribution</h3>
+<p class="text-text-muted text-sm">Where your money sits</p>
+</div>
+<button class="text-text-muted hover:text-white transition-colors"><span class="material-symbols-outlined">more_horiz</span></button>
+</div>
+<div class="flex flex-col gap-6 mt-2">
+<!-- Item 1 -->
+<div class="flex items-center gap-4">
+<div class="flex items-center justify-center size-10 rounded-full bg-[#1F2B23] text-primary">
+<span class="material-symbols-outlined">payments</span>
+</div>
+<div class="flex-1 flex flex-col gap-1">
+<div class="flex justify-between items-center">
+<p class="text-sm font-bold text-white">Cash</p>
+<p class="text-sm font-medium text-text-muted">20%</p>
+</div>
+<div class="h-2 w-full bg-[#111813] rounded-full overflow-hidden">
+<div class="h-full bg-primary w-[20%] rounded-full"></div>
+</div>
+</div>
+<p class="text-white font-bold text-sm w-20 text-right">$950</p>
+</div>
+<!-- Item 2 -->
+<div class="flex items-center gap-4">
+<div class="flex items-center justify-center size-10 rounded-full bg-[#1F2B23] text-blue-400">
+<span class="material-symbols-outlined">credit_card</span>
+</div>
+<div class="flex-1 flex flex-col gap-1">
+<div class="flex justify-between items-center">
+<p class="text-sm font-bold text-white">Visa Card</p>
+<p class="text-sm font-medium text-text-muted">55%</p>
+</div>
+<div class="h-2 w-full bg-[#111813] rounded-full overflow-hidden">
+<div class="h-full bg-blue-400 w-[55%] rounded-full"></div>
+</div>
+</div>
+<p class="text-white font-bold text-sm w-20 text-right">$2,612</p>
+</div>
+<!-- Item 3 -->
+<div class="flex items-center gap-4">
+<div class="flex items-center justify-center size-10 rounded-full bg-[#1F2B23] text-purple-400">
+<span class="material-symbols-outlined">savings</span>
+</div>
+<div class="flex-1 flex flex-col gap-1">
+<div class="flex justify-between items-center">
+<p class="text-sm font-bold text-white">Savings</p>
+<p class="text-sm font-medium text-text-muted">25%</p>
+</div>
+<div class="h-2 w-full bg-[#111813] rounded-full overflow-hidden">
+<div class="h-full bg-purple-400 w-[25%] rounded-full"></div>
+</div>
+</div>
+<p class="text-white font-bold text-sm w-20 text-right">$1,188</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Wallet Breakdown List -->
+<div class="flex flex-col gap-4 mb-8">
+<h3 class="text-xl font-bold text-[#111813] dark:text-white px-2">Wallet Breakdown</h3>
+<div class="bg-white dark:bg-card-dark rounded-xl border border-black/5 dark:border-white/5 overflow-hidden shadow-sm">
+<!-- Table Header (Desktop) -->
+<div class="hidden md:grid grid-cols-12 gap-4 p-4 border-b border-white/5 bg-[#1F2B23]/50 text-xs font-bold text-text-muted uppercase tracking-wider">
+<div class="col-span-4 pl-2">Wallet Name</div>
+<div class="col-span-3 text-right">Income</div>
+<div class="col-span-3 text-right">Expense</div>
+<div class="col-span-2 text-right pr-2">Balance</div>
+</div>
+<!-- Rows -->
+<div class="flex flex-col divide-y divide-white/5">
+<!-- Row 1 -->
+<div class="group p-4 hover:bg-[#111813]/30 transition-colors">
+<div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
+<div class="col-span-12 md:col-span-4 flex items-center gap-3">
+<div class="size-10 rounded-full bg-[#1F2B23] flex items-center justify-center text-primary shrink-0">
+<span class="material-symbols-outlined">payments</span>
+</div>
+<div class="flex flex-col">
+<p class="font-bold text-white text-base">Personal Cash</p>
+<p class="text-xs text-text-muted md:hidden">Wallet • USD</p>
+</div>
+</div>
+<div class="col-span-6 md:col-span-3 flex md:flex-col md:items-end justify-between items-center">
+<span class="text-text-muted text-xs font-bold uppercase md:hidden">Income</span>
+<p class="text-primary font-bold">+$2,000.00</p>
+</div>
+<div class="col-span-6 md:col-span-3 flex md:flex-col md:items-end justify-between items-center">
+<span class="text-text-muted text-xs font-bold uppercase md:hidden">Expense</span>
+<p class="text-red-500 font-bold">-$500.00</p>
+</div>
+<div class="col-span-12 md:col-span-2 flex md:flex-col md:items-end justify-between items-center pt-2 md:pt-0 border-t border-white/5 md:border-t-0">
+<span class="text-text-muted text-xs font-bold uppercase md:hidden">Balance</span>
+<p class="text-white font-extrabold text-lg md:text-base">$1,500.00</p>
+</div>
+</div>
+</div>
+<!-- Row 2 -->
+<div class="group p-4 hover:bg-[#111813]/30 transition-colors">
+<div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
+<div class="col-span-12 md:col-span-4 flex items-center gap-3">
+<div class="size-10 rounded-full bg-[#1F2B23] flex items-center justify-center text-blue-400 shrink-0">
+<span class="material-symbols-outlined">account_balance</span>
+</div>
+<div class="flex flex-col">
+<p class="font-bold text-white text-base">Chase Bank</p>
+<p class="text-xs text-text-muted md:hidden">Checking • USD</p>
+</div>
+</div>
+<div class="col-span-6 md:col-span-3 flex md:flex-col md:items-end justify-between items-center">
+<span class="text-text-muted text-xs font-bold uppercase md:hidden">Income</span>
+<p class="text-primary font-bold">+$4,500.00</p>
+</div>
+<div class="col-span-6 md:col-span-3 flex md:flex-col md:items-end justify-between items-center">
+<span class="text-text-muted text-xs font-bold uppercase md:hidden">Expense</span>
+<p class="text-red-500 font-bold">-$1,200.00</p>
+</div>
+<div class="col-span-12 md:col-span-2 flex md:flex-col md:items-end justify-between items-center pt-2 md:pt-0 border-t border-white/5 md:border-t-0">
+<span class="text-text-muted text-xs font-bold uppercase md:hidden">Balance</span>
+<p class="text-white font-extrabold text-lg md:text-base">$3,300.00</p>
+</div>
+</div>
+</div>
+<!-- Row 3 -->
+<div class="group p-4 hover:bg-[#111813]/30 transition-colors">
+<div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
+<div class="col-span-12 md:col-span-4 flex items-center gap-3">
+<div class="size-10 rounded-full bg-[#1F2B23] flex items-center justify-center text-yellow-400 shrink-0">
+<span class="material-symbols-outlined">currency_bitcoin</span>
+</div>
+<div class="flex flex-col">
+<p class="font-bold text-white text-base">Crypto Wallet</p>
+<p class="text-xs text-text-muted md:hidden">Crypto • BTC</p>
+</div>
+</div>
+<div class="col-span-6 md:col-span-3 flex md:flex-col md:items-end justify-between items-center">
+<span class="text-text-muted text-xs font-bold uppercase md:hidden">Income</span>
+<p class="text-text-muted font-bold">$0.00</p>
+</div>
+<div class="col-span-6 md:col-span-3 flex md:flex-col md:items-end justify-between items-center">
+<span class="text-text-muted text-xs font-bold uppercase md:hidden">Expense</span>
+<p class="text-red-500 font-bold">-$50.00</p>
+</div>
+<div class="col-span-12 md:col-span-2 flex md:flex-col md:items-end justify-between items-center pt-2 md:pt-0 border-t border-white/5 md:border-t-0">
+<span class="text-text-muted text-xs font-bold uppercase md:hidden">Balance</span>
+<p class="text-white font-extrabold text-lg md:text-base">-$50.00</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+</body></html>

@@ -177,3 +177,77 @@ export async function deleteUser(req, res){
     res.status(500).json({ error: 'Server error' })
   }
 }
+
+// ===== Authenticated profile endpoints =====
+// POST /api/users/sync-user
+// Ensures the authenticated principal exists in MongoDB and returns profile.
+export const syncUser = async (req, res) => {
+  try {
+    if (!req.user?.id) return res.status(401).json({ message: 'Unauthorized' })
+
+    const user = await User.findById(req.user.id)
+    if (!user) return res.status(404).json({ message: 'User not found' })
+
+    res.json({
+      message: 'User synced successfully',
+      user: {
+        id: user._id,
+        email: user.email,
+        name: user.name,
+        firebaseUid: user.firebaseUid,
+      },
+    })
+  } catch (err) {
+    res.status(500).json({ message: err.message })
+  }
+}
+
+// GET /api/users/me
+export const getMe = async (req, res) => {
+  try {
+    if (!req.user?.id) return res.status(401).json({ message: 'Unauthorized' })
+
+    const user = await User.findById(req.user.id)
+    if (!user) return res.status(404).json({ message: 'User not found' })
+
+    res.json({
+      id: user._id,
+      email: user.email,
+      name: user.name,
+      firebaseUid: user.firebaseUid,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
+    })
+  } catch (err) {
+    res.status(500).json({ message: err.message })
+  }
+}
+
+// PUT /api/users/me
+export const updateMe = async (req, res) => {
+  try {
+    if (!req.user?.id) return res.status(401).json({ message: 'Unauthorized' })
+
+    const updates = {}
+    if (typeof req.body?.name === 'string') updates.name = req.body.name
+    if (typeof req.body?.email === 'string') updates.email = req.body.email
+
+    const user = await User.findByIdAndUpdate(req.user.id, updates, {
+      new: true,
+      runValidators: true,
+    })
+    if (!user) return res.status(404).json({ message: 'User not found' })
+
+    res.json({
+      message: 'Profile updated successfully',
+      user: {
+        id: user._id,
+        email: user.email,
+        name: user.name,
+        firebaseUid: user.firebaseUid,
+      },
+    })
+  } catch (err) {
+    res.status(500).json({ message: err.message })
+  }
+}

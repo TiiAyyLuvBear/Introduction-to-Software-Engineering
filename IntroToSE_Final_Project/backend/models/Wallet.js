@@ -366,10 +366,19 @@ WalletSchema.methods.setMemberPermission = async function(ownerId, memberUserId,
 // Static method để tạo ví mới với validation
 WalletSchema.statics.createWallet = async function(walletData) {
   const wallet = new this(walletData)
-  
-  // If creating shared wallet, set ownerId same as userId
-  if (walletData.isShared) {
+
+  // Always set ownerId (even for personal wallets)
+  if (!wallet.ownerId) {
     wallet.ownerId = walletData.userId
+  }
+  
+  // If creating shared wallet, ensure owner is in members with edit permission
+  if (walletData.isShared) {
+    const ownerId = wallet.ownerId?.toString()
+    const hasOwnerMember = Array.isArray(wallet.members) && wallet.members.some(m => m.userId?.toString() === ownerId)
+    if (!hasOwnerMember && wallet.ownerId) {
+      wallet.members.push({ userId: wallet.ownerId, permission: 'edit', joinedAt: new Date() })
+    }
   }
   
   await wallet.save()
@@ -378,9 +387,13 @@ WalletSchema.statics.createWallet = async function(walletData) {
 
 // Static method để lấy danh sách ví của user
 WalletSchema.statics.getUserWallets = async function(userId, status = 'active') {
-  const wallets = await this.find({ 
-    userId, 
-    status 
+  const wallets = await this.find({
+    status,
+    $or: [
+      { userId },
+      { ownerId: userId },
+      { 'members.userId': userId },
+    ],
   }).sort({ createdAt: -1 })
   
   return wallets.map(wallet => wallet.getDisplayInfo())
