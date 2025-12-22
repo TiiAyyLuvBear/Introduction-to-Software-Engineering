@@ -14,10 +14,40 @@
  * app.use('/api/users', usersRouter)
  */
 import express from 'express'
+<<<<<<< Updated upstream
 import { getUsers, getUser, createUser, updateUser, deleteUser } from '../controllers/usersController.js'
 
 const router = express.Router()
 
+=======
+import {
+	getUsers,
+	getUser,
+	createUser,
+	updateUser,
+	deleteUser,
+	syncUser,
+	getMe,
+	updateMe,
+	updateAvatar,
+} from '../controllers/usersController.js'
+import { authenticate } from '../middleware/auth.js'
+import multer from 'multer'
+
+const router = express.Router()
+
+const upload = multer({
+	storage: multer.memoryStorage(),
+	limits: { fileSize: 2 * 1024 * 1024 }, // 2MB
+})
+
+// ===== Authenticated profile endpoints (Task M1-04) =====
+router.post('/sync-user', authenticate, syncUser)
+router.get('/me', authenticate, getMe)
+router.put('/me', authenticate, updateMe)
+router.put('/avatar', authenticate, upload.single('avatar'), updateAvatar)
+
+>>>>>>> Stashed changes
 // GET /api/users - Lấy danh sách users
 router.get('/', getUsers)
 

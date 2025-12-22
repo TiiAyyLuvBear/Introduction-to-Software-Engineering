@@ -3,6 +3,7 @@ import { useForm } from 'react-hook-form'
 import { User, Mail, Phone, MapPin, Calendar, Camera, Edit2, Save, X } from 'lucide-react'
 
 export default function Accounts() {
+<<<<<<< Updated upstream
   const [isEditing, setIsEditing] = useState(false)
   const [userProfile, setUserProfile] = useState(() => {
     const saved = localStorage.getItem('userProfile')
@@ -16,6 +17,14 @@ export default function Accounts() {
       bio: 'Personal finance enthusiast and software developer'
     }
   })
+=======
+  const navigate = useNavigate()
+  const [total, setTotal] = React.useState(0)
+  const [wallets, setWallets] = React.useState([])
+  const [busyId, setBusyId] = React.useState(null)
+  const [error, setError] = React.useState('')
+  const [netWorthMoMPct, setNetWorthMoMPct] = React.useState(0)
+>>>>>>> Stashed changes
 
   const { register, handleSubmit, reset, formState: { errors } } = useForm({
     defaultValues: userProfile
@@ -44,7 +53,124 @@ export default function Accounts() {
         setUserProfile(updatedProfile)
         localStorage.setItem('userProfile', JSON.stringify(updatedProfile))
       }
+<<<<<<< Updated upstream
       reader.readAsDataURL(file)
+=======
+    })()
+    return () => {
+      mounted = false
+    }
+  }, [])
+
+  React.useEffect(() => {
+    let mounted = true
+    ;(async () => {
+      try {
+        const now = new Date()
+        const start = new Date(now.getFullYear(), now.getMonth(), 1)
+        const res = await api.listTransactions({ startDate: start.toISOString(), endDate: now.toISOString() })
+        const list = res?.data?.transactions || res?.transactions || res?.data || res || []
+        const txns = Array.isArray(list) ? list : []
+
+        const income = txns
+          .filter((t) => String(t.type || '').toLowerCase() === 'income')
+          .reduce((s, t) => s + Number(t.amount || 0), 0)
+        const expense = txns
+          .filter((t) => String(t.type || '').toLowerCase() === 'expense')
+          .reduce((s, t) => s + Number(t.amount || 0), 0)
+
+        const netChange = income - expense
+        const baseline = Number(total || 0) - netChange
+        const pct = baseline > 0 ? (netChange / baseline) * 100 : 0
+        if (!mounted) return
+        setNetWorthMoMPct(Number.isFinite(pct) ? pct : 0)
+      } catch {
+        if (!mounted) return
+        setNetWorthMoMPct(0)
+      }
+    })()
+    return () => {
+      mounted = false
+    }
+  }, [total])
+
+  const [tab, setTab] = React.useState('all')
+  const [query, setQuery] = React.useState('')
+
+  const accounts = wallets.map((w) => ({
+    id: w.id || w._id,
+    group: String(w.type || '').toLowerCase() === 'bank' ? 'bank' : 'manual',
+    name: w.name,
+    masked: w.type || 'Wallet',
+    balance: Number(w.currentBalance ?? w.balance ?? 0),
+    status: 'ok',
+  }))
+
+  const filtered = accounts
+    .filter((a) => (tab === 'all' ? true : tab === 'bank' ? a.group === 'bank' : tab === 'cards' ? a.group === 'card' : a.group === 'manual'))
+    .filter((a) => (query ? a.name.toLowerCase().includes(query.toLowerCase()) : true))
+
+  const deleteAccount = async (account) => {
+    const id = account?.id
+    if (!id) return
+    if (!window.confirm('Delete this account?')) return
+    setBusyId(id)
+    setError('')
+    try {
+      await api.deleteWallet(id)
+      setWallets((prev) => prev.filter((w) => (w.id || w._id) !== id))
+      setTotal((prev) => {
+        const amt = Number(account.balance || 0)
+        return prev - amt
+      })
+    } catch (e) {
+      setError(e?.message || 'Failed to delete account')
+    } finally {
+      setBusyId(null)
+    }
+  }
+
+  const renameAccount = async (account) => {
+    const id = account?.id
+    if (!id) return
+    const currentName = String(account?.name || '').trim()
+    const nextName = window.prompt('Rename account', currentName)
+    if (nextName === null) return
+    const trimmed = String(nextName).trim()
+    if (!trimmed || trimmed === currentName) return
+
+    setBusyId(id)
+    setError('')
+    try {
+      const res = await api.updateWallet(id, { name: trimmed })
+      const updated = res?.data?.data || res?.data || res
+
+      setWallets((prev) => prev.map((w) => ((w.id || w._id) === id ? { ...w, ...updated } : w)))
+    } catch (e) {
+      setError(e?.message || 'Failed to rename account')
+    } finally {
+      setBusyId(null)
+    }
+  }
+
+  const toggleAccountStatus = async (account) => {
+    const id = account?.id
+    if (!id) return
+    const wallet = wallets.find((w) => (w.id || w._id) === id)
+    const nextStatus = wallet?.status === 'inactive' ? 'active' : 'inactive'
+
+    setBusyId(id)
+    setError('')
+    try {
+      const res = await api.updateWallet(id, { status: nextStatus })
+      const updated = res?.data?.data || res?.data || res
+
+      setWallets((prev) => prev.map((w) => ((w.id || w._id) === id ? { ...w, ...updated } : w)))
+    } catch (e) {
+      setError(e?.message || 'Failed to update account')
+    } finally {
+      setBusyId(null)
+>>>>>>> Stashed changes
     }
   }
 
@@ -55,6 +181,7 @@ export default function Accounts() {
         <p className="text-gray-600">View and manage your personal information</p>
       </div>
 
+<<<<<<< Updated upstream
       <div className="bg-gradient-to-br from-white to-blue-50 rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 border border-blue-100 overflow-hidden">
         {/* Header Section with Avatar */}
         <div className="bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 p-8 relative">
@@ -68,6 +195,41 @@ export default function Accounts() {
               </button>
             ) : (
               <div className="flex gap-2">
+=======
+        <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-3">
+          <div className="rounded-xl border border-border-dark bg-card-dark p-6">
+            <div className="text-sm font-medium text-text-secondary">Total Net Worth</div>
+            <div className="mt-2 text-3xl font-bold text-white">{formatMoney(total)}</div>
+            <div className="mt-4 flex items-center gap-2 text-sm">
+              <span className="inline-flex size-6 items-center justify-center rounded-full bg-primary/20">
+                <span className="material-symbols-outlined text-[16px] text-primary">trending_up</span>
+              </span>
+              <span className="font-bold text-primary">
+                {netWorthMoMPct >= 0 ? '+' : ''}
+                {Math.abs(netWorthMoMPct).toFixed(1)}%
+              </span>
+              <span className="text-text-secondary">vs last month</span>
+            </div>
+          </div>
+
+          <div className="lg:col-span-2 flex flex-col gap-4">
+            <div className="flex items-center gap-3 rounded-lg border border-border-dark bg-card-dark p-1">
+              <span className="material-symbols-outlined px-3 text-text-secondary">search</span>
+              <input
+                className="h-12 w-full bg-transparent pr-3 text-white placeholder:text-text-secondary/60 outline-none"
+                placeholder="Search accounts (e.g. Chase, Citi)..."
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+              />
+            </div>
+            <div className="flex items-center gap-6 border-b border-border-dark px-1">
+              {[
+                { k: 'all', label: 'All Accounts' },
+                { k: 'bank', label: 'Banking' },
+                { k: 'cards', label: 'Credit Cards' },
+                { k: 'manual', label: 'Manual' },
+              ].map((t) => (
+>>>>>>> Stashed changes
                 <button
                   onClick={handleSubmit(onSaveProfile)}
                   className="bg-green-500 text-white px-6 py-2 rounded-lg font-semibold hover:bg-green-600 hover:shadow-lg transition-all duration-300 flex items-center gap-2"

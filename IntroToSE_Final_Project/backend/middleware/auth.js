@@ -49,8 +49,43 @@ export const authenticate = async (req, res, next) => {
       return sendUnauthorized(res, 'Token is empty')
     }
     
+<<<<<<< Updated upstream
     // 3. Verify token với Firebase Admin SDK
     // Nếu token valid, Firebase trả về decoded token chứa user info
+=======
+    // 3) Try verify as our own JWT first (used by /api/auth/*)
+    try {
+      const decoded = jwt.verify(idToken, JWT_SECRET)
+      if (decoded?.type !== 'access' || !decoded?.id) throw new Error('Not an access token')
+      const user = await User.findById(decoded.id).select('-password')
+      if (!user) return sendUnauthorized(res, 'User not found')
+
+      // Token version check: allows invalidating old sessions (e.g., after password reset)
+      if ((user.tokenVersion || 0) !== (decoded.v || 0)) {
+        return sendUnauthorized(res, 'Token expired. Please login again.')
+      }
+
+      req.user = {
+        id: String(user._id),
+        _id: user._id,
+        email: user.email,
+        name: user.name,
+        firebaseUid: user.firebaseUid || null,
+      }
+      return next()
+    } catch {
+      // Not a valid project JWT -> fallback to Firebase
+    }
+
+    // 4) Verify token with Firebase Admin SDK
+    if (!firebaseAuth) {
+      return sendUnauthorized(
+        res,
+        'Firebase auth is not configured. Set FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, FIREBASE_PRIVATE_KEY or use JWT login.'
+      )
+    }
+
+>>>>>>> Stashed changes
     let decodedToken
     try {
       decodedToken = await firebaseAuth.verifyIdToken(idToken)

@@ -142,6 +142,8 @@ BudgetSchema.methods.getDisplayInfo = function() {
     remainingDays: this.getRemainingDays(),
     isOverBudget: this.isOverBudget(),
     isOverThreshold: this.isOverThreshold(),
+    alertThreshold: this.alertThreshold,
+    enableAlerts: this.enableAlerts,
     status: this.status
   }
 }
@@ -151,6 +153,7 @@ BudgetSchema.methods.getDisplayInfo = function() {
  */
 BudgetSchema.statics.createBudget = async function(budgetData) {
   // Validate: không tạo budget trùng category + period
+<<<<<<< Updated upstream
   if (budgetData.categoryId) {
     const existing = await this.findOne({
       userId: budgetData.userId,
@@ -162,6 +165,17 @@ BudgetSchema.statics.createBudget = async function(budgetData) {
     if (existing) {
       throw new Error(`Budget for this category and period already exists`)
     }
+=======
+  const existing = await this.findOne({
+    walletId: budgetData.walletId,
+    categoryId: budgetData.categoryId || null,
+    period: budgetData.period,
+    status: 'active'
+  })
+
+  if (existing) {
+    throw new Error('Budget for this wallet/category/period already exists')
+>>>>>>> Stashed changes
   }
   
   const budget = new this(budgetData)
