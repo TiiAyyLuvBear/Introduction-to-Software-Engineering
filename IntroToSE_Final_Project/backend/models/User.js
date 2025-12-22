@@ -19,6 +19,20 @@ const UserSchema = new mongoose.Schema({
   
   // Mật khẩu - nên được hash bằng bcrypt trước khi lưu (sẽ implement sau)
   password: { type: String, required: true },
+
+  // Optional Firebase UID (when authenticated via Firebase)
+  firebaseUid: { type: String, index: true, sparse: true },
+
+  // Profile fields
+  phone: { type: String, default: '' },
+  avatarUrl: { type: String, default: '' },
+
+  // Password reset (self-managed when Firebase email reset isn't used)
+  resetPasswordTokenHash: { type: String },
+  resetPasswordExpiresAt: { type: Date },
+
+  // Session invalidation (increment to revoke prior JWTs)
+  tokenVersion: { type: Number, default: 0 },
 }, { 
   // timestamps: true tự động thêm createdAt và updatedAt
   timestamps: true 

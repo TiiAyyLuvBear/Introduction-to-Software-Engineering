@@ -15,7 +15,7 @@ export default function Login({ onLogin }) {
     try {
       setBusy(true)
       const res = await api.login({ email, password })
-      const payload = res?.data
+      const payload = res?.data?.data || res?.data || res
       if (!payload?.user || !payload?.accessToken) throw new Error(res?.error || 'Login failed')
       onLogin({ user: payload.user, accessToken: payload.accessToken, refreshToken: payload.refreshToken })
       navigate('/', { replace: true })
@@ -140,8 +140,8 @@ export default function Login({ onLogin }) {
             <div className="flex justify-end">
               <button
                 type="button"
-                onClick={() => window.alert('Password reset is not implemented yet.')}
                 className="text-sm font-semibold text-primary hover:brightness-110"
+                onClick={() => navigate('/forgot-password')}
               >
                 Forgot Password?
               </button>

@@ -36,23 +36,128 @@ export function clearSession() {
   localStorage.removeItem(USER_KEY)
 }
 
-async function request(path, { method = 'GET', body, headers } = {}) {
+let inFlightRefresh = null
+async function refreshAccessToken() {
+  const rt = getRefreshToken()
+  if (!rt) throw new Error('Session expired')
+
+  if (!inFlightRefresh) {
+    inFlightRefresh = (async () => {
+      let res
+      try {
+        res = await fetch(`${API_BASE_URL}/auth/refresh`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ refreshToken: rt }),
+        })
+      } catch (e) {
+        throw makeNetworkError(e)
+      }
+
+      const text = await res.text()
+      const data = text ? safeJson(text) : null
+
+      if (!res.ok) {
+        clearSession()
+        const msg = data?.error || data?.message || res.statusText || 'Session expired'
+        throw new Error(msg)
+      }
+
+      const next = data?.data || data
+      const newAccessToken = next?.accessToken
+      if (!newAccessToken) {
+        clearSession()
+        throw new Error('Session expired')
+      }
+      localStorage.setItem(ACCESS_TOKEN_KEY, newAccessToken)
+      return newAccessToken
+    })().finally(() => {
+      inFlightRefresh = null
+    })
+  }
+
+  return inFlightRefresh
+}
+
+function makeNetworkError(original) {
+  const err = new Error(`Cannot reach API server at ${API_BASE_URL}. Is the backend running?`)
+  err.cause = original
+  err.isNetworkError = true
+  return err
+}
+
+async function request(path, { method = 'GET', body, headers, _retry } = {}) {
   const token = getAccessToken()
-  const res = await fetch(`${API_BASE_URL}${path}`, {
-    method,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...(headers || {}),
-    },
-    body: body === undefined ? undefined : JSON.stringify(body),
-  })
+  let res
+  try {
+    res = await fetch(`${API_BASE_URL}${path}`, {
+      method,
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...(headers || {}),
+      },
+      body: body === undefined ? undefined : JSON.stringify(body),
+    })
+  } catch (e) {
+    throw makeNetworkError(e)
+  }
+
+  if (res.status === 401 && !_retry && getRefreshToken()) {
+    try {
+      await refreshAccessToken()
+      return request(path, { method, body, headers, _retry: true })
+    } catch {
+      // fallthrough to normal error
+    }
+  }
 
   const text = await res.text()
   const data = text ? safeJson(text) : null
 
   if (!res.ok) {
-    const msg = data?.error || data?.message || data?.Message || res.statusText || 'Request failed'
+    let msg = data?.error || data?.message || data?.Message || res.statusText || 'Request failed'
+    if (res.status === 403 && (msg === 'Forbidden' || msg === 'Request failed')) msg = 'Insufficient permission'
+    const err = new Error(msg)
+    err.status = res.status
+    err.data = data
+    throw err
+  }
+
+  return data
+}
+
+async function requestFormData(path, { method = 'POST', formData, headers, _retry } = {}) {
+  const token = getAccessToken()
+  let res
+  try {
+    res = await fetch(`${API_BASE_URL}${path}`, {
+      method,
+      headers: {
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...(headers || {}),
+      },
+      body: formData,
+    })
+  } catch (e) {
+    throw makeNetworkError(e)
+  }
+
+  if (res.status === 401 && !_retry && getRefreshToken()) {
+    try {
+      await refreshAccessToken()
+      return requestFormData(path, { method, formData, headers, _retry: true })
+    } catch {
+      // fallthrough
+    }
+  }
+
+  const text = await res.text()
+  const data = text ? safeJson(text) : null
+
+  if (!res.ok) {
+    let msg = data?.error || data?.message || data?.Message || res.statusText || 'Request failed'
+    if (res.status === 403 && (msg === 'Forbidden' || msg === 'Request failed')) msg = 'Insufficient permission'
     const err = new Error(msg)
     err.status = res.status
     err.data = data
@@ -78,6 +183,12 @@ export const api = {
   async login({ email, password }) {
     return request('/auth/login', { method: 'POST', body: { email, password } })
   },
+  async forgotPassword({ email }) {
+    return request('/auth/forgot-password', { method: 'POST', body: { email } })
+  },
+  async resetPassword({ email, token, password }) {
+    return request('/auth/reset-password', { method: 'POST', body: { email, token, password } })
+  },
   async logout() {
     return request('/auth/logout', { method: 'POST' })
   },
@@ -87,16 +198,24 @@ export const api = {
   async me() {
     return request('/users/me')
   },
+  async updateMe({ name, email, phone } = {}) {
+    return request('/users/me', { method: 'PUT', body: { name, email, phone } })
+  },
+  async uploadAvatar(file) {
+    const formData = new FormData()
+    formData.append('avatar', file)
+    return requestFormData('/users/avatar', { method: 'PUT', formData })
+  },
 
   // Wallets
   async listWallets({ status } = {}) {
     const qs = status ? `?status=${encodeURIComponent(status)}` : ''
     return request(`/wallets${qs}`)
   },
-  async createWallet({ name, type, initialBalance, currency, description }) {
+  async createWallet({ name, type, initialBalance, currency, description, isShared }) {
     return request('/wallets', {
       method: 'POST',
-      body: { name, type, initialBalance, currency, description },
+      body: { name, type, initialBalance, currency, description, isShared },
     })
   },
   async updateWallet(id, { name, type, currency, description, status } = {}) {
@@ -107,6 +226,48 @@ export const api = {
   },
   async deleteWallet(id) {
     return request(`/wallets/${encodeURIComponent(id)}`, { method: 'DELETE' })
+  },
+
+  // Shared Wallets (U011–U015)
+  async inviteWalletMember(walletId, { email, message } = {}) {
+    return request(`/wallets/${encodeURIComponent(walletId)}/invite`, {
+      method: 'POST',
+      body: { email, message },
+    })
+  },
+  async getWalletMembers(walletId) {
+    return request(`/wallets/${encodeURIComponent(walletId)}/members`)
+  },
+  async leaveWallet(walletId) {
+    return request(`/wallets/${encodeURIComponent(walletId)}/leave`, { method: 'POST' })
+  },
+  async transferWalletOwnership(walletId, { newOwnerId } = {}) {
+    return request(`/wallets/${encodeURIComponent(walletId)}/transfer-ownership`, {
+      method: 'POST',
+      body: { newOwnerId },
+    })
+  },
+  async removeWalletMember(walletId, memberId) {
+    return request(`/wallets/${encodeURIComponent(walletId)}/members/${encodeURIComponent(memberId)}`, {
+      method: 'DELETE',
+    })
+  },
+  async setWalletMemberPermission(walletId, memberId, { permission } = {}) {
+    return request(`/wallets/${encodeURIComponent(walletId)}/members/${encodeURIComponent(memberId)}/permission`, {
+      method: 'PUT',
+      body: { permission },
+    })
+  },
+
+  // Invitations
+  async listPendingInvitations() {
+    return request('/invitations/pending')
+  },
+  async respondToInvitation(invitationId, { response } = {}) {
+    return request(`/invitations/${encodeURIComponent(invitationId)}/respond`, {
+      method: 'POST',
+      body: { response },
+    })
   },
 
   // Categories
@@ -148,6 +309,12 @@ export const api = {
   async deleteTransaction(id) {
     return request(`/transactions/${encodeURIComponent(id)}`, { method: 'DELETE' })
   },
+  async updateTransaction(id, { amount, type, walletId, categoryId, category, date, note } = {}) {
+    return request(`/transactions/${encodeURIComponent(id)}`, {
+      method: 'PUT',
+      body: { amount, type, walletId, categoryId, category, date, note },
+    })
+  },
   async transfer({ fromWalletId, toWalletId, amount, date, note }) {
     return request('/transactions/transfer', {
       method: 'POST',
@@ -176,10 +343,10 @@ export const api = {
   async getGoal(id) {
     return request(`/goals/${encodeURIComponent(id)}`)
   },
-  async createGoal({ name, targetAmount, deadline, priority }) {
+  async createGoal({ name, targetAmount, deadline, priority, walletId, description, image }) {
     return request('/goals', {
       method: 'POST',
-      body: { name, targetAmount, deadline, priority },
+      body: { name, targetAmount, deadline, priority, walletId, description, image },
     })
   },
   async contributeToGoal(goalId, { amount, walletId, date, note } = {}) {

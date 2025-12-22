@@ -7,30 +7,71 @@ import FormattedNumberInput from '../components/FormattedNumberInput.jsx'
 export default function CreateGoal() {
   const navigate = useNavigate()
 
+  const [wallets, setWallets] = React.useState([])
+  const [walletId, setWalletId] = React.useState('')
   const [name, setName] = React.useState('')
   const [targetAmount, setTargetAmount] = React.useState('')
   const [targetAmountNum, setTargetAmountNum] = React.useState(NaN)
   const [targetDate, setTargetDate] = React.useState('')
-  const [icon, setIcon] = React.useState('flag')
+  const [description, setDescription] = React.useState('')
+  const [priority, setPriority] = React.useState('medium')
   const [busy, setBusy] = React.useState(false)
   const [error, setError] = React.useState('')
 
   const inputClass =
     'h-12 w-full rounded-lg bg-surface-dark border border-input-border px-4 text-white placeholder:text-text-secondary/60 focus:border-primary focus:ring-1 focus:ring-primary outline-none'
 
+  React.useEffect(() => {
+    let mounted = true
+    ;(async () => {
+      try {
+        const walletsRes = await api.listWallets()
+        const walletsList = walletsRes?.data?.wallets || walletsRes?.wallets || walletsRes?.data || walletsRes || []
+        const all = Array.isArray(walletsList) ? walletsList : []
+        const editable = all.filter((w) => {
+          const p = w?.myPermission
+          return p === 'owner' || p === 'edit'
+        })
+        if (!mounted) return
+        setWallets(editable)
+        if (!walletId && editable.length) setWalletId(editable[0]?.id || editable[0]?._id || '')
+      } catch {
+        if (!mounted) return
+        setWallets([])
+      }
+    })()
+    return () => {
+      mounted = false
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   const submit = (e) => {
     e.preventDefault()
 
     setError('')
+
+    if (!walletId) {
+      setError('You do not have any wallets with edit permission')
+      return
+    }
+
+    const amount = Number.isFinite(targetAmountNum) ? targetAmountNum : Number(targetAmount) || 0
+    if (!(amount > 0)) {
+      setError('Target amount must be greater than 0')
+      return
+    }
+
     setBusy(true)
     ;(async () => {
       try {
         await api.createGoal({
+          walletId,
           name: name.trim() || 'Untitled Goal',
-          targetAmount: Number.isFinite(targetAmountNum) ? targetAmountNum : Number(targetAmount) || 0,
-          currentAmount: 0,
+          targetAmount: amount,
           deadline: targetDate || null,
-          icon,
+          description: description.trim() || undefined,
+          priority,
         })
         navigate('/savings')
       } catch (e2) {
@@ -66,6 +107,29 @@ export default function CreateGoal() {
           ) : null}
           <form onSubmit={submit} className="grid gap-4">
             <label className="grid gap-2">
+              <span className="text-sm font-medium text-white">Wallet</span>
+              <select
+                className={inputClass}
+                value={walletId}
+                onChange={(e) => setWalletId(e.target.value)}
+                required
+              >
+                {wallets.length ? (
+                  wallets.map((w) => (
+                    <option key={w.id || w._id} value={w.id || w._id}>
+                      {w.name}
+                    </option>
+                  ))
+                ) : (
+                  <option value="">No editable wallets</option>
+                )}
+              </select>
+              {!wallets.length ? (
+                <div className="text-xs text-text-secondary">You need owner/edit permission to create saving goals in a shared wallet.</div>
+              ) : null}
+            </label>
+
+            <label className="grid gap-2">
               <span className="text-sm font-medium text-white">Goal name</span>
               <input className={inputClass} value={name} onChange={(e) => setName(e.target.value)} required />
             </label>
@@ -92,11 +156,21 @@ export default function CreateGoal() {
             </label>
 
             <label className="grid gap-2">
-              <span className="text-sm font-medium text-white">Icon</span>
-              <select className={inputClass} value={icon} onChange={(e) => setIcon(e.target.value)}>
-                {['flag', 'health_and_safety', 'flight', 'laptop_mac', 'home', 'directions_car'].map((i) => (
-                  <option key={i} value={i}>
-                    {i}
+              <span className="text-sm font-medium text-white">Description (optional)</span>
+              <textarea
+                className={'min-h-24 w-full rounded-lg bg-surface-dark border border-input-border px-4 py-3 text-white placeholder:text-text-secondary/60 focus:border-primary focus:ring-1 focus:ring-primary outline-none'}
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Notes about this goal"
+              />
+            </label>
+
+            <label className="grid gap-2">
+              <span className="text-sm font-medium text-white">Priority</span>
+              <select className={inputClass} value={priority} onChange={(e) => setPriority(e.target.value)}>
+                {['high', 'medium', 'low'].map((p) => (
+                  <option key={p} value={p}>
+                    {p}
                   </option>
                 ))}
               </select>

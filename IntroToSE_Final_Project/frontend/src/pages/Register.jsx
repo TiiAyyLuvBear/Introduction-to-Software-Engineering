@@ -26,7 +26,7 @@ export default function Register({ onLogin }) {
     try {
       setBusy(true)
       const res = await api.register({ name, email, password })
-      const payload = res?.data
+      const payload = res?.data?.data || res?.data || res
       if (!payload?.user || !payload?.accessToken) throw new Error(res?.error || 'Register failed')
       onLogin({ user: payload.user, accessToken: payload.accessToken, refreshToken: payload.refreshToken })
       navigate('/', { replace: true })

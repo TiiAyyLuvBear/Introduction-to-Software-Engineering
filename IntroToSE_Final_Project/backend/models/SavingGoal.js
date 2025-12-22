@@ -113,6 +113,7 @@ const SavingGoalSchema = new mongoose.Schema({
 // Index để query nhanh
 SavingGoalSchema.index({ userId: 1, status: 1 })
 SavingGoalSchema.index({ userId: 1, deadline: 1 })
+SavingGoalSchema.index({ walletId: 1, name: 1 })
 
 /**
  * METHOD: Tính % tiến độ đã đạt được
@@ -173,6 +174,17 @@ SavingGoalSchema.methods.isOnTrack = function() {
  * METHOD: Format thông tin để hiển thị
  */
 SavingGoalSchema.methods.getDisplayInfo = function() {
+  const wallet = this.walletId && this.walletId.name
+    ? {
+        id: this.walletId._id,
+        name: this.walletId.name,
+        type: this.walletId.type,
+        currency: this.walletId.currency,
+        currentBalance: this.walletId.currentBalance,
+        isShared: this.walletId.isShared,
+      }
+    : null
+
   return {
     id: this._id,
     name: this.name,
@@ -187,6 +199,7 @@ SavingGoalSchema.methods.getDisplayInfo = function() {
     description: this.description,
     image: this.image,
     walletId: this.walletId,
+    wallet,
     status: this.status,
     priority: this.priority,
     contributionCount: this.contributions?.length || 0,
@@ -275,7 +288,7 @@ SavingGoalSchema.statics.getUserGoals = async function(userId, options = {}) {
   if (priority) query.priority = priority
   
   const goals = await this.find(query)
-    .populate('walletId', 'name type balance')
+    .populate('walletId', 'name type currency currentBalance isShared')
     .sort({ priority: -1, createdAt: -1 })
   
   return goals.map(goal => goal.getDisplayInfo())
@@ -290,7 +303,7 @@ SavingGoalSchema.statics.getGoalsByDeadline = async function(userId) {
     status: 'active',
     deadline: { $exists: true, $ne: null }
   })
-  .populate('walletId', 'name type balance')
+  .populate('walletId', 'name type currency currentBalance isShared')
   .sort({ deadline: 1 })
   
   return goals.map(goal => goal.getDisplayInfo())

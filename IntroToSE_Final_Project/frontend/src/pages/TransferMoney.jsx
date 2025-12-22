@@ -29,10 +29,17 @@ export default function TransferMoney() {
         const walletsRes = await api.listWallets()
         const list = walletsRes?.data?.wallets || walletsRes?.wallets || walletsRes?.data || walletsRes || []
         if (!mounted) return
-        const arr = Array.isArray(list) ? list : []
-        setWallets(arr)
-        if (!fromId && arr[0]?._id) setFromId(arr[0]._id)
-        if (!toId && (arr[1]?._id || arr[0]?._id)) setToId(arr[1]?._id || arr[0]?._id)
+        const all = Array.isArray(list) ? list : []
+        const editable = all.filter((w) => {
+          const p = w?.myPermission
+          return p === 'owner' || p === 'edit'
+        })
+        setWallets(editable)
+
+        const firstId = editable[0]?.id || editable[0]?._id || ''
+        const secondId = editable[1]?.id || editable[1]?._id || firstId
+        if (!fromId && firstId) setFromId(firstId)
+        if (!toId && secondId) setToId(secondId)
       } catch {
         // ignore
       }
@@ -49,7 +56,10 @@ export default function TransferMoney() {
   const submit = (e) => {
     e.preventDefault()
 
-    if (!fromId || !toId || fromId === toId) return
+    if (!fromId || !toId || fromId === toId) {
+      setError('Please select two different wallets with edit permission')
+      return
+    }
 
     setError('')
     setBusy(true)
@@ -122,12 +132,17 @@ export default function TransferMoney() {
           ) : null}
 
           <form onSubmit={submit} className="mt-5 grid gap-4">
+            {!wallets.length ? (
+              <div className="rounded-xl border border-border-dark bg-surface-dark p-3 text-sm text-text-secondary">
+                You need at least one wallet with edit permission.
+              </div>
+            ) : null}
             <div className="grid gap-4 sm:grid-cols-2">
               <label className="grid gap-2">
                 <span className="text-sm font-medium text-white">From</span>
                 <select className={inputClass} value={fromId} onChange={(e) => setFromId(e.target.value)}>
                   {wallets.map((w) => (
-                    <option key={w._id} value={w._id}>
+                    <option key={w.id || w._id} value={w.id || w._id}>
                       {w.name}
                     </option>
                   ))}
@@ -137,7 +152,7 @@ export default function TransferMoney() {
                 <span className="text-sm font-medium text-white">To</span>
                 <select className={inputClass} value={toId} onChange={(e) => setToId(e.target.value)}>
                   {wallets.map((w) => (
-                    <option key={w._id} value={w._id}>
+                    <option key={w.id || w._id} value={w.id || w._id}>
                       {w.name}
                     </option>
                   ))}

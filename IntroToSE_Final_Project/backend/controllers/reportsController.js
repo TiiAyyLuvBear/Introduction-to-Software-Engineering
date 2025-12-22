@@ -1,5 +1,6 @@
 import mongoose from 'mongoose'
 import Transaction from '../models/Transaction.js'
+import Wallet from '../models/Wallet.js'
 
 function parseDateMaybe(value) {
   if (!value) return null
@@ -7,9 +8,23 @@ function parseDateMaybe(value) {
   return Number.isNaN(d.getTime()) ? null : d
 }
 
-function buildMatch(userId, startDate, endDate, walletId) {
-  const match = { userId: new mongoose.Types.ObjectId(userId) }
-  if (walletId) match.walletId = new mongoose.Types.ObjectId(walletId)
+async function getAccessibleWalletIds(userId) {
+  const wallets = await Wallet.find({
+    status: 'active',
+    $or: [{ userId }, { ownerId: userId }, { 'members.userId': userId }],
+  }).select('_id')
+
+  return wallets.map((w) => w._id)
+}
+
+function buildMatch(walletIds, startDate, endDate, walletId) {
+  const match = {}
+
+  if (walletId) {
+    match.walletId = new mongoose.Types.ObjectId(walletId)
+  } else {
+    match.walletId = { $in: walletIds.map((id) => new mongoose.Types.ObjectId(id)) }
+  }
 
   if (startDate || endDate) {
     match.date = {}
@@ -31,7 +46,13 @@ export const getSummary = async (req, res) => {
       return res.status(400).json({ error: 'Invalid walletId' })
     }
 
-    const match = buildMatch(userId, startDate, endDate, walletId)
+    const walletIds = await getAccessibleWalletIds(userId)
+    if (walletId) {
+      const allowed = walletIds.some((id) => id.toString() === walletId)
+      if (!allowed) return res.status(404).json({ error: 'Wallet not found' })
+    }
+
+    const match = buildMatch(walletIds, startDate, endDate, walletId)
 
     const rows = await Transaction.aggregate([
       { $match: match },
@@ -79,7 +100,13 @@ export const getByCategory = async (req, res) => {
       return res.status(400).json({ error: 'Invalid type' })
     }
 
-    const match = buildMatch(userId, startDate, endDate, walletId)
+    const walletIds = await getAccessibleWalletIds(userId)
+    if (walletId) {
+      const allowed = walletIds.some((id) => id.toString() === walletId)
+      if (!allowed) return res.status(404).json({ error: 'Wallet not found' })
+    }
+
+    const match = buildMatch(walletIds, startDate, endDate, walletId)
     if (type) match.type = type
 
     const rows = await Transaction.aggregate([
@@ -121,7 +148,8 @@ export const getByWallet = async (req, res) => {
       return res.status(400).json({ error: 'Invalid type' })
     }
 
-    const match = buildMatch(userId, startDate, endDate, null)
+    const walletIds = await getAccessibleWalletIds(userId)
+    const match = buildMatch(walletIds, startDate, endDate, null)
     if (type) match.type = type
 
     const rows = await Transaction.aggregate([
@@ -176,7 +204,13 @@ export const getBarChart = async (req, res) => {
       return res.status(400).json({ error: 'Invalid interval' })
     }
 
-    const match = buildMatch(userId, startDate, endDate, walletId)
+    const walletIds = await getAccessibleWalletIds(userId)
+    if (walletId) {
+      const allowed = walletIds.some((id) => id.toString() === walletId)
+      if (!allowed) return res.status(404).json({ error: 'Wallet not found' })
+    }
+
+    const match = buildMatch(walletIds, startDate, endDate, walletId)
     if (type) match.type = type
 
     const format = interval === 'month' ? '%Y-%m' : '%Y-%m-%d'

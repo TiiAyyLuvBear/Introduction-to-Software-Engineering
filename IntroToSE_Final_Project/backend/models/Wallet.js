@@ -395,8 +395,23 @@ WalletSchema.statics.getUserWallets = async function(userId, status = 'active') 
       { 'members.userId': userId },
     ],
   }).sort({ createdAt: -1 })
-  
-  return wallets.map(wallet => wallet.getDisplayInfo())
+
+  const uid = userId?.toString()
+  return wallets.map((wallet) => {
+    const info = wallet.getDisplayInfo()
+    const ownerId = wallet.ownerId?.toString()
+    const primaryOwnerId = wallet.userId?.toString()
+
+    let myPermission = null
+    if (uid && (ownerId === uid || primaryOwnerId === uid)) {
+      myPermission = 'owner'
+    } else if (uid && Array.isArray(wallet.members)) {
+      const member = wallet.members.find((m) => m.userId?.toString() === uid)
+      myPermission = member?.permission || null
+    }
+
+    return { ...info, myPermission }
+  })
 }
 
 export default mongoose.model('Wallet', WalletSchema)

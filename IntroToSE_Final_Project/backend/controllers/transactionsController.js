@@ -1,5 +1,6 @@
-import mongoose from 'mongoose'
 import Transaction from '../models/Transaction.js'
+<<<<<<< Updated upstream
+=======
 import Wallet from '../models/Wallet.js'
 import { buildTransactionQuery } from '../utils/transactionFilter.js'
 import { withMongoSession } from '../utils/mongoSession.js'
@@ -8,13 +9,38 @@ function signedAmount(type, amount){
   return type === 'income' ? amount : -amount
 }
 
-function canAccessWallet(wallet, userId){
-  if(!wallet || !userId) return false
-  if(wallet.userId?.toString() === userId.toString()) return true
-  if(wallet.ownerId?.toString() === userId.toString()) return true
-  if(Array.isArray(wallet.members) && wallet.members.some(m => m.userId?.toString() === userId.toString())) return true
-  return false
+function getWalletPermission(wallet, userId){
+  if(!wallet || !userId) return null
+
+  const uid = userId.toString()
+  if(wallet.userId?.toString() === uid) return 'owner'
+  if(wallet.ownerId?.toString() === uid) return 'owner'
+
+  const member = Array.isArray(wallet.members)
+    ? wallet.members.find(m => m.userId?.toString() === uid)
+    : null
+
+  return member?.permission || null
 }
+
+function canViewWallet(wallet, userId){
+  return Boolean(getWalletPermission(wallet, userId))
+}
+
+function canEditWallet(wallet, userId){
+  const p = getWalletPermission(wallet, userId)
+  return p === 'owner' || p === 'edit'
+}
+
+async function getAccessibleWalletIds(userId){
+  const wallets = await Wallet.find({
+    status: 'active',
+    $or: [{ userId }, { ownerId: userId }, { 'members.userId': userId }],
+  }).select('_id')
+
+  return wallets.map(w => w._id)
+}
+>>>>>>> Stashed changes
 
 /**
  * Controller: Lấy danh sách transactions
@@ -38,11 +64,24 @@ function canAccessWallet(wallet, userId){
  */
 export async function getTransactions(req, res){
   try{
+<<<<<<< Updated upstream
+    // Sort theo date giảm dần (-1) để lấy mới nhất
+    const list = await Transaction.find().sort({date:-1}).limit(200)
+=======
     const userId = req.user?.id
     if(!userId) return res.status(401).json({ error: 'Unauthorized' })
 
-    const { filter, sort, limit, skip } = buildTransactionQuery({ userId, query: req.query })
+    const walletIds = await getAccessibleWalletIds(userId)
+
+    const requestedWalletId = String(req.query.walletId || '').trim()
+    if(requestedWalletId && mongoose.Types.ObjectId.isValid(requestedWalletId)){
+      const isAllowed = walletIds.some(id => id.toString() === requestedWalletId)
+      if(!isAllowed) return res.status(404).json({ error: 'Wallet not found' })
+    }
+
+    const { filter, sort, limit, skip } = buildTransactionQuery({ userId, walletIds, query: req.query })
     const list = await Transaction.find(filter).sort(sort).skip(skip).limit(limit)
+>>>>>>> Stashed changes
     res.json(list)
   }catch(err){
     console.error(err)
@@ -75,15 +114,21 @@ export async function getTransactions(req, res){
  */
 export async function createTransaction(req, res){
   try{
-    const userId = req.user?.id
-    if(!userId) return res.status(401).json({ error: 'Unauthorized' })
-
-    const { amount, type, walletId, categoryId, category, account, date, note } = req.body
-
-    // Validate amount/type/walletId
-    if(typeof amount !== 'number' || amount <= 0 || !['income','expense'].includes(type)){
+    const { amount, type, category, account, date, note } = req.body
+    
+    // Validate amount và type
+    if(typeof amount !== 'number' || !['income','expense'].includes(type)){
       return res.status(400).json({error: 'Invalid payload'})
     }
+<<<<<<< Updated upstream
+    
+    const tx = new Transaction({ amount, type, category, account, date, note })
+    await tx.save()
+    res.status(201).json(tx)
+  }catch(err){
+    console.error(err)
+    res.status(500).json({error: 'Server error'})
+=======
     if(!walletId || !mongoose.Types.ObjectId.isValid(walletId)){
       return res.status(400).json({error: 'Invalid walletId'})
     }
@@ -93,9 +138,14 @@ export async function createTransaction(req, res){
 
     const created = await withMongoSession(async (session) => {
       const wallet = await Wallet.findById(walletId).session(session)
-      if(!wallet || !canAccessWallet(wallet, userId)){
+      if(!wallet || !canViewWallet(wallet, userId)){
         const err = new Error('Wallet not found')
         err.status = 404
+        throw err
+      }
+      if(!canEditWallet(wallet, userId)){
+        const err = new Error('Insufficient permission')
+        err.status = 403
         throw err
       }
 
@@ -156,16 +206,29 @@ export async function transferMoney(req, res){
         Wallet.findById(toWalletId).session(session),
       ])
 
-      if(!fromWallet || !canAccessWallet(fromWallet, userId)){
+      if(!fromWallet || !canViewWallet(fromWallet, userId)){
         const err = new Error('From wallet not found')
         err.status = 404
         throw err
       }
-      if(!toWallet || !canAccessWallet(toWallet, userId)){
+      if(!toWallet || !canViewWallet(toWallet, userId)){
         const err = new Error('To wallet not found')
         err.status = 404
         throw err
       }
+
+      if(!canEditWallet(fromWallet, userId) || !canEditWallet(toWallet, userId)){
+        const err = new Error('Insufficient permission')
+        err.status = 403
+        throw err
+      }
+
+	  // Prevent transferring more than available balance
+	  if (Number(fromWallet.currentBalance || 0) < Number(amount || 0)) {
+		const err = new Error('Insufficient funds')
+		err.status = 400
+		throw err
+	  }
 
       const when = date ? new Date(date) : new Date()
 
@@ -205,6 +268,7 @@ export async function transferMoney(req, res){
   }catch(err){
     console.error(err)
     res.status(err.status || 500).json({ error: err.status ? err.message : 'Server error' })
+>>>>>>> Stashed changes
   }
 }
 
@@ -224,14 +288,15 @@ export async function transferMoney(req, res){
  */
 export async function deleteTransaction(req, res){
   try{
-    const userId = req.user?.id
-    if(!userId) return res.status(401).json({ error: 'Unauthorized' })
-
     const { id } = req.params
+<<<<<<< Updated upstream
+    const t = await Transaction.findByIdAndDelete(id)
+    if(!t) return res.status(404).json({error: 'Not found'})
+=======
     if(!mongoose.Types.ObjectId.isValid(id)) return res.status(400).json({ error: 'Invalid id' })
 
     await withMongoSession(async (session) => {
-      const tx = await Transaction.findOne({ _id: id, userId }).session(session)
+      const tx = await Transaction.findById(id).session(session)
       if(!tx){
         const err = new Error('Not found')
         err.status = 404
@@ -239,9 +304,14 @@ export async function deleteTransaction(req, res){
       }
 
       const wallet = await Wallet.findById(tx.walletId).session(session)
-      if(!wallet || !canAccessWallet(wallet, userId)){
+      if(!wallet || !canViewWallet(wallet, userId)){
         const err = new Error('Wallet not found')
         err.status = 404
+        throw err
+      }
+      if(!canEditWallet(wallet, userId)){
+        const err = new Error('Insufficient permission')
+        err.status = 403
         throw err
       }
 
@@ -251,25 +321,29 @@ export async function deleteTransaction(req, res){
       await Transaction.deleteOne({ _id: tx._id }).session(session)
       return true
     })
+>>>>>>> Stashed changes
     res.json({ success: true })
   }catch(err){
     console.error(err)
-    res.status(err.status || 500).json({error: err.status ? err.message : 'Server error'})
+    res.status(500).json({error: 'Server error'})
   }
 }
 
 export async function updateTransaction(req, res){
   try{
-    const userId = req.user?.id
-    if(!userId) return res.status(401).json({ error: 'Unauthorized' })
-
     const { id } = req.params
-    if(!mongoose.Types.ObjectId.isValid(id)) return res.status(400).json({ error: 'Invalid id' })
-
-    const { amount, type, walletId, categoryId, category, account, date, note } = req.body
-    if(typeof amount !== 'number' || amount <= 0 || !['income','expense'].includes(type)){
+    const { amount, type, category, account, date, note } = req.body
+    if(typeof amount !== 'number' || !['income','expense'].includes(type)){
       return res.status(400).json({error: 'Invalid payload'})
     }
+<<<<<<< Updated upstream
+    const updated = await Transaction.findByIdAndUpdate(
+      id,
+      { amount, type, category, account, date, note },
+      { new: true }
+    )
+    if(!updated) return res.status(404).json({error: 'Not found'})
+=======
     if(walletId && !mongoose.Types.ObjectId.isValid(walletId)){
       return res.status(400).json({error: 'Invalid walletId'})
     }
@@ -278,7 +352,7 @@ export async function updateTransaction(req, res){
     }
 
     const updated = await withMongoSession(async (session) => {
-      const tx = await Transaction.findOne({ _id: id, userId }).session(session)
+      const tx = await Transaction.findById(id).session(session)
       if(!tx){
         const err = new Error('Not found')
         err.status = 404
@@ -295,14 +369,20 @@ export async function updateTransaction(req, res){
         const oldWallet = await Wallet.findById(oldWalletId).session(session)
         const newWalletDoc = await Wallet.findById(newWalletId).session(session)
 
-        if(!oldWallet || !canAccessWallet(oldWallet, userId)){
+        if(!oldWallet || !canViewWallet(oldWallet, userId)){
           const err = new Error('Wallet not found')
           err.status = 404
           throw err
         }
-        if(!newWalletDoc || !canAccessWallet(newWalletDoc, userId)){
+        if(!newWalletDoc || !canViewWallet(newWalletDoc, userId)){
           const err = new Error('Wallet not found')
           err.status = 404
+          throw err
+        }
+
+        if(!canEditWallet(oldWallet, userId) || !canEditWallet(newWalletDoc, userId)){
+          const err = new Error('Insufficient permission')
+          err.status = 403
           throw err
         }
 
@@ -313,9 +393,15 @@ export async function updateTransaction(req, res){
         await newWalletDoc.save({ session })
       }else{
         const wallet = await Wallet.findById(newWalletId).session(session)
-        if(!wallet || !canAccessWallet(wallet, userId)){
+        if(!wallet || !canViewWallet(wallet, userId)){
           const err = new Error('Wallet not found')
           err.status = 404
+          throw err
+        }
+
+        if(!canEditWallet(wallet, userId)){
+          const err = new Error('Insufficient permission')
+          err.status = 403
           throw err
         }
 
@@ -337,9 +423,10 @@ export async function updateTransaction(req, res){
       await tx.save({ session })
       return tx
     })
+>>>>>>> Stashed changes
     res.json(updated)
   }catch(err){
     console.error(err)
-    res.status(err.status || 500).json({error: err.status ? err.message : 'Server error'})
+    res.status(500).json({error: 'Server error'})
   }
 }

@@ -18,6 +18,8 @@ import 'dotenv/config'
 import express from 'express'
 import mongoose from 'mongoose'
 import cors from 'cors'
+import path from 'path'
+import { fileURLToPath } from 'url'
 
 // Import routers
 import authRouter from './routes/auth.js'
@@ -34,6 +36,9 @@ import reportsRouter from './routes/reports.js'
 // Khởi tạo Express app
 const app = express()
 
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
+
 /**
  * Middleware: CORS (Cross-Origin Resource Sharing)
  * Cho phép frontend (localhost:5173) gọi API từ backend (localhost:4000)
@@ -47,6 +52,9 @@ app.use(cors())
  * Truy cập qua req.body trong controllers
  */
 app.use(express.json())
+
+// Serve uploaded files (e.g., avatars)
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')))
 
 /**
  * Đăng ký routes (API endpoints)

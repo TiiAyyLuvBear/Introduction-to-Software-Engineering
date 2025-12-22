@@ -18,6 +18,11 @@ export default function Savings() {
   const [contributeNote, setContributeNote] = React.useState('')
   const [busy, setBusy] = React.useState(false)
   const [error, setError] = React.useState('')
+
+  const [contribThisMonthPct, setContribThisMonthPct] = React.useState(0)
+  const [progressDeltaPct, setProgressDeltaPct] = React.useState(0)
+  const [recentContributions, setRecentContributions] = React.useState([])
+
   React.useEffect(() => {
     let mounted = true
     ;(async () => {
@@ -27,7 +32,12 @@ export default function Savings() {
         const walletsList = walletsRes?.data?.wallets || walletsRes?.wallets || walletsRes?.data || walletsRes || []
         if (!mounted) return
         setGoals(Array.isArray(list) ? list : [])
-        setWallets(Array.isArray(walletsList) ? walletsList : [])
+        const all = Array.isArray(walletsList) ? walletsList : []
+        const editable = all.filter((w) => {
+          const p = w?.myPermission
+          return p === 'owner' || p === 'edit'
+        })
+        setWallets(editable)
       } catch {
         // ignore
       }
@@ -39,11 +49,82 @@ export default function Savings() {
 
   const total = goals.reduce((s, g) => s + Number(g.currentAmount || 0), 0)
 
-  const recent = [
-    { id: 'r1', title: 'Auto-save Deposit', when: 'Today, 9:00 AM', amount: 50, icon: 'savings' },
-    { id: 'r2', title: 'Japan Trip', when: 'Yesterday', amount: 120, icon: 'flight' },
-    { id: 'r3', title: 'Emergency Fund', when: 'Oct 24, 2023', amount: 500, icon: 'health_and_safety' },
-  ]
+  const totalTarget = goals.reduce((s, g) => s + Number(g.targetAmount || 0), 0)
+  const monthlyRatePct = totalTarget > 0 ? (total / totalTarget) * 100 : 0
+  const activeGoalsCount = goals.filter((g) => (g.status || 'active') === 'active').length
+
+  React.useEffect(() => {
+    let mounted = true
+    ;(async () => {
+      try {
+        const now = new Date()
+        const start = new Date(now.getFullYear(), now.getMonth(), 1)
+
+        const res = await api.listTransactions({
+          startDate: start.toISOString(),
+          endDate: now.toISOString(),
+          q: 'Saving Goal',
+          limit: 200,
+        })
+        const list = res?.data?.transactions || res?.transactions || res?.data || res || []
+        const txns = Array.isArray(list) ? list : []
+
+        const contributed = txns
+          .filter((t) => String(t.type || '').toLowerCase() === 'expense')
+          .reduce((s, t) => s + Number(t.amount || 0), 0)
+
+        const baseline = Number(total || 0) - contributed
+        const pct = baseline > 0 ? (contributed / baseline) * 100 : 0
+
+        const prevProgressPct = totalTarget > 0 ? ((Number(total || 0) - contributed) / totalTarget) * 100 : 0
+        const delta = monthlyRatePct - prevProgressPct
+
+        if (!mounted) return
+        setContribThisMonthPct(Number.isFinite(pct) ? pct : 0)
+        setProgressDeltaPct(Number.isFinite(delta) ? delta : 0)
+      } catch {
+        if (!mounted) return
+        setContribThisMonthPct(0)
+        setProgressDeltaPct(0)
+      }
+    })()
+    return () => {
+      mounted = false
+    }
+  }, [total, totalTarget, monthlyRatePct])
+
+  React.useEffect(() => {
+    let mounted = true
+    ;(async () => {
+      try {
+        const res = await api.listTransactions({ q: 'Saving Goal', limit: 3 })
+        const list = res?.data?.transactions || res?.transactions || res?.data || res || []
+        const txns = Array.isArray(list) ? list : []
+
+        const items = txns
+          .filter((t) => String(t.type || '').toLowerCase() === 'expense')
+          .map((t) => {
+            const d = t.date ? new Date(t.date) : null
+            return {
+              id: t.id || t._id,
+              title: t.note || 'Saving Goal Contribution',
+              when: d && !Number.isNaN(d.getTime()) ? d.toLocaleString() : '',
+              amount: Number(t.amount || 0),
+              icon: 'savings',
+            }
+          })
+
+        if (!mounted) return
+        setRecentContributions(items)
+      } catch {
+        if (!mounted) return
+        setRecentContributions([])
+      }
+    })()
+    return () => {
+      mounted = false
+    }
+  }, [])
 
   const startContribute = (goal) => {
     const id = goal?.id || goal?._id
@@ -52,7 +133,7 @@ export default function Savings() {
     setContributeAmount('')
     setContributeAmountNum(NaN)
     setContributeNote('')
-    const preferred = goal?.walletId || wallets[0]?.id || wallets[0]?._id || ''
+    const preferred = goal?.wallet?.id || goal?.walletId?._id || goal?.walletId || wallets[0]?.id || wallets[0]?._id || ''
     setContributeWalletId(preferred)
   }
 
@@ -119,7 +200,8 @@ export default function Savings() {
             <div className="mt-2 text-3xl font-bold text-white">{formatMoney(total)}</div>
             <div className="mt-3 inline-flex items-center gap-1 rounded bg-primary/10 px-2 py-1 text-sm font-medium text-primary">
               <span className="material-symbols-outlined text-sm">trending_up</span>
-              +5.2% this month
+              {contribThisMonthPct >= 0 ? '+' : ''}
+              {Math.abs(contribThisMonthPct).toFixed(1)}% this month
             </div>
           </div>
 
@@ -128,10 +210,11 @@ export default function Savings() {
               <div className="text-xs font-bold uppercase tracking-wider text-text-secondary">Monthly Rate</div>
               <span className="material-symbols-outlined text-text-secondary">speed</span>
             </div>
-            <div className="mt-2 text-3xl font-bold text-white">15%</div>
+            <div className="mt-2 text-3xl font-bold text-white">{Math.round(monthlyRatePct)}%</div>
             <div className="mt-3 inline-flex items-center gap-1 rounded bg-primary/10 px-2 py-1 text-sm font-medium text-primary">
               <span className="material-symbols-outlined text-sm">arrow_upward</span>
-              +2.1% vs last month
+              {progressDeltaPct >= 0 ? '+' : ''}
+              {Math.abs(progressDeltaPct).toFixed(1)}% vs last month
             </div>
           </div>
 
@@ -141,7 +224,7 @@ export default function Savings() {
               <span className="material-symbols-outlined text-text-secondary">flag</span>
             </div>
             <div className="mt-2 text-3xl font-bold text-white">{goals.length}</div>
-            <div className="mt-3 text-sm font-medium text-white/60">Demo stat</div>
+            <div className="mt-3 text-sm font-medium text-white/60">{activeGoalsCount}</div>
           </div>
         </div>
 
@@ -316,18 +399,22 @@ export default function Savings() {
                 </button>
               </div>
               <div className="mt-6 flex flex-col gap-4">
-                {recent.map((r) => (
-                  <div key={r.id} className="flex items-center gap-3 border-b border-border-dark pb-3">
-                    <div className="rounded-lg bg-border-dark p-2 text-primary">
-                      <span className="material-symbols-outlined text-[20px]">{r.icon}</span>
+                {recentContributions.length ? (
+                  recentContributions.map((r) => (
+                    <div key={r.id} className="flex items-center gap-3 border-b border-border-dark pb-3">
+                      <div className="rounded-lg bg-border-dark p-2 text-primary">
+                        <span className="material-symbols-outlined text-[20px]">{r.icon}</span>
+                      </div>
+                      <div className="flex-1">
+                        <div className="text-sm font-bold text-white">{r.title}</div>
+                        <div className="text-xs text-text-secondary">{r.when}</div>
+                      </div>
+                      <div className="text-sm font-bold text-primary">+{formatMoney(Math.abs(r.amount))}</div>
                     </div>
-                    <div className="flex-1">
-                      <div className="text-sm font-bold text-white">{r.title}</div>
-                      <div className="text-xs text-text-secondary">{r.when}</div>
-                    </div>
-                    <div className="text-sm font-bold text-primary">+{formatMoney(Math.abs(r.amount))}</div>
-                  </div>
-                ))}
+                  ))
+                ) : (
+                  <div className="text-sm text-text-secondary">No contributions yet.</div>
+                )}
               </div>
             </div>
           </div>

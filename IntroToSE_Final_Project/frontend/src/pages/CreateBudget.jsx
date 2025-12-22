@@ -19,7 +19,12 @@ export default function CreateBudget() {
         const [catsRes, walletsRes] = await Promise.all([api.listCategories({ page: 1, limit: 100 }), api.listWallets()])
 
         const walletsList = walletsRes?.data?.wallets || walletsRes?.wallets || walletsRes || []
-        if (mounted) setWallets(Array.isArray(walletsList) ? walletsList : [])
+        const all = Array.isArray(walletsList) ? walletsList : []
+        const editable = all.filter((w) => {
+          const p = w?.myPermission
+          return p === 'owner' || p === 'edit'
+        })
+        if (mounted) setWallets(editable)
 
         const items = catsRes?.items || []
         if (!mounted) return
@@ -56,15 +61,25 @@ export default function CreateBudget() {
   const submit = (e) => {
     e.preventDefault()
 
+    if (!walletId) {
+      setError('You do not have any wallets with edit permission')
+      return
+    }
+
     setError('')
     setBusy(true)
     ;(async () => {
       try {
+        const amount = Number.isFinite(limitNum) ? limitNum : Number(limit) || 0
+        if (!(amount > 0)) {
+          setError('Spending limit must be greater than 0')
+          return
+        }
         await api.createBudget({
           walletId: walletId || undefined,
           name: name.trim() || undefined,
           categoryId: categoryId || undefined,
-          amount: Number.isFinite(limitNum) ? limitNum : Number(limit) || 0,
+          amount,
           period,
           startDate: new Date().toISOString(),
         })
@@ -111,9 +126,12 @@ export default function CreateBudget() {
                     </option>
                   ))
                 ) : (
-                  <option value="">No wallets</option>
+                  <option value="">No editable wallets</option>
                 )}
               </select>
+              {!wallets.length ? (
+                <div className="text-xs text-text-secondary">You need owner/edit permission to create budgets in a shared wallet.</div>
+              ) : null}
             </label>
 
             <label className="grid gap-2">
@@ -169,7 +187,7 @@ export default function CreateBudget() {
                 decimals={2}
                 placeholder="0.00"
                 required
-                min={0}
+                min={0.01}
                 onChangeValue={(n, raw) => {
                   setLimit(raw)
                   setLimitNum(n)
