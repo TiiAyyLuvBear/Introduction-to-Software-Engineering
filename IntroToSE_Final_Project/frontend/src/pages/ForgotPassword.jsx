@@ -1,7 +1,7 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
 
-import { api } from '../lib/api.js'
+// import { api } from '../lib/api.js'
 
 export default function ForgotPassword() {
   const [email, setEmail] = React.useState('')
@@ -13,8 +13,9 @@ export default function ForgotPassword() {
     setMessage('')
     try {
       setBusy(true)
-      const res = await api.forgotPassword({ email })
-      setMessage(res?.message || 'If this email exists, we have sent a link')
+      // const res = await api.forgotPassword({ email })
+      // setMessage(res?.message || 'If this email exists, we have sent a link')
+      setMessage('API call disabled - forgotPassword')
     } catch (err) {
       setMessage(err?.message || 'Failed to send reset link')
     } finally {
@@ -27,7 +28,7 @@ export default function ForgotPassword() {
       <div className="w-full max-w-[440px] rounded-2xl border border-border-dark bg-card-dark p-6">
         <h1 className="text-2xl font-black tracking-tight text-white">Reset your password</h1>
         <p className="mt-2 text-sm text-text-secondary">
-          Enter your email and we’ll send a reset link.
+          Enter your email and we'll send a reset link.
         </p>
 
         <form className="mt-6 flex flex-col gap-4" onSubmit={submit}>

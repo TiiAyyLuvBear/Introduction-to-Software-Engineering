@@ -1,10 +1,11 @@
 import React from 'react'
 
-import { api, getApiBaseUrl, setSession } from '../lib/api.js'
+// import { api, getApiBaseUrl, setSession } from '../lib/api.js'
 
 function getServerBaseUrl() {
   // API_BASE_URL defaults to http://localhost:4000/api
-  return getApiBaseUrl().replace(/\/api\/?$/, '')
+  // return getApiBaseUrl().replace(/\/api\/?$/, '')
+  return 'http://localhost:4000'
 }
 
 export default function Profile() {
@@ -18,12 +19,13 @@ export default function Profile() {
 
   const load = React.useCallback(async () => {
     setMessage('')
-    const res = await api.me()
-    const u = res?.user || res?.data?.user || res?.data || res
-    setUser(u)
-    setName(u?.name || '')
-    setEmail(u?.email || '')
-    setPhone(u?.phone || '')
+    // const res = await api.me()
+    // const u = res?.user || res?.data?.user || res?.data || res
+    // setUser(u)
+    // setName(u?.name || '')
+    // setEmail(u?.email || '')
+    // setPhone(u?.phone || '')
+    setMessage('API call disabled - me()')
   }, [])
 
   React.useEffect(() => {
@@ -35,11 +37,12 @@ export default function Profile() {
     setMessage('')
     try {
       setBusy(true)
-      const res = await api.updateMe({ name, email, phone })
-      const nextUser = res?.user || res?.data?.user || res?.data || res
-      setUser(nextUser)
-      setSession({ user: nextUser })
-      setMessage(res?.message || 'Profile updated')
+      // const res = await api.updateMe({ name, email, phone })
+      // const nextUser = res?.user || res?.data?.user || res?.data || res
+      // setUser(nextUser)
+      // setSession({ user: nextUser })
+      // setMessage(res?.message || 'Profile updated')
+      setMessage('API call disabled - updateMe()')
     } catch (err) {
       setMessage(err?.message || 'Failed to update profile')
     } finally {
@@ -52,11 +55,12 @@ export default function Profile() {
     setMessage('')
     try {
       setBusy(true)
-      const res = await api.uploadAvatar(file)
-      const nextUser = res?.user || res?.data?.user || res?.data || res
-      setUser(nextUser)
-      setSession({ user: nextUser })
-      setMessage(res?.message || 'Avatar updated')
+      // const res = await api.uploadAvatar(file)
+      // const nextUser = res?.user || res?.data?.user || res?.data || res
+      // setUser(nextUser)
+      // setSession({ user: nextUser })
+      // setMessage(res?.message || 'Avatar updated')
+      setMessage('API call disabled - uploadAvatar()')
     } catch (err) {
       setMessage(err?.message || 'Failed to upload avatar')
     } finally {

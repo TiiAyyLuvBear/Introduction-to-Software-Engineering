@@ -29,7 +29,7 @@ export default function Accounts() {
         avatarURL: userData.avatarURL || ''
       })
     }
-  }, [total])
+  }, []) // Empty dependency array - only run once on mount
 
   const handleSyncProfile = async () => {
     try {
@@ -415,15 +415,13 @@ export default function Accounts() {
                           onDragOver={handleDragOver}
                           onDrop={handleDrop}
                           onClick={() => !isUploading && fileInputRef.current?.click()}
-                          className={`
-                            relative rounded-lg border-2 border-dashed p-6 text-center cursor-pointer
-                            transition-all duration-200
-                            ${isDragging 
-                              ? 'border-primary bg-primary/10 scale-[1.02]' 
-                              : 'border-input-border bg-surface-dark hover:border-primary/50 hover:bg-surface-dark/80'
-                            }
-                            ${isUploading ? 'opacity-50 cursor-not-allowed' : ''}
-                          `}
+                          className={
+                            `relative rounded-lg border-2 border-dashed p-6 text-center cursor-pointer transition-all duration-200 ${
+                              isDragging 
+                                ? 'border-primary bg-primary/10 scale-105' 
+                                : 'border-input-border bg-surface-dark hover:border-primary/50 hover:bg-surface-dark/80'
+                            } ${isUploading ? 'opacity-50 cursor-not-allowed' : ''}`
+                          }
                         >
                           {isUploading ? (
                             // Uploading State
@@ -524,6 +522,5 @@ export default function Accounts() {
           </div>
         </div>
       </div>
-    </div>
   )
 }

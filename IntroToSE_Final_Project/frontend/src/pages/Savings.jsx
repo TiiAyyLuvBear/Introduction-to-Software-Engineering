@@ -27,17 +27,17 @@ export default function Savings() {
     let mounted = true
     ;(async () => {
       try {
-        const [res, walletsRes] = await Promise.all([api.listGoals(), api.listWallets()])
-        const list = res?.data || res || []
-        const walletsList = walletsRes?.data?.wallets || walletsRes?.wallets || walletsRes?.data || walletsRes || []
+        // const [res, walletsRes] = await Promise.all([api.listGoals(), api.listWallets()])
+        // const list = res?.data || res || []
+        // const walletsList = walletsRes?.data?.wallets || walletsRes?.wallets || walletsRes?.data || walletsRes || []
         if (!mounted) return
-        setGoals(Array.isArray(list) ? list : [])
-        const all = Array.isArray(walletsList) ? walletsList : []
-        const editable = all.filter((w) => {
-          const p = w?.myPermission
-          return p === 'owner' || p === 'edit'
-        })
-        setWallets(editable)
+        // setGoals(Array.isArray(list) ? list : [])
+        // const all = Array.isArray(walletsList) ? walletsList : []
+        // const editable = all.filter((w) => {
+        //   const p = w?.myPermission
+        //   return p === 'owner' || p === 'edit'
+        // })
+        // setWallets(editable)
       } catch {
         // ignore
       }
@@ -60,14 +60,14 @@ export default function Savings() {
         const now = new Date()
         const start = new Date(now.getFullYear(), now.getMonth(), 1)
 
-        const res = await api.listTransactions({
-          startDate: start.toISOString(),
-          endDate: now.toISOString(),
-          q: 'Saving Goal',
-          limit: 200,
-        })
-        const list = res?.data?.transactions || res?.transactions || res?.data || res || []
-        const txns = Array.isArray(list) ? list : []
+        // const res = await api.listTransactions({
+        //   startDate: start.toISOString(),
+        //   endDate: now.toISOString(),
+        //   q: 'Saving Goal',
+        //   limit: 200,
+        // })
+        // const list = res?.data?.transactions || res?.transactions || res?.data || res || []
+        const txns = []
 
         const contributed = txns
           .filter((t) => String(t.type || '').toLowerCase() === 'expense')
@@ -97,9 +97,9 @@ export default function Savings() {
     let mounted = true
     ;(async () => {
       try {
-        const res = await api.listTransactions({ q: 'Saving Goal', limit: 3 })
-        const list = res?.data?.transactions || res?.transactions || res?.data || res || []
-        const txns = Array.isArray(list) ? list : []
+        // const res = await api.listTransactions({ q: 'Saving Goal', limit: 3 })
+        // const list = res?.data?.transactions || res?.transactions || res?.data || res || []
+        const txns = []
 
         const items = txns
           .filter((t) => String(t.type || '').toLowerCase() === 'expense')
@@ -153,19 +153,20 @@ export default function Savings() {
     setBusy(true)
     setError('')
     try {
-      const res = await api.contributeToGoal(contributeGoalId, {
-        amount,
-        walletId: contributeWalletId,
-        note: contributeNote || undefined,
-        date: new Date().toISOString(),
-      })
-      const updated = res?.data?.goal || res?.data?.data?.goal || res?.data || null
-      if (updated) {
-        setGoals((prev) => prev.map((g) => ((g.id || g._id) === contributeGoalId ? { ...g, ...updated } : g)))
-      }
+      // const res = await api.contributeToGoal(contributeGoalId, {
+      //   amount,
+      //   walletId: contributeWalletId,
+      //   note: contributeNote || undefined,
+      //   date: new Date().toISOString(),
+      // })
+      // const updated = res?.data?.goal || res?.data?.data?.goal || res?.data || null
+      // if (updated) {
+      //   setGoals((prev) => prev.map((g) => ((g.id || g._id) === contributeGoalId ? { ...g, ...updated } : g)))
+      // }
       setContributeGoalId(null)
       setContributeAmount('')
       setContributeAmountNum(NaN)
+      setError('API call disabled - contributeToGoal()')
     } catch (e2) {
       setError(e2?.message || 'Failed to add money')
     } finally {

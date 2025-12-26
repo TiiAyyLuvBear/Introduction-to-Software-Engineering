@@ -1,7 +1,7 @@
 import React from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 
-import { api } from '../lib/api.js'
+// import { api } from '../lib/api.js'
 import FormattedNumberInput from '../components/FormattedNumberInput.jsx'
 
 function toNumber(value) {
@@ -33,20 +33,20 @@ export default function EditTransaction() {
     let mounted = true
     ;(async () => {
       try {
-        const [catsRes, walletsRes] = await Promise.all([
-          api.listCategories({ page: 1, limit: 200 }),
-          api.listWallets(),
-        ])
-        const items = catsRes?.items || []
-        const walletsList = walletsRes?.data?.wallets || walletsRes?.wallets || walletsRes?.data || walletsRes || []
+        // const [catsRes, walletsRes] = await Promise.all([
+        //   api.listCategories({ page: 1, limit: 200 }),
+        //   api.listWallets(),
+        // ])
+        // const items = catsRes?.items || []
+        // const walletsList = walletsRes?.data?.wallets || walletsRes?.wallets || walletsRes?.data || walletsRes || []
         if (!mounted) return
-        setCategories(Array.isArray(items) ? items : [])
-        const all = Array.isArray(walletsList) ? walletsList : []
-        const editable = all.filter((w) => {
-          const p = w?.myPermission
-          return p === 'owner' || p === 'edit'
-        })
-        setWallets(editable)
+        // setCategories(Array.isArray(items) ? items : [])
+        // const all = Array.isArray(walletsList) ? walletsList : []
+        // const editable = all.filter((w) => {
+        //   const p = w?.myPermission
+        //   return p === 'owner' || p === 'edit'
+        // })
+        // setWallets(editable)
       } catch {
         // ignore
       }
@@ -61,14 +61,14 @@ export default function EditTransaction() {
     let mounted = true
     ;(async () => {
       try {
-        const list = await api.listTransactions({ limit: 200 })
-        const found = (Array.isArray(list) ? list : []).find((t) => (t._id || t.id) === id)
+        // const list = await api.listTransactions({ limit: 200 })
+        // const found = (Array.isArray(list) ? list : []).find((t) => (t._id || t.id) === id)
         if (!mounted) return
-        if (!found) {
-          setError('Transaction not found')
-          return
-        }
-        setTx(found)
+        // if (!found) {
+        //   setError('Transaction not found')
+        //   return
+        // }
+        // setTx(found)
       } catch (e) {
         if (!mounted) return
         setError(e?.message || 'Failed to load transaction')
@@ -129,16 +129,17 @@ export default function EditTransaction() {
     ;(async () => {
       try {
         const category = categories.find((c) => c._id === categoryId)
-        await api.updateTransaction(id, {
-          amount: Math.abs(Number.isFinite(amountNum) ? amountNum : toNumber(amount)),
-          type,
-          walletId,
-          categoryId: categoryId || undefined,
-          category: category?.name || tx?.category,
-          date,
-          note,
-        })
-        navigate('/transactions')
+        // await api.updateTransaction(id, {
+        //   amount: Math.abs(Number.isFinite(amountNum) ? amountNum : toNumber(amount)),
+        //   type,
+        //   walletId,
+        //   categoryId: categoryId || undefined,
+        //   category: category?.name || tx?.category,
+        //   date,
+        //   note,
+        // })
+        // navigate('/transactions')
+        setError('API call disabled - updateTransaction()')
       } catch (e2) {
         setError(e2?.message || 'Failed to update transaction')
       } finally {

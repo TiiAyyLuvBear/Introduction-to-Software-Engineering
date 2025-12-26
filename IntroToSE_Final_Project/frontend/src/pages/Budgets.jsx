@@ -8,8 +8,9 @@ import MoreMenu from '../components/MoreMenu.jsx'
 export default function Budgets() {
   const navigate = useNavigate()
 
-  const me = getStoredUser()
-  const myUserId = me?.id || me?._id || ''
+  // const me = getStoredUser()
+  // const myUserId = me?.id || me?._id || ''
+  const myUserId = ''
 
   const canEditWallet = React.useCallback(
     (wallet) => {
@@ -33,10 +34,11 @@ export default function Budgets() {
     let mounted = true
     ;(async () => {
       try {
-        const res = await api.listBudgets()
-        const list = res?.data || res || []
+        // const res = await api.listBudgets()
+        // const list = res?.data || res || []
         if (!mounted) return
-        setBudgets(Array.isArray(list) ? list : [])
+        // setBudgets(Array.isArray(list) ? list : [])
+        setBudgets([])
       } catch {
         // ignore
       }
@@ -55,13 +57,15 @@ export default function Budgets() {
         const prevStart = new Date(now.getFullYear(), now.getMonth() - 1, 1)
         const prevEnd = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999)
 
-        const [thisRes, prevRes] = await Promise.all([
-          api.listTransactions({ startDate: thisStart.toISOString(), endDate: now.toISOString() }),
-          api.listTransactions({ startDate: prevStart.toISOString(), endDate: prevEnd.toISOString() }),
-        ])
+        // const [thisRes, prevRes] = await Promise.all([
+        //   api.listTransactions({ startDate: thisStart.toISOString(), endDate: now.toISOString() }),
+        //   api.listTransactions({ startDate: prevStart.toISOString(), endDate: prevEnd.toISOString() }),
+        // ])
 
-        const thisList = thisRes?.data?.transactions || thisRes?.transactions || thisRes?.data || thisRes || []
-        const prevList = prevRes?.data?.transactions || prevRes?.transactions || prevRes?.data || prevRes || []
+        // const thisList = thisRes?.data?.transactions || thisRes?.transactions || thisRes?.data || thisRes || []
+        // const prevList = prevRes?.data?.transactions || prevRes?.transactions || prevRes?.data || prevRes || []
+        const thisList = []
+        const prevList = []
         const thisTxns = Array.isArray(thisList) ? thisList : []
         const prevTxns = Array.isArray(prevList) ? prevList : []
 
@@ -101,7 +105,7 @@ export default function Budgets() {
     setBusyId(id)
     setError('')
     try {
-      await api.deleteBudget(id)
+      // await api.deleteBudget(id)
       setBudgets((prev) => prev.filter((b) => (b.id || b._id) !== id))
     } catch (e) {
       setError(e?.message || 'Failed to delete budget')

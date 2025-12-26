@@ -1,7 +1,7 @@
 import React from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 
-import { api } from '../lib/api.js'
+// import { api } from '../lib/api.js'
 
 export default function ResetPassword() {
   const navigate = useNavigate()
@@ -32,9 +32,10 @@ export default function ResetPassword() {
 
     try {
       setBusy(true)
-      const res = await api.resetPassword({ email, token, password })
-      setMessage(res?.message || 'Password updated successfully')
-      setTimeout(() => navigate('/login', { replace: true }), 700)
+      // const res = await api.resetPassword({ email, token, password })
+      // setMessage(res?.message || 'Password updated successfully')
+      // setTimeout(() => navigate('/login', { replace: true }), 700)
+      setMessage('API call disabled - resetPassword()')
     } catch (err) {
       setMessage(err?.message || 'Failed to reset password')
     } finally {

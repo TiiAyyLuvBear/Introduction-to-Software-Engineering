@@ -26,10 +26,10 @@ export default function TransferMoney() {
     let mounted = true
     ;(async () => {
       try {
-        const walletsRes = await api.listWallets()
-        const list = walletsRes?.data?.wallets || walletsRes?.wallets || walletsRes?.data || walletsRes || []
+        // const walletsRes = await api.listWallets()
+        // const list = walletsRes?.data?.wallets || walletsRes?.wallets || walletsRes?.data || walletsRes || []
         if (!mounted) return
-        const all = Array.isArray(list) ? list : []
+        const all = []
         const editable = all.filter((w) => {
           const p = w?.myPermission
           return p === 'owner' || p === 'edit'
@@ -65,14 +65,15 @@ export default function TransferMoney() {
     setBusy(true)
     ;(async () => {
       try {
-        await api.transfer({
-          fromWalletId: fromId,
-          toWalletId: toId,
-          amount: Math.abs(Number.isFinite(amountNum) ? amountNum : toNumber(amount)),
-          date,
-          note,
-        })
-        navigate('/transactions')
+        // await api.transfer({
+        //   fromWalletId: fromId,
+        //   toWalletId: toId,
+        //   amount: Math.abs(Number.isFinite(amountNum) ? amountNum : toNumber(amount)),
+        //   date,
+        //   note,
+        // })
+        // navigate('/transactions')
+        setError('API call disabled - transfer()')
       } catch (e2) {
         setError(e2?.message || 'Failed to transfer')
       } finally {

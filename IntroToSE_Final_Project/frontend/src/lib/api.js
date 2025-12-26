@@ -1,79 +1,150 @@
 // /**
-//  * @deprecated This file is deprecated. Please use services from @/services instead.
-//  *
-//  * This file now re-exports from the new services layer for backward compatibility.
-//  *
-//  * Migration guide:
-//  * OLD: import { api } from '@/lib/api'
-//  * NEW: import { authService, walletService } from '@/services'
+//  * API wrapper - provides a unified interface for all API calls
+//  * This wraps the individual service modules for easier imports
 //  */
 
-// // Re-export everything from services for backward compatibility
-// export {
-//   getApiBaseUrl,
-//   getAccessToken,
-//   getRefreshToken,
-//   getStoredUser,
-//   setSession,
-//   clearSession,
-//   request,
-// } from '../services/api.js'
+// import { request } from '../services/api.js'
 
-// import authService from '../services/authService.js'
-// import walletService from '../services/walletService.js'
-// import transactionService from '../services/transactionService.js'
-// import categoryService from '../services/categoryService.js'
-// import budgetService from '../services/budgetService.js'
-// import goalService from '../services/goalService.js'
-// import reportService from '../services/reportService.js'
-
-// /**
-//  * @deprecated Use individual services instead
-//  *
-//  * Example:
-//  * import { authService } from '@/services'
-//  * await authService.login({ email, password })
-//  */
+// // Wallet API
 // export const api = {
-//   // Auth
-//   register: authService.register,
-//   login: authService.login,
-//   logout: authService.logout,
-//   profile: authService.getProfile,
-//   me: authService.getMe,
+//     // Wallets
+//     listWallets: async (params = {}) => {
+//         return request('GET', '/api/wallets', null, params)
+//     },
 
-//   // Wallets
-//   listWallets: walletService.listWallets,
-//   createWallet: walletService.createWallet,
-//   updateWallet: walletService.updateWallet,
-//   deleteWallet: walletService.deleteWallet,
+//     createWallet: async (data) => {
+//         return request('POST', '/api/wallets', data)
+//     },
 
-//   // Categories
-//   listCategories: categoryService.listCategories,
-//   createCategory: categoryService.createCategory,
-//   updateCategory: categoryService.updateCategory,
-//   deleteCategory: categoryService.deleteCategory,
+//     updateWallet: async (id, data) => {
+//         return request('PUT', `/api/wallets/${id}`, data)
+//     },
 
-//   // Transactions
-//   listTransactions: transactionService.listTransactions,
-//   createTransaction: transactionService.createTransaction,
-//   deleteTransaction: transactionService.deleteTransaction,
-//   transfer: transactionService.transfer,
+//     deleteWallet: async (id) => {
+//         return request('DELETE', `/api/wallets/${id}`)
+//     },
 
-//   // Budgets
-//   listBudgets: budgetService.listBudgets,
-//   createBudget: budgetService.createBudget,
-//   deleteBudget: budgetService.deleteBudget,
+//     getWalletMembers: async (walletId) => {
+//         return request('GET', `/api/wallets/${walletId}/members`)
+//     },
 
-//   // Goals
-//   listGoals: goalService.listGoals,
-//   getGoal: goalService.getGoal,
-//   createGoal: goalService.createGoal,
-//   contributeToGoal: goalService.contributeToGoal,
+//     inviteWalletMember: async (walletId, data) => {
+//         return request('POST', `/api/wallets/${walletId}/invite`, data)
+//     },
 
-//   // Reports
-//   reportSummary: reportService.getSummary,
-//   reportByCategory: reportService.getByCategory,
-//   reportByWallet: reportService.getByWallet,
-//   reportBarChart: reportService.getBarChart,
+//     setWalletMemberPermission: async (walletId, memberId, data) => {
+//         return request('PUT', `/api/wallets/${walletId}/members/${memberId}/permission`, data)
+//     },
+
+//     removeWalletMember: async (walletId, memberId) => {
+//         return request('DELETE', `/api/wallets/${walletId}/members/${memberId}`)
+//     },
+
+//     transferWalletOwnership: async (walletId, data) => {
+//         return request('POST', `/api/wallets/${walletId}/transfer-ownership`, data)
+//     },
+
+//     leaveWallet: async (walletId) => {
+//         return request('POST', `/api/wallets/${walletId}/leave`)
+//     },
+
+//     // Invitations
+//     listPendingInvitations: async () => {
+//         return request('GET', '/api/invitations/pending')
+//     },
+
+//     respondToInvitation: async (invitationId, data) => {
+//         return request('POST', `/api/invitations/${invitationId}/respond`, data)
+//     },
+
+//     // Transactions
+//     listTransactions: async (params = {}) => {
+//         return request('GET', '/api/transactions', null, params)
+//     },
+
+//     createTransaction: async (data) => {
+//         return request('POST', '/api/transactions', data)
+//     },
+
+//     updateTransaction: async (id, data) => {
+//         return request('PUT', `/api/transactions/${id}`, data)
+//     },
+
+//     deleteTransaction: async (id) => {
+//         return request('DELETE', `/api/transactions/${id}`)
+//     },
+
+//     // Categories
+//     listCategories: async (params = {}) => {
+//         return request('GET', '/api/categories', null, params)
+//     },
+
+//     createCategory: async (data) => {
+//         return request('POST', '/api/categories', data)
+//     },
+
+//     updateCategory: async (id, data) => {
+//         return request('PUT', `/api/categories/${id}`, data)
+//     },
+
+//     deleteCategory: async (id) => {
+//         return request('DELETE', `/api/categories/${id}`)
+//     },
+
+//     // Budgets
+//     listBudgets: async (params = {}) => {
+//         return request('GET', '/api/budgets', null, params)
+//     },
+
+//     createBudget: async (data) => {
+//         return request('POST', '/api/budgets', data)
+//     },
+
+//     updateBudget: async (id, data) => {
+//         return request('PUT', `/api/budgets/${id}`, data)
+//     },
+
+//     deleteBudget: async (id) => {
+//         return request('DELETE', `/api/budgets/${id}`)
+//     },
+
+//     // Goals/Savings
+//     listGoals: async (params = {}) => {
+//         return request('GET', '/api/goals', null, params)
+//     },
+
+//     getGoal: async (id) => {
+//         return request('GET', `/api/goals/${id}`)
+//     },
+
+//     createGoal: async (data) => {
+//         return request('POST', '/api/goals', data)
+//     },
+
+//     updateGoal: async (id, data) => {
+//         return request('PUT', `/api/goals/${id}`, data)
+//     },
+
+//     deleteGoal: async (id) => {
+//         return request('DELETE', `/api/goals/${id}`)
+//     },
+
+//     contributeToGoal: async (id, data) => {
+//         return request('POST', `/api/goals/${id}/contribute`, data)
+//     },
+
+//     // Reports
+//     reportSummary: async (params = {}) => {
+//         return request('GET', '/api/reports/summary', null, params)
+//     },
+
+//     reportByCategory: async (params = {}) => {
+//         return request('GET', '/api/reports/by-category', null, params)
+//     },
+
+//     reportByWallet: async (params = {}) => {
+//         return request('GET', '/api/reports/by-wallet', null, params)
+//     },
 // }
+
+// export default api
