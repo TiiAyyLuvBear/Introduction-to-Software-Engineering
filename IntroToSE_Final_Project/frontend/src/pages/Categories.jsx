@@ -1,7 +1,7 @@
 import React from 'react'
 import { useNavigate } from 'react-router-dom'
 
-import { api } from '../lib/api.js'
+// import api from '../services/api.js'
 import MoreMenu from '../components/MoreMenu.jsx'
 
 export default function Categories() {

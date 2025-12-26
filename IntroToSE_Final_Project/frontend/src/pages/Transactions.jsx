@@ -1,7 +1,7 @@
 import React from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 
-import { api } from '../lib/api.js'
+import transactionService from '../services/transactionService.js'
 import { formatMoney } from '../lib/format.js'
 
 export default function Transactions() {
@@ -9,7 +9,6 @@ export default function Transactions() {
   const location = useLocation()
   const [items, setItems] = React.useState([])
   const [selected, setSelected] = React.useState(null)
-  const [walletNameById, setWalletNameById] = React.useState({})
 
   const qs = React.useMemo(() => new URLSearchParams(location.search), [location.search])
   const initialWalletId = qs.get('walletId') || ''
@@ -19,36 +18,61 @@ export default function Transactions() {
   const [typeFilter, setTypeFilter] = React.useState('all')
   const [categoryFilter, setCategoryFilter] = React.useState('all')
   const [monthFilter, setMonthFilter] = React.useState(initialWalletId ? 'all' : 'month')
+  const [refreshCounter, setRefreshCounter] = React.useState(0)
+
+  // Trigger refresh when navigating back from AddTransaction
+  React.useEffect(() => {
+    if (location.state?.refresh) {
+      setRefreshCounter(prev => prev + 1)
+      // Clear the state to prevent re-triggering
+      window.history.replaceState({}, document.title)
+    }
+  }, [location.state])
 
   React.useEffect(() => {
     let mounted = true
-    ;(async () => {
+    const fetchTransactions = async () => {
       try {
         const params = {}
         if (initialWalletId) params.walletId = initialWalletId
         if (initialQ) params.q = initialQ
-        const [t, w] = await Promise.all([api.listTransactions(params), api.listWallets()])
-        if (!mounted) return
-        setItems(Array.isArray(t) ? t : [])
-
-        const wallets = w?.data?.wallets || w?.data || w || []
-        const map = {}
-        for (const ww of wallets) {
-          const id = ww?.id || ww?._id
-          if (id) map[id] = ww?.name || String(id)
+        
+        const response = await transactionService.getTransactions(params)
+        if(response) {
+          console.log('[getTransactions] Response:', response.data);
+          console.log('Is array?', Array.isArray(response.data));
+          console.log('Type of response.data:', typeof response.data);
         }
-        setWalletNameById(map)
-      } catch {
-        // ignore
+        if (!mounted) return
+        
+        // Backend returns: { status, message, data: [transactions] }
+        // But if data is an object, we need to extract the array
+        let transactions = response?.data || []
+        
+        // If data is an object (not array), try to extract transactions
+        if (typeof transactions === 'object' && !Array.isArray(transactions)) {
+          // Try common field names
+          transactions = transactions.transactions || 
+                        transactions.data || 
+                        transactions.items || 
+                        Object.values(transactions) // Convert object values to array as fallback
+        }
+        
+        // Ensure it's an array
+        const transactionsArray = Array.isArray(transactions) ? transactions : []
+        console.log('Final transactions array:', transactionsArray)
+        setItems(transactionsArray)
+      } catch (error) {
+        console.error('Failed to fetch transactions:', error)
+        if (mounted) setItems([]) // Set empty array on error
       }
-    })()
-    return () => {
-      mounted = false
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialWalletId, initialQ])
+    fetchTransactions()
+    return () => { mounted = false }
+  }, [initialWalletId, initialQ, refreshCounter])
 
   const filtered = React.useMemo(() => {
+    // Ensure list is always an array
     let list = Array.isArray(items) ? items : []
 
     if (monthFilter === 'day' || monthFilter === 'month' || monthFilter === 'year') {
@@ -79,7 +103,9 @@ export default function Transactions() {
 
   const uniqueCategories = React.useMemo(() => {
     const set = new Set()
-    for (const t of items || []) {
+    // Ensure items is an array before iterating
+    const itemsArray = Array.isArray(items) ? items : []
+    for (const t of itemsArray) {
       if (t?.category) set.add(String(t.category))
     }
     return Array.from(set).sort((a, b) => a.localeCompare(b))
@@ -254,7 +280,6 @@ export default function Transactions() {
                   const isExpense = t.type === 'expense'
                   const isIncome = t.type === 'income'
                   const sign = isExpense ? '-' : isIncome ? '+' : ''
-                  const walletLabel = walletNameById[t.walletId] || t.wallet || t.walletId || '—'
                   return (
                     <tr
                       key={t._id || t.id}
@@ -263,8 +288,8 @@ export default function Transactions() {
                     >
                       <td className="px-4 py-4 font-medium text-white">{String(t.date || '').slice(0, 10)}</td>
                       <td className="px-4 py-4 text-text-secondary">{t.type}</td>
-                      <td className="px-4 py-4 text-text-secondary">{t.category || '—'}</td>
-                      <td className="px-4 py-4 text-text-secondary">{walletLabel}</td>
+                      <td className="px-4 py-4 text-text-secondary">{t.category || 'Uncategorized'}</td>
+                      <td className="px-4 py-4 text-text-secondary">Uncategorized</td>
                       <td className="px-4 py-4 text-right font-bold text-white">
                         {sign}{formatMoney(Math.abs(Number(t.amount || 0)))}
                       </td>
@@ -311,13 +336,11 @@ export default function Transactions() {
                 </div>
                 <div className="flex justify-between gap-4">
                   <span className="text-text-secondary">Category</span>
-                  <span className="font-medium text-white">{selected.category || '—'}</span>
+                  <span className="font-medium text-white">{selected.category || 'Uncategorized'}</span>
                 </div>
                 <div className="flex justify-between gap-4">
                   <span className="text-text-secondary">Wallet</span>
-                  <span className="font-medium text-white">
-                    {walletNameById[selected.walletId] || selected.wallet || selected.walletId || '—'}
-                  </span>
+                  <span className="font-medium text-white">Uncategorized</span>
                 </div>
                 <div className="flex justify-between gap-4">
                   <span className="text-text-secondary">Amount</span>
@@ -341,7 +364,7 @@ export default function Transactions() {
                     if (!id) return
                     if (!window.confirm('Delete this transaction?')) return
                     try {
-                      await api.deleteTransaction(id)
+                      await transactionService.deleteTransaction(id)
                       setItems((prev) => prev.filter((x) => (x._id || x.id) !== id))
                       setSelected(null)
                     } catch (e) {

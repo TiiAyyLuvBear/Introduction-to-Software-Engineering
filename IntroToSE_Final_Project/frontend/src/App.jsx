@@ -24,10 +24,16 @@ import CreateBudget from './pages/CreateBudget.jsx'
 
 import Sidebar from './components/Sidebar.jsx'
 
-import { clearSession, getStoredUser, setSession } from './lib/api.js'
+import tokenResolver from './services/tokenResolver.js'
 
 function getUser() {
-  return getStoredUser()
+  // Get user from localStorage
+  try {
+    const userStr = localStorage.getItem('ml_user')
+    return userStr ? JSON.parse(userStr) : null
+  } catch {
+    return null
+  }
 }
 
 export default function App() {
@@ -45,16 +51,23 @@ export default function App() {
   const onLogin = (u) => {
     // Accept either (a) just a user object, or (b) { user, accessToken, refreshToken }
     if (u && u.user && (u.accessToken || u.refreshToken)) {
-      setSession(u)
+      // Save tokens using tokenResolver
+      tokenResolver.setTokens(u.accessToken, u.refreshToken)
+      // Save user to localStorage
+      localStorage.setItem('ml_user', JSON.stringify(u.user))
       setUser(u.user)
       return
     }
-    setSession({ user: u })
+    // Fallback: just save user
+    localStorage.setItem('ml_user', JSON.stringify(u))
     setUser(u)
   }
 
   const onLogout = () => {
-    clearSession()
+    // Clear tokens using tokenResolver
+    tokenResolver.removeTokens()
+    // Clear user from localStorage
+    localStorage.removeItem('ml_user')
     setUser(null)
     navigate('/login', { replace: true })
   }

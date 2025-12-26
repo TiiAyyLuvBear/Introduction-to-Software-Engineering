@@ -1,7 +1,7 @@
 import React from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import authService from '../services/authService';
 
-import { api } from '../lib/api.js'
 
 export default function Register({ onLogin }) {
   const navigate = useNavigate()
@@ -25,11 +25,13 @@ export default function Register({ onLogin }) {
     }
     try {
       setBusy(true)
-      const res = await api.register({ name, email, password })
-      const payload = res?.data
-      if (!payload?.user || !payload?.accessToken) throw new Error(res?.error || 'Register failed')
-      onLogin({ user: payload.user, accessToken: payload.accessToken, refreshToken: payload.refreshToken })
-      navigate('/', { replace: true })
+      const response = await authService.register(email, password, name);
+      if(response) {
+        onLogin(response);
+        navigate('/dashboard');
+      } else {
+        alert('Register failed');
+      }
     } catch (err) {
       alert(err?.message || 'Register failed')
     } finally {

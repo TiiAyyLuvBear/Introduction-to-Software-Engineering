@@ -1,28 +1,39 @@
-import mongoose from 'mongoose'
+import mongoose from 'mongoose';
+import z from 'zod';
 
-/**
- * User Schema - Định nghĩa cấu trúc dữ liệu cho người dùng trong hệ thống
- * 
- * Schema này lưu trữ thông tin cơ bản của người dùng và sẽ được dùng để:
- * - Xác thực đăng nhập (authentication)
- * - Phân quyền dữ liệu (mỗi user chỉ thấy transactions/accounts của mình)
- * - Liên kết với các collections khác (transactions, categories, accounts)
- */
+export const RegisterValidation = z.object({
+  name: z.string().min(1),
+  email: z.email(),
+  password: z.string().min(6), // Password này để hash vào DB
+  token: z.string() // ID Token từ Firebase
+});
+
 const UserSchema = new mongoose.Schema({
-  // Tên hiển thị của người dùng
+  // Mongoose mặc định dùng _id là ObjectId, 
+  // nhưng của bạn có vẻ là chuỗi (String) từ Firebase/Auth service khác
+  _id: { type: String, required: true },
+
+  fullName: { type: String, default: "" },
   name: { type: String, required: true },
-  
-  // Email dùng để đăng nhập, phải unique (không trùng lặp)
-  // lowercase: tự động convert sang chữ thường
-  // trim: loại bỏ khoảng trắng đầu/cuối
-  email: { type: String, required: true, unique: true, lowercase: true, trim: true },
-  
-  // Mật khẩu - nên được hash bằng bcrypt trước khi lưu (sẽ implement sau)
-  password: { type: String, required: true },
-}, { 
-  // timestamps: true tự động thêm createdAt và updatedAt
-  timestamps: true 
-})
+  phoneNumber: { type: String, default: null },
+  avatarURL: { type: String, default: null },
+  email: { type: String, required: true, unique: true },
+
+  // Khớp chính xác tên biến có chữ W viết hoa
+  passWordHash: { type: String, default: null },
+
+  roles: { type: [String], default: ["user"] }
+}, {
+  // timestamps: true sẽ tự động quản lý createdAt/updatedAt 
+  // khớp với cấu trúc $date bạn đang có
+  timestamps: true,
+
+  // Quan trọng: Nếu bảng có sẵn tên là 'users' thì ghi 'users'
+  collection: 'users',
+
+  // QUAN TRỌNG: Cho phép custom _id (không tự động generate ObjectId)
+  _id: false
+});
 
 /**
  * Export model User
@@ -33,4 +44,4 @@ const UserSchema = new mongoose.Schema({
  * - User.findByIdAndUpdate() - Cập nhật user
  * - User.findByIdAndDelete() - Xóa user
  */
-export default mongoose.model('User', UserSchema)
+export default mongoose.model('User', UserSchema);

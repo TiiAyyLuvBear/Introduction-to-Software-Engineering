@@ -1,5 +1,4 @@
-import Account from '../models/Account.js'
-import mongoose from 'mongoose'
+import accountsService from '../services/accountsService.js';
 
 /**
  * Controller: Lấy danh sách accounts (có phân trang)
@@ -11,22 +10,15 @@ import mongoose from 'mongoose'
  * - Tính tổng balance để hiển thị trên dashboard
  * - Dropdown chọn account khi tạo transaction
  */
-export async function getAccounts(req, res){
-  try{
-    const page = Math.max(1, parseInt(req.query.page) || 1)
-    const limit = Math.min(100, parseInt(req.query.limit) || 20)
-    const skip = (page - 1) * limit
-    
-    // Sort theo tên để dễ tìm
-    const [items, total] = await Promise.all([
-      Account.find().sort({name:1}).skip(skip).limit(limit),
-      Account.countDocuments()
-    ])
-    res.json({ items, total, page, limit })
-  }catch(err){
-    console.error(err)
-    res.status(500).json({ error: 'Server error' })
-  }
+export async function getAccounts(req, res) {
+    try {
+        const { page, limit } = req.query;
+        const result = await accountsService.getAccounts({ page, limit });
+        res.json(result);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: err.message || 'Server error' });
+    }
 }
 
 /**
@@ -36,17 +28,21 @@ export async function getAccounts(req, res){
  * 
  * Use case: Xem balance và thông tin account trước khi edit
  */
-export async function getAccount(req, res){
-  try{
-    const { id } = req.params
-    if(!mongoose.Types.ObjectId.isValid(id)) return res.status(400).json({ error: 'Invalid id' })
-    const a = await Account.findById(id)
-    if(!a) return res.status(404).json({ error: 'Not found' })
-    res.json(a)
-  }catch(err){
-    console.error(err)
-    res.status(500).json({ error: 'Server error' })
-  }
+export async function getAccount(req, res) {
+    try {
+        const { id } = req.params;
+        const account = await accountsService.getAccountById(id);
+        res.json(account);
+    } catch (err) {
+        console.error(err);
+        if (err.message === 'Invalid account ID') {
+            return res.status(400).json({ error: err.message });
+        }
+        if (err.message === 'Account not found') {
+            return res.status(404).json({ error: err.message });
+        }
+        res.status(500).json({ error: err.message || 'Server error' });
+    }
 }
 
 /**
@@ -64,20 +60,18 @@ export async function getAccount(req, res){
  * 
  * Balance mặc định = 0 nếu không truyền
  */
-export async function createAccount(req, res){
-  try{
-    const { name, balance, currency, userId } = req.body
-    
-    // Chỉ validate name (bắt buộc), các field khác có default
-    if(!name) return res.status(400).json({ error: 'Missing name' })
-    
-    const acct = new Account({ name, balance: balance || 0, currency: currency || 'USD', userId })
-    await acct.save()
-    res.status(201).json(acct)
-  }catch(err){
-    console.error(err)
-    res.status(500).json({ error: 'Server error' })
-  }
+export async function createAccount(req, res) {
+    try {
+        const accountData = req.body;
+        const newAccount = await accountsService.createAccount(accountData);
+        res.status(201).json(newAccount);
+    } catch (err) {
+        console.error(err);
+        if (err.message === 'Account name is required') {
+            return res.status(400).json({ error: err.message });
+        }
+        res.status(500).json({ error: err.message || 'Server error' });
+    }
 }
 
 /**
@@ -95,19 +89,22 @@ export async function createAccount(req, res){
  * Note: Balance thường được cập nhật tự động khi thêm/xóa transactions
  * Chỉ edit manual khi cần điều chỉnh (VD: sai số, quên ghi transaction cũ)
  */
-export async function updateAccount(req, res){
-  try{
-    const { id } = req.params
-    if(!mongoose.Types.ObjectId.isValid(id)) return res.status(400).json({ error: 'Invalid id' })
-    
-    const updates = req.body
-    const a = await Account.findByIdAndUpdate(id, updates, { new: true })
-    if(!a) return res.status(404).json({ error: 'Not found' })
-    res.json(a)
-  }catch(err){
-    console.error(err)
-    res.status(500).json({ error: 'Server error' })
-  }
+export async function updateAccount(req, res) {
+    try {
+        const { id } = req.params;
+        const updates = req.body;
+        const updatedAccount = await accountsService.updateAccount(id, updates);
+        res.json(updatedAccount);
+    } catch (err) {
+        console.error(err);
+        if (err.message === 'Invalid account ID') {
+            return res.status(400).json({ error: err.message });
+        }
+        if (err.message === 'Account not found') {
+            return res.status(404).json({ error: err.message });
+        }
+        res.status(500).json({ error: err.message || 'Server error' });
+    }
 }
 
 /**
@@ -122,15 +119,19 @@ export async function updateAccount(req, res){
  * 
  * Hiện tại: Cho phép xóa tự do (approach 2)
  */
-export async function deleteAccount(req, res){
-  try{
-    const { id } = req.params
-    if(!mongoose.Types.ObjectId.isValid(id)) return res.status(400).json({ error: 'Invalid id' })
-    const a = await Account.findByIdAndDelete(id)
-    if(!a) return res.status(404).json({ error: 'Not found' })
-    res.json({ success: true })
-  }catch(err){
-    console.error(err)
-    res.status(500).json({ error: 'Server error' })
-  }
+export async function deleteAccount(req, res) {
+    try {
+        const { id } = req.params;
+        const result = await accountsService.deleteAccount(id);
+        res.json(result);
+    } catch (err) {
+        console.error(err);
+        if (err.message === 'Invalid account ID') {
+            return res.status(400).json({ error: err.message });
+        }
+        if (err.message === 'Account not found') {
+            return res.status(404).json({ error: err.message });
+        }
+        res.status(500).json({ error: err.message || 'Server error' });
+    }
 }

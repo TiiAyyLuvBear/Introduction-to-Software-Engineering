@@ -25,3 +25,20 @@ body {
 .material-symbols-outlined.outlined {
   font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
 }
+
+/* Drag & Drop Animations */
+@keyframes pulse-border {
+  0%, 100% {
+    border-color: theme(colors.primary);
+    box-shadow: 0 0 0 0 theme(colors.primary / 0.4);
+  }
+  50% {
+    border-color: theme(colors.primary);
+    box-shadow: 0 0 0 8px theme(colors.primary / 0);
+  }
+}
+
+.animate-pulse-border {
+  animation: pulse-border 2s ease-in-out infinite;
+}
+

@@ -1,6 +1,6 @@
 import React from 'react'
 
-import { api } from '../lib/api.js'
+// import { api } from '../lib/api.js'
 import { formatMoney } from '../lib/format.js'
 
 function downloadText(filename, text) {

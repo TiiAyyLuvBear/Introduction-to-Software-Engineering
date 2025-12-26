@@ -15,7 +15,8 @@
  */
 
 import mongoose from 'mongoose';
-
+import dotenv from 'dotenv';
+dotenv.config();
 const connectDB = async () => {
   try {
     // Connection options
@@ -24,6 +25,7 @@ const connectDB = async () => {
       useUnifiedTopology: true,
       serverSelectionTimeoutMS: 5000, // Timeout after 5s
       socketTimeoutMS: 45000, // Close sockets after 45s
+      dbName: '4money',
     };
 
     // Connect to MongoDB

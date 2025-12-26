@@ -21,8 +21,8 @@ export default function Sidebar({ onLogout }) {
           <div className="flex items-center gap-3">
             <span className="material-symbols-outlined text-primary">account_balance_wallet</span>
             <div>
-              <div className="text-base font-bold text-white">Money Lover</div>
-              <div className="text-xs font-medium text-text-secondary">Frontend demo</div>
+              <div className="text-base font-bold text-white">4Money</div>
+              <div className="text-xs font-medium text-text-secondary">Introduction to Software Engineering</div>
             </div>
           </div>
         </div>

@@ -1,7 +1,7 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
 
-import { api } from '../lib/api.js'
+// import { api } from '../lib/api.js'
 import { formatMoney } from '../lib/format.js'
 
 function toYmd(d) {

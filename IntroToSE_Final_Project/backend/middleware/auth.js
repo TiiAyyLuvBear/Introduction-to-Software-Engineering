@@ -1,28 +1,32 @@
 /**
- * AUTHENTICATION MIDDLEWARE - FIREBASE AUTH
+ * AUTHENTICATION MIDDLEWARE - JWT ONLY
  * 
- * Middleware này xác thực user bằng Firebase ID Token
+ * Middleware này xác thực user bằng JWT Token (do backend tạo)
  * 
  * LUỒNG XỬ LÝ:
- * 1. Client đăng nhập qua Firebase (Google, Email/Password)
- * 2. Firebase trả về ID Token
- * 3. Client gửi request kèm header: Authorization: Bearer <firebase-id-token>
- * 4. Middleware verify token với Firebase Admin SDK
- * 5. Nếu valid, lấy user info và sync với MongoDB
+ * 1. Client login qua Firebase → Backend verify Firebase token
+ * 2. Backend tạo JWT token và trả về client
+ * 3. Client lưu JWT token vào localStorage
+ * 4. Client gửi request kèm header: Authorization: Bearer <jwt-token>
+ * 5. Middleware verify JWT token
  * 6. Attach user vào req.user để controllers sử dụng
+ * 
+ * NOTE: Firebase CHỈ dùng cho login/register, KHÔNG dùng cho API authorization
  */
 
-import { auth as firebaseAuth } from '../config/firebase.js'
-import { sendUnauthorized, sendServerError } from '../utils/response.js'
+import { sendUnauthorized } from '../utils/response.js'
 import jwt from 'jsonwebtoken'
 import User from '../models/User.js'
+import dotenv from 'dotenv'
+
+dotenv.config()
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production'
 
 /**
  * MIDDLEWARE: Authenticate (Required)
  * 
- * Verify Firebase ID token và require authentication
+ * Verify JWT token và require authentication
  * Nếu không có token hoặc token invalid → return 401
  * 
  * Usage trong routes:
@@ -30,94 +34,68 @@ const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-producti
  * 
  * Sau khi pass middleware, req.user sẽ có:
  * {
+ *   id: String (user ID),
  *   _id: MongoDB ObjectId,
- *   firebaseUid: Firebase UID,
  *   email: User email,
- *   name: Display name
+ *   name: Display name,
+ *   firebaseUid: Firebase UID (optional)
  * }
  */
-export const authenticate = async (req, res, next) => {
+const authenticate = async (req, res, next) => {
   try {
     // 1. Lấy token từ Authorization header
-    const authHeader = req.headers.authorization
+    const authHeader = req.headers.authorization;
     
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return sendUnauthorized(res, 'No token provided. Header must be: Authorization: Bearer <token>')
     }
     
     // 2. Extract token (bỏ prefix 'Bearer ')
-    const idToken = authHeader.substring(7)
+    const token = authHeader.substring(7);
+    console.log("[MIDDLEWARE ACCESS TOKEN]: ", token);
     
-    if (!idToken) {
+    if (!token) {
       return sendUnauthorized(res, 'Token is empty')
     }
     
-    // 3) Try verify as our own JWT first (used by /api/auth/*)
+    // 3. Verify JWT token
+    let decoded;
     try {
-      const decoded = jwt.verify(idToken, JWT_SECRET)
-      if (decoded?.type !== 'access' || !decoded?.id) throw new Error('Not an access token')
-      const user = await User.findById(decoded.id).select('-password')
-      if (!user) return sendUnauthorized(res, 'User not found')
-
-      req.user = {
-        id: String(user._id),
-        _id: user._id,
-        email: user.email,
-        name: user.name,
-        firebaseUid: user.firebaseUid || null,
+      console.log("[MIDDLEWARE] Verifying token with JWT_SECRET:", JWT_SECRET);
+      decoded = jwt.verify(token, JWT_SECRET);
+      console.log("[MIDDLEWARE] Token verified successfully!");
+    } catch (error) {
+      console.log("[MIDDLEWARE] JWT Verification Error:");
+      console.log("  - Error name:", error.name);
+      console.log("  - Error message:", error.message);
+      console.log("  - JWT_SECRET used:", JWT_SECRET);
+      console.log("  - Token (first 50 chars):", token.substring(0, 50));
+      
+      if (error.name === 'TokenExpiredError') {
+        return sendUnauthorized(res, 'Token expired')
       }
-      return next()
-    } catch {
-      // Not a valid project JWT -> fallback to Firebase
-    }
-
-    // 4) Verify token with Firebase Admin SDK
-    if (!firebaseAuth) {
-      return sendUnauthorized(
-        res,
-        'Firebase auth is not configured. Set FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, FIREBASE_PRIVATE_KEY or use JWT login.'
-      )
-    }
-
-    let decodedToken
-    try {
-      decodedToken = await firebaseAuth.verifyIdToken(idToken)
-    } catch (firebaseError) {
-      console.error('Firebase token verification failed:', firebaseError.message)
-
-      if (firebaseError.code === 'auth/id-token-expired') {
-        return sendUnauthorized(res, 'Token expired. Please login again.')
+      if (error.name === 'JsonWebTokenError') {
+        return sendUnauthorized(res, 'Invalid token')
       }
-
-      if (firebaseError.code === 'auth/argument-error') {
-        return sendUnauthorized(res, 'Invalid token format')
-      }
-
-      return sendUnauthorized(res, 'Invalid token')
+      return sendUnauthorized(res, 'Token verification failed')
     }
-
-    // 5) Sync Firebase user with MongoDB
-    const { uid: firebaseUid, email, name: firebaseName } = decodedToken
-
-    if (!firebaseUid || !email) {
-      return sendUnauthorized(res, 'Token missing required fields (uid or email)')
+    
+    // 4. Validate token type
+    if (decoded?.type !== 'access' || !decoded?.id) {
+      return sendUnauthorized(res, 'Invalid token type')
     }
-
-    let user = await User.findOne({ firebaseUid })
-
+    
+    // 5. Find user in database
+    const user = await User.findById(decoded.id).select('-password')
+    
     if (!user) {
-      user = await User.create({
-        firebaseUid,
-        email,
-        name: firebaseName || email.split('@')[0],
-      })
-      console.log('Created new user in MongoDB:', { firebaseUid, email })
+      return sendUnauthorized(res, 'User not found')
     }
-
+    
+    // 6. Attach user to request
     req.user = {
       id: String(user._id),
       _id: user._id,
-      firebaseUid: user.firebaseUid,
       email: user.email,
       name: user.name,
     }
@@ -131,6 +109,7 @@ export const authenticate = async (req, res, next) => {
   }
 }
 
+export default authenticate;
 /**
  * MIDDLEWARE: Optional Authenticate
  * 
@@ -150,85 +129,85 @@ export const authenticate = async (req, res, next) => {
  *   // Guest user, show default content
  * }
  */
-export const optionalAuthenticate = async (req, res, next) => {
-  try {
-    const authHeader = req.headers.authorization
+// export const optionalAuthenticate = async (req, res, next) => {
+//   try {
+//     const authHeader = req.headers.authorization
     
-    // Nếu không có auth header, skip authentication
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      req.user = null
-      return next()
-    }
+//     // Nếu không có auth header, skip authentication
+//     if (!authHeader || !authHeader.startsWith('Bearer ')) {
+//       req.user = null
+//       return next()
+//     }
     
-    const idToken = authHeader.substring(7)
+//     const idToken = authHeader.substring(7)
     
-    if (!idToken) {
-      req.user = null
-      return next()
-    }
+//     if (!idToken) {
+//       req.user = null
+//       return next()
+//     }
     
-    // Try verify token (JWT first)
-    try {
-      const decoded = jwt.verify(idToken, JWT_SECRET)
-      if (decoded?.type === 'access' && decoded?.id) {
-        const user = await User.findById(decoded.id).select('-password')
-        if (user) {
-          req.user = {
-            id: String(user._id),
-            _id: user._id,
-            email: user.email,
-            name: user.name,
-            firebaseUid: user.firebaseUid || null,
-          }
-          return next()
-        }
-      }
-    } catch {
-      // ignore
-    }
+//     // Try verify token (JWT first)
+//     try {
+//       const decoded = jwt.verify(idToken, JWT_SECRET)
+//       if (decoded?.type === 'access' && decoded?.id) {
+//         const user = await User.findById(decoded.id).select('-password')
+//         if (user) {
+//           req.user = {
+//             id: String(user._id),
+//             _id: user._id,
+//             email: user.email,
+//             name: user.name,
+//             firebaseUid: user.firebaseUid || null,
+//           }
+//           return next()
+//         }
+//       }
+//     } catch {
+//       // ignore
+//     }
 
-    // Firebase fallback
-    if (!firebaseAuth) {
-      req.user = null
-      return next()
-    }
+//     // Firebase fallback
+//     if (!firebaseAuth) {
+//       req.user = null
+//       return next()
+//     }
 
-    try {
-      const decodedToken = await firebaseAuth.verifyIdToken(idToken)
-      const { uid: firebaseUid, email, name: firebaseName } = decodedToken
+//     try {
+//       const decodedToken = await firebaseAuth.verifyIdToken(idToken)
+//       const { uid: firebaseUid, email, name: firebaseName } = decodedToken
 
-      if (firebaseUid && email) {
-        let user = await User.findOne({ firebaseUid })
+//       if (firebaseUid && email) {
+//         let user = await User.findOne({ firebaseUid })
 
-        if (!user) {
-          user = await User.create({
-            firebaseUid,
-            email,
-            name: firebaseName || email.split('@')[0],
-          })
-        }
+//         if (!user) {
+//           user = await User.create({
+//             firebaseUid,
+//             email,
+//             name: firebaseName || email.split('@')[0],
+//           })
+//         }
 
-        req.user = {
-          id: String(user._id),
-          _id: user._id,
-          firebaseUid: user.firebaseUid,
-          email: user.email,
-          name: user.name,
-        }
-      } else {
-        req.user = null
-      }
-    } catch {
-      console.log('Optional auth: Token invalid, continuing as guest')
-      req.user = null
-    }
+//         req.user = {
+//           id: String(user._id),
+//           _id: user._id,
+//           firebaseUid: user.firebaseUid,
+//           email: user.email,
+//           name: user.name,
+//         }
+//       } else {
+//         req.user = null
+//       }
+//     } catch {
+//       console.log('Optional auth: Token invalid, continuing as guest')
+//       req.user = null
+//     }
     
-    next()
+//     next()
     
-  } catch (error) {
-    // Có lỗi xảy ra, nhưng vẫn cho pass với guest mode
-    console.error('Optional authentication error:', error)
-    req.user = null
-    next()
-  }
-}
+//   } catch (error) {
+//     // Có lỗi xảy ra, nhưng vẫn cho pass với guest mode
+//     console.error('Optional authentication error:', error)
+//     req.user = null
+//     next()
+//   }
+// }

@@ -1,7 +1,7 @@
 import React from 'react'
 import { useNavigate } from 'react-router-dom'
 
-import { api } from '../lib/api.js'
+import transactionService from '../services/transactionService.js'
 import FormattedNumberInput from '../components/FormattedNumberInput.jsx'
 
 function toNumber(value) {
@@ -66,24 +66,25 @@ export default function AddTransaction() {
     e.preventDefault()
 
     setError('')
-    if (!walletId) {
-      setError('Please select a wallet')
-      return
-    }
+    // if (!walletId) {
+    //   setError('Please select a wallet')
+    //   return
+    // }
     setBusy(true)
     ;(async () => {
       try {
         const category = categories.find((c) => c._id === categoryId)
-        await api.createTransaction({
+        await transactionService.createTransaction({
           amount: Math.abs(Number.isFinite(amountNum) ? amountNum : toNumber(amount)),
           type,
-          walletId,
+          walletId: walletId || undefined,
           categoryId: categoryId || undefined,
           category: category?.name,
           date,
           note,
         })
-        navigate('/transactions')
+        // Navigate with state to trigger refresh
+        navigate('/transactions', { state: { refresh: true } })
       } catch (e2) {
         setError(e2?.message || 'Failed to create transaction')
       } finally {
