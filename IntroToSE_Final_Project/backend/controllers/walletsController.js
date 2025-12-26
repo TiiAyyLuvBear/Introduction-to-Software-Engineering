@@ -1,8 +1,6 @@
 import Wallet from '../models/Wallet.js'
 import Invitation from '../models/Invitation.js'
 import User from '../models/User.js'
-<<<<<<< Updated upstream
-=======
 import Transaction from '../models/Transaction.js'
 import mongoose from 'mongoose'
 import { withMongoSession } from '../utils/mongoSession.js'
@@ -23,7 +21,6 @@ function isWalletOwner(wallet, userId) {
   if (wallet.userId?.toString() === uid) return true
   return false
 }
->>>>>>> Stashed changes
 
 /**
  * Wallets Controller - Handle Wallet Management Use Cases
@@ -168,8 +165,8 @@ export const getWallet = async (req, res) => {
     const { id } = req.params
     const userId = req.user?.id
 
-    const wallet = await Wallet.findOne({ 
-      _id: id, 
+    const wallet = await Wallet.findOne({
+      _id: id,
       userId,
       status: 'active'
     })
@@ -205,9 +202,9 @@ export const updateWallet = async (req, res) => {
     const { name, type, currency, description, status } = req.body
     const userId = req.user?.id
 
-    const wallet = await Wallet.findOne({ 
-      _id: id, 
-      userId 
+    const wallet = await Wallet.findOne({
+      _id: id,
+      userId
     })
 
     if (!wallet) {
@@ -221,7 +218,7 @@ export const updateWallet = async (req, res) => {
     if (name && name.trim()) {
       wallet.name = name.trim()
     }
-    
+
     if (type && ['Cash', 'Bank', 'Savings'].includes(type)) {
       wallet.type = type
     }
@@ -273,10 +270,10 @@ export const deleteWallet = async (req, res) => {
     const { id } = req.params
     const userId = req.user?.id
 
-    const wallet = await Wallet.findOne({ 
-      _id: id, 
+    const wallet = await Wallet.findOne({
+      _id: id,
       userId,
-      status: 'active' 
+      status: 'active'
     })
 
     if (!wallet) {
@@ -321,8 +318,8 @@ export const updateWalletBalance = async (req, res) => {
       })
     }
 
-    const wallet = await Wallet.findOne({ 
-      _id: id, 
+    const wallet = await Wallet.findOne({
+      _id: id,
       userId,
       status: 'active'
     })
@@ -468,9 +465,9 @@ export const inviteMember = async (req, res) => {
     }
 
     // Find wallet and verify ownership
-    const wallet = await Wallet.findOne({ 
-      _id: walletId, 
-      status: 'active' 
+    const wallet = await Wallet.findOne({
+      _id: walletId,
+      status: 'active'
     }).populate('members.userId', 'name email')
 
     if (!wallet) {
@@ -499,7 +496,7 @@ export const inviteMember = async (req, res) => {
     }
 
     // Check if user already a member
-    const existingMember = wallet.members.find(member => 
+    const existingMember = wallet.members.find(member =>
       member.userId._id.toString() === invitee._id.toString()
     )
     if (existingMember) {
@@ -1000,9 +997,9 @@ export const getWalletMembers = async (req, res) => {
     const { id: walletId } = req.params
     const userId = req.user?.id
 
-    const wallet = await Wallet.findOne({ 
-      _id: walletId, 
-      status: 'active' 
+    const wallet = await Wallet.findOne({
+      _id: walletId,
+      status: 'active'
     }).populate('members.userId', 'name email')
       .populate('ownerId', 'name email')
 
@@ -1014,7 +1011,7 @@ export const getWalletMembers = async (req, res) => {
     }
 
     // Check if user is member or owner
-    const isMember = wallet.members.some(member => 
+    const isMember = wallet.members.some(member =>
       member.userId._id.toString() === userId.toString()
     )
     const isOwner = wallet.ownerId && wallet.ownerId._id.toString() === userId.toString()
