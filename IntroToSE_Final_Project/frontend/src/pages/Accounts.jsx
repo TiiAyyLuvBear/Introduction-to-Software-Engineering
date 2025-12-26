@@ -29,7 +29,7 @@ export default function Accounts() {
         avatarURL: userData.avatarURL || ''
       })
     }
-  }, [])
+  }, [total])
 
   const handleSyncProfile = async () => {
     try {
@@ -520,6 +520,7 @@ export default function Accounts() {
                 <div className="text-sm text-text-secondary">Goals</div>
               </div>
             </div>
+          </div>
           </div>
         </div>
       </div>

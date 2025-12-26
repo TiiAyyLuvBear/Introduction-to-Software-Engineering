@@ -16,6 +16,7 @@ export default function CreateWallet() {
   const [balanceNum, setBalanceNum] = React.useState(0)
   const [type, setType] = React.useState('Cash')
   const [include, setInclude] = React.useState(true)
+  const [isShared, setIsShared] = React.useState(false)
   const [busy, setBusy] = React.useState(false)
   const [error, setError] = React.useState('')
 
@@ -34,6 +35,7 @@ export default function CreateWallet() {
           type,
           initialBalance: Number.isFinite(balanceNum) ? balanceNum : Number(balance) || 0,
           currency,
+          isShared,
         })
         navigate('/wallets')
       } catch (e2) {
@@ -147,6 +149,19 @@ export default function CreateWallet() {
                 type="checkbox"
                 checked={include}
                 onChange={(e) => setInclude(e.target.checked)}
+                className="h-5 w-5 accent-primary"
+              />
+            </label>
+
+            <label className="flex items-center justify-between gap-4 rounded-lg border border-border-dark bg-surface-dark px-4 py-3">
+              <div>
+                <div className="text-sm font-semibold text-white">Shared wallet</div>
+                <div className="text-xs text-text-secondary">Invite members and manage permissions.</div>
+              </div>
+              <input
+                type="checkbox"
+                checked={isShared}
+                onChange={(e) => setIsShared(e.target.checked)}
                 className="h-5 w-5 accent-primary"
               />
             </label>

@@ -3,13 +3,32 @@ import { useNavigate } from 'react-router-dom'
 
 // import { api } from '../lib/api.js'
 import { formatMoney } from '../lib/format.js'
+import MoreMenu from '../components/MoreMenu.jsx'
 
 export default function Budgets() {
   const navigate = useNavigate()
 
+  const me = getStoredUser()
+  const myUserId = me?.id || me?._id || ''
+
+  const canEditWallet = React.useCallback(
+    (wallet) => {
+      if (!wallet || !myUserId) return false
+      const uid = String(myUserId)
+      if (String(wallet.userId || '') === uid) return true
+      if (String(wallet.ownerId || '') === uid) return true
+      const member = Array.isArray(wallet.members)
+        ? wallet.members.find((m) => String(m.userId || '') === uid)
+        : null
+      return member?.permission === 'edit'
+    },
+    [myUserId]
+  )
+
   const [budgets, setBudgets] = React.useState([])
   const [busyId, setBusyId] = React.useState(null)
   const [error, setError] = React.useState('')
+  const [spentMoMPct, setSpentMoMPct] = React.useState(0)
   React.useEffect(() => {
     let mounted = true
     ;(async () => {
@@ -20,6 +39,46 @@ export default function Budgets() {
         setBudgets(Array.isArray(list) ? list : [])
       } catch {
         // ignore
+      }
+    })()
+    return () => {
+      mounted = false
+    }
+  }, [])
+
+  React.useEffect(() => {
+    let mounted = true
+    ;(async () => {
+      try {
+        const now = new Date()
+        const thisStart = new Date(now.getFullYear(), now.getMonth(), 1)
+        const prevStart = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+        const prevEnd = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999)
+
+        const [thisRes, prevRes] = await Promise.all([
+          api.listTransactions({ startDate: thisStart.toISOString(), endDate: now.toISOString() }),
+          api.listTransactions({ startDate: prevStart.toISOString(), endDate: prevEnd.toISOString() }),
+        ])
+
+        const thisList = thisRes?.data?.transactions || thisRes?.transactions || thisRes?.data || thisRes || []
+        const prevList = prevRes?.data?.transactions || prevRes?.transactions || prevRes?.data || prevRes || []
+        const thisTxns = Array.isArray(thisList) ? thisList : []
+        const prevTxns = Array.isArray(prevList) ? prevList : []
+
+        const sumExpense = (txns) =>
+          txns
+            .filter((t) => String(t.type || '').toLowerCase() === 'expense')
+            .reduce((s, t) => s + Number(t.amount || 0), 0)
+
+        const thisExpense = sumExpense(thisTxns)
+        const prevExpense = sumExpense(prevTxns)
+        const pct = prevExpense > 0 ? ((thisExpense - prevExpense) / prevExpense) * 100 : 0
+
+        if (!mounted) return
+        setSpentMoMPct(Number.isFinite(pct) ? pct : 0)
+      } catch {
+        if (!mounted) return
+        setSpentMoMPct(0)
       }
     })()
     return () => {
@@ -64,7 +123,8 @@ export default function Budgets() {
               type="button"
               className="h-12 rounded-lg border border-border-dark bg-card-dark px-4 text-sm font-medium text-white hover:bg-surface-dark"
             >
-              September 2023 <span className="material-symbols-outlined align-middle text-[18px]">calendar_month</span>
+              {new Date().toLocaleString(undefined, { month: 'long', year: 'numeric' })}{' '}
+              <span className="material-symbols-outlined align-middle text-[18px]">calendar_month</span>
             </button>
             <button
               type="button"
@@ -96,7 +156,10 @@ export default function Budgets() {
               <div className="text-sm font-semibold uppercase tracking-wider text-text-secondary">Total Spent</div>
             </div>
             <div className="mt-3 text-3xl font-bold text-white">{formatMoney(totalSpent)}</div>
-            <div className="mt-1 text-sm font-medium text-primary">+5.2% vs last month</div>
+            <div className="mt-1 text-sm font-medium text-primary">
+              {spentMoMPct >= 0 ? '+' : ''}
+              {Math.abs(spentMoMPct).toFixed(1)}% vs last month
+            </div>
           </div>
           <div className="relative overflow-hidden rounded-2xl border border-border-dark bg-card-dark p-6">
             <div className="absolute right-0 top-0 h-full w-24 bg-gradient-to-l from-primary/10 to-transparent" />
@@ -153,7 +216,12 @@ export default function Budgets() {
           {shown.map((b) => {
             const limit = Math.max(0.01, Number(b.amount || b.limit || 0))
             const spent = Number(b.spent || 0)
-            const pct = Math.min(100, (spent / limit) * 100)
+            const pct = Math.min(100, Math.max(0, Number(b.percentage ?? (spent / limit) * 100)))
+            const left = Math.max(0, Number(b.remaining ?? (limit - spent)))
+            const isOverBudget = Boolean(b.isOverBudget)
+            const isOverThreshold = Boolean(b.isOverThreshold)
+            const wallet = b.walletId && typeof b.walletId === 'object' ? b.walletId : null
+            const editable = canEditWallet(wallet)
             return (
               <div
                 key={b.id || b._id}
@@ -166,18 +234,24 @@ export default function Budgets() {
                     </div>
                     <div>
                       <div className="text-lg font-bold text-white">{b.name}</div>
-                      <div className="text-xs text-text-secondary">Period: {b.period || 'monthly'}</div>
+                      <div className="text-xs text-text-secondary">
+                        Period: {b.period || 'monthly'}
+                        {wallet?.name ? ` • Wallet: ${wallet.name}` : ''}
+                      </div>
                     </div>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => deleteBudget(b)}
-                    disabled={busyId === (b.id || b._id)}
-                    className="text-text-secondary hover:text-white disabled:opacity-60"
-                    aria-label="More"
-                  >
-                    <span className="material-symbols-outlined">more_horiz</span>
-                  </button>
+                  <MoreMenu
+                    ariaLabel="Budget options"
+                    buttonClassName="text-text-secondary hover:text-white disabled:opacity-60"
+                    items={[
+                      {
+                        label: 'Delete',
+                        icon: 'delete',
+                        disabled: !editable || busyId === (b.id || b._id),
+                        onClick: () => deleteBudget(b),
+                      },
+                    ]}
+                  />
                 </div>
 
                 <div className="mt-4 flex items-end justify-between">
@@ -185,13 +259,19 @@ export default function Budgets() {
                   <div className="text-sm font-medium text-text-secondary">of {formatMoney(limit)}</div>
                 </div>
 
+                {isOverBudget || isOverThreshold ? (
+                  <div className="mt-2 text-xs font-semibold text-red-300">
+                    {isOverBudget ? 'Over budget' : 'Over alert threshold'}
+                  </div>
+                ) : null}
+
                 <div className="mt-4 h-2.5 w-full overflow-hidden rounded-full bg-background-dark">
                   <div className="h-2.5 rounded-full bg-primary" style={{ width: `${pct}%` }} />
                 </div>
 
                 <div className="mt-3 flex justify-between text-xs font-medium">
                   <span className="text-primary">{pct.toFixed(0)}% Used</span>
-                  <span className="text-text-secondary">{formatMoney(Math.max(0, limit - spent))} Left</span>
+                  <span className="text-text-secondary">{formatMoney(left)} Left</span>
                 </div>
               </div>
             )

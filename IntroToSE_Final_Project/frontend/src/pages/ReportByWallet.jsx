@@ -1,4 +1,5 @@
 import React from 'react'
+import { Link } from 'react-router-dom'
 
 // import { api } from '../lib/api.js'
 import { formatMoney } from '../lib/format.js'
@@ -122,6 +123,15 @@ export default function ReportByWallet() {
       <div className="mx-auto max-w-7xl">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div>
+            <div className="mb-2">
+              <Link
+                to="/reports"
+                className="inline-flex items-center gap-1 rounded-lg border border-border-dark bg-transparent px-3 py-2 text-sm font-semibold text-text-secondary hover:bg-border-dark hover:text-white"
+              >
+                <span className="material-symbols-outlined text-[18px]">chevron_left</span>
+                Back to Reports
+              </Link>
+            </div>
             <h1 className="text-3xl font-black tracking-tight">Report by Wallet</h1>
             <p className="mt-1 text-text-secondary">Expenses only{error ? ` • ${error}` : ''}</p>
           </div>

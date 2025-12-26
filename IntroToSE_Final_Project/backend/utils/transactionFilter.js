@@ -19,8 +19,8 @@ function escapeRegex(text) {
  * M4-04 Filter helper for Transactions API
  * Supports: note search, sort, pagination, wallet/category/type, date range.
  */
-export function buildTransactionQuery({ userId, query }) {
-  const filter = { userId }
+export function buildTransactionQuery({ userId, walletIds, query }) {
+  const filter = {}
 
   const walletId = String(query.walletId || '').trim()
   const categoryId = String(query.categoryId || '').trim()
@@ -28,6 +28,11 @@ export function buildTransactionQuery({ userId, query }) {
 
   if (walletId && mongoose.Types.ObjectId.isValid(walletId)) {
     filter.walletId = walletId
+  } else if (Array.isArray(walletIds) && walletIds.length) {
+    filter.walletId = { $in: walletIds }
+  } else if (userId) {
+    // Backward-compatible fallback for older callers.
+    filter.userId = userId
   }
   if (categoryId && mongoose.Types.ObjectId.isValid(categoryId)) {
     filter.categoryId = categoryId
@@ -46,7 +51,8 @@ export function buildTransactionQuery({ userId, query }) {
 
   const q = String(query.q || query.search || '').trim()
   if (q) {
-    filter.note = { $regex: escapeRegex(q), $options: 'i' }
+    const rx = { $regex: escapeRegex(q), $options: 'i' }
+    filter.$or = [{ note: rx }, { category: rx }]
   }
 
   const sortBy = String(query.sortBy || 'date')

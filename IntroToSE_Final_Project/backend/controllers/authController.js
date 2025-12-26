@@ -15,9 +15,9 @@ const REFRESH_TOKEN_EXPIRES_IN = '30d';
 /**
  * Generate JWT access token
  */
-const generateAccessToken = (userId) => {
+const generateAccessToken = (userId, tokenVersion = 0) => {
   return jwt.sign(
-    { id: userId, type: 'access' },
+    { id: userId, type: 'access', v: tokenVersion },
     JWT_SECRET,
     { expiresIn: JWT_EXPIRES_IN }
   );
@@ -26,9 +26,9 @@ const generateAccessToken = (userId) => {
 /**
  * Generate JWT refresh token
  */
-const generateRefreshToken = (userId) => {
+const generateRefreshToken = (userId, tokenVersion = 0) => {
   return jwt.sign(
-    { id: userId, type: 'refresh' },
+    { id: userId, type: 'refresh', v: tokenVersion },
     JWT_SECRET,
     { expiresIn: REFRESH_TOKEN_EXPIRES_IN }
   );

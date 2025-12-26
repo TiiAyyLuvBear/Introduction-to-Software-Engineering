@@ -119,50 +119,76 @@ export default function Transactions() {
             <h1 className="text-3xl md:text-4xl font-black tracking-tight">Transactions</h1>
             <p className="text-text-secondary">View and manage your financial activity.</p>
           </div>
-          <div className="flex items-center gap-3">
-            <div className="hidden items-center rounded-lg bg-border-dark p-1 sm:flex">
-              <button
-                type="button"
-                onClick={() => setMonthFilter('day')}
-                className={
-                  'rounded-md px-3 py-1.5 text-sm font-medium ' +
-                  (monthFilter === 'day' ? 'bg-surface-border text-white shadow-sm' : 'text-text-secondary')
-                }
-              >
-                Daily
-              </button>
-              <button
-                type="button"
-                onClick={() => setMonthFilter('month')}
-                className={
-                  'rounded-md px-3 py-1.5 text-sm font-medium ' +
-                  (monthFilter === 'month' ? 'bg-surface-border text-white shadow-sm' : 'text-text-secondary')
-                }
-              >
-                Monthly
-              </button>
-              <button
-                type="button"
-                onClick={() => setMonthFilter('year')}
-                className={
-                  'rounded-md px-3 py-1.5 text-sm font-medium ' +
-                  (monthFilter === 'year' ? 'bg-surface-border text-white shadow-sm' : 'text-text-secondary')
-                }
-              >
-                Yearly
-              </button>
-            </div>
-            <button
-              type="button"
-              onClick={() => navigate('/transactions/add')}
-              className="flex h-10 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-bold text-background-dark shadow-lg shadow-primary/20 hover:brightness-110"
-            >
-              <span className="material-symbols-outlined text-[20px]">add</span>
-              <span className="whitespace-nowrap">Add Transaction</span>
-            </button>
-          </div>
         </div>
+      </div>
+    )
+  }
 
+  return (
+    <div className="max-w-7xl mx-auto p-4">
+      <div className="mb-6">
+        <h2 className="text-3xl font-bold mb-1">Transactions</h2>
+        <p className="text-gray-600">Manage your income and expenses</p>
+      </div>
+
+<<<<<<< Updated upstream
+      {/* Buttons & Search */}
+      <div className="flex flex-wrap gap-3 mb-6">
+        <button
+          className="px-6 py-3 rounded-xl bg-gradient-to-r from-blue-500 to-purple-600 text-white hover:from-blue-600 hover:to-purple-700 hover:shadow-lg hover:scale-105 transition-all duration-300 font-semibold flex items-center gap-2"
+          onClick={() => setShowModal(true)}
+        >
+          <FaPlus /> Add Transaction
+        </button>
+        <button
+          className="px-6 py-3 rounded-xl bg-gradient-to-r from-green-500 to-teal-600 text-white hover:from-green-600 hover:to-teal-700 hover:shadow-lg hover:scale-105 transition-all duration-300 font-semibold flex items-center gap-2"
+          onClick={() => setShowTransfer(true)}
+        >
+          <FaExchangeAlt /> Transfer
+        </button>
+        <input
+          type="search"
+          className="px-4 py-2 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+          placeholder="Search transactions..."
+          value={searchTerm}
+          onChange={e => setSearchTerm(e.target.value)}
+        />
+      </div>
+
+      {/* Transaction List */}
+      <div className="space-y-2">
+        {loading || isSearching ? (
+          <p>Loading transactions...</p>
+        ) : transactions.length === 0 ? (
+          <div className="flex flex-col items-center py-12 text-gray-500">
+            <FaMoneyBillWave className="text-5xl mb-4" />
+            <h3 className="text-xl font-semibold mb-2">No transactions yet</h3>
+            <p>Add your first transaction!</p>
+          </div>
+        ) : (
+          transactions
+            .filter(tx => {
+              const term = searchTerm.trim().toLowerCase()
+              if (!term) return true
+              return [tx.category, tx.note, tx.account, tx.type, String(tx.amount)].join(' ').toLowerCase().includes(term)
+            })
+            .map(tx => (
+              <motion.div
+                key={tx._id}
+                layout
+                initial={{ opacity: 0, y: -5 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 5 }}
+                className="flex justify-between items-center p-5 border-2 border-gray-200 rounded-xl hover:bg-gradient-to-r hover:from-blue-50 hover:to-purple-50 hover:border-blue-300 cursor-pointer transition-all duration-300 transform hover:scale-[1.02] shadow-sm hover:shadow-lg"
+              >
+                <div className="flex items-center gap-4" onClick={() => setSelectedTransaction(tx)}>
+                  <div className={`w-14 h-14 flex items-center justify-center rounded-xl text-2xl shadow-md hover:shadow-xl transition-all duration-300 transform hover:rotate-6 ${tx.type==='income'?'bg-gradient-to-br from-green-400 to-green-600 text-white':'bg-gradient-to-br from-red-400 to-red-600 text-white'}`}>
+                    <FaMoneyBillWave />
+                  </div>
+                  <div>
+                    <div className="font-bold text-lg text-gray-800">{tx.category}</div>
+                    <div className="text-gray-600 text-sm font-medium">{tx.note} • {tx.account}</div>
+=======
         {(() => {
           const income = filtered
             .filter((t) => t.type === 'income')
@@ -171,6 +197,9 @@ export default function Transactions() {
             .filter((t) => t.type === 'expense')
             .reduce((s, t) => s + Number(t.amount || 0), 0)
           const net = income - expense
+
+		  const incomeCount = filtered.filter((t) => t.type === 'income').length
+		  const expenseCount = filtered.filter((t) => t.type === 'expense').length
           return (
             <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
               <div className="rounded-xl bg-card-dark p-5 border border-border-dark">
@@ -181,27 +210,39 @@ export default function Transactions() {
                   <div className="text-sm font-medium text-text-secondary">Total Income</div>
                 </div>
                 <div className="mt-3 text-2xl font-bold text-white">+{formatMoney(income)}</div>
-                <div className="mt-1 text-sm font-medium text-primary">Demo summary</div>
+                <div className="mt-1 text-sm font-medium text-primary">{incomeCount}</div>
               </div>
               <div className="rounded-xl bg-card-dark p-5 border border-border-dark">
                 <div className="flex items-center gap-2">
                   <div className="flex size-8 items-center justify-center rounded-full bg-red-900/30 text-red-400">
                     <span className="material-symbols-outlined text-[20px]">arrow_upward</span>
+>>>>>>> Stashed changes
                   </div>
-                  <div className="text-sm font-medium text-text-secondary">Total Expense</div>
                 </div>
+<<<<<<< Updated upstream
+                <div className="flex items-center gap-3">
+                  <div className={`${tx.type==='income'?'text-green-600':'text-red-600'} font-bold text-xl`}>
+                    {tx.type==='expense'?'-':'+'}${tx.amount.toFixed(2)}
+=======
                 <div className="mt-3 text-2xl font-bold text-white">-{formatMoney(expense)}</div>
-                <div className="mt-1 text-sm font-medium text-red-400">Demo summary</div>
+                <div className="mt-1 text-sm font-medium text-red-400">{expenseCount}</div>
               </div>
               <div className="rounded-xl bg-card-dark p-5 border border-border-dark">
                 <div className="flex items-center gap-2">
                   <div className="flex size-8 items-center justify-center rounded-full bg-blue-900/30 text-blue-400">
                     <span className="material-symbols-outlined text-[20px]">account_balance</span>
+>>>>>>> Stashed changes
                   </div>
-                  <div className="text-sm font-medium text-text-secondary">Net Balance</div>
+                  <button onClick={() => handleDelete(tx._id)} className="p-2 rounded-xl hover:bg-red-100 text-red-600 hover:scale-110 transition-all duration-200">
+                    <FaRegTrashAlt />
+                  </button>
                 </div>
+<<<<<<< Updated upstream
+              </motion.div>
+            ))
+=======
                 <div className="mt-3 text-2xl font-bold text-white">{formatMoney(net)}</div>
-                <div className="mt-1 text-sm font-medium text-primary">Demo summary</div>
+                <div className="mt-1 text-sm font-medium text-primary">{filtered.length}</div>
               </div>
             </div>
           )
@@ -359,6 +400,18 @@ export default function Transactions() {
                 <button
                   type="button"
                   className="rounded-lg border border-border-dark px-3 py-2 text-sm font-semibold text-text-secondary hover:bg-border-dark hover:text-white"
+                  onClick={() => {
+                    const id = selected?._id || selected?.id
+                    if (!id) return
+                    setSelected(null)
+                    navigate(`/transactions/${encodeURIComponent(id)}/edit`, { state: { tx: selected } })
+                  }}
+                >
+                  Edit
+                </button>
+                <button
+                  type="button"
+                  className="rounded-lg border border-border-dark px-3 py-2 text-sm font-semibold text-text-secondary hover:bg-border-dark hover:text-white"
                   onClick={async () => {
                     const id = selected?._id || selected?.id
                     if (!id) return
@@ -377,8 +430,155 @@ export default function Transactions() {
               </div>
             </div>
           </div>
+>>>>>>> Stashed changes
         )}
       </div>
+
+      {error && <div className="mt-4 text-red-600 font-medium">{error}</div>}
+
+      {/* === Add Transaction Modal === */}
+      <AnimatePresence>
+        {showModal && (
+          <motion.div
+            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setShowModal(false)}
+          >
+            <motion.div
+              className="bg-white rounded-xl w-full max-w-md p-6 shadow-lg"
+              initial={{ scale: 0.95 }}
+              animate={{ scale: 1 }}
+              exit={{ scale: 0.95 }}
+              onClick={e => e.stopPropagation()}
+            >
+              <h3 className="text-xl font-bold mb-4">Add Transaction</h3>
+
+              <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+                {/* Type Card */}
+                <div className="grid grid-cols-2 gap-2">
+                  {['income','expense'].map(type => (
+                    <div
+                      key={type}
+                      onClick={()=>setValue('type', type)}
+                      className={`flex items-center justify-center py-3 rounded-xl cursor-pointer font-semibold text-white transition-all duration-200 ${
+                        watch('type')===type
+                          ? type==='income' ? 'bg-gradient-to-br from-green-400 to-green-600 shadow-lg scale-105' : 'bg-gradient-to-br from-red-400 to-red-600 shadow-lg scale-105'
+                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      }`}
+                    >
+                      {type.charAt(0).toUpperCase()+type.slice(1)}
+                    </div>
+                  ))}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1">Category</label>
+                  <input {...register('category',{ required:true })} className="w-full px-4 py-2 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"/>
+                  {errors.category && <span className="text-red-500 text-sm">Category required</span>}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1">Amount</label>
+                  <input type="number" {...register('amount',{ required:true, min:0.01 })} className="w-full px-4 py-2 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"/>
+                  {errors.amount && <span className="text-red-500 text-sm">Valid amount required</span>}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1">Date</label>
+                  <input type="date" {...register('date',{ required:true })} className="w-full px-4 py-2 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"/>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1">Account</label>
+                  <select {...register('account')} className="w-full px-4 py-2 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option>Cash</option>
+                    <option>Bank Account</option>
+                    <option>Credit Card</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1">Note</label>
+                  <textarea {...register('note')} rows={3} className="w-full px-4 py-2 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"/>
+                </div>
+
+                <div className="flex gap-2">
+                  <button type="submit" className="flex-1 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl hover:from-blue-600 hover:to-purple-700 transition-all font-semibold">Save</button>
+                  <button type="button" onClick={()=>setShowModal(false)} className="flex-1 py-2 bg-gray-200 text-gray-700 rounded-xl hover:bg-gray-300 transition-all">Cancel</button>
+                </div>
+              </form>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* === Transfer Modal === */}
+      <AnimatePresence>
+        {showTransfer && (
+          <motion.div
+            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setShowTransfer(false)}
+          >
+            <motion.div
+              className="bg-white rounded-xl w-full max-w-md p-6 shadow-lg"
+              initial={{ scale: 0.95 }}
+              animate={{ scale: 1 }}
+              exit={{ scale: 0.95 }}
+              onClick={e => e.stopPropagation()}
+            >
+              <h3 className="text-xl font-bold mb-4 flex items-center gap-2"><FaExchangeAlt /> Transfer Funds</h3>
+
+              <form onSubmit={handleSubmitTransfer(onSubmitTransfer)} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1">From</label>
+                  <select {...registerTransfer('from')} className="w-full px-4 py-2 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option>Cash</option>
+                    <option>Bank Account</option>
+                    <option>Credit Card</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1">To</label>
+                  <select {...registerTransfer('to')} className="w-full px-4 py-2 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option>Cash</option>
+                    <option>Bank Account</option>
+                    <option>Credit Card</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1">Amount</label>
+                  <input type="number" {...registerTransfer('amount',{ required:true, min:0.01 })} className="w-full px-4 py-2 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"/>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1">Date</label>
+                  <input type="date" {...registerTransfer('date',{ required:true })} className="w-full px-4 py-2 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"/>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1">Note</label>
+                  <input type="text" {...registerTransfer('note')} className="w-full px-4 py-2 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"/>
+                </div>
+
+                <div className="flex gap-2">
+                  <button type="submit" className="flex-1 py-2 bg-gradient-to-r from-green-500 to-teal-600 text-white rounded-xl hover:from-green-600 hover:to-teal-700 transition-all font-semibold">Confirm</button>
+                  <button type="button" onClick={()=>setShowTransfer(false)} className="flex-1 py-2 bg-gray-200 text-gray-700 rounded-xl hover:bg-gray-300 transition-all">Cancel</button>
+                </div>
+              </form>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Chatbot */}
+      <Chatbot />
     </div>
   )
 }

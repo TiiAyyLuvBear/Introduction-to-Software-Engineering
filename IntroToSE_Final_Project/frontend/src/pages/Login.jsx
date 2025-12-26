@@ -171,8 +171,8 @@ export default function Login({ onLogin }) {
             <div className="flex justify-end">
               <button
                 type="button"
-                onClick={() => window.alert('Password reset is not implemented yet.')}
                 className="text-sm font-semibold text-primary hover:brightness-110"
+                onClick={() => navigate('/forgot-password')}
               >
                 Forgot Password?
               </button>
