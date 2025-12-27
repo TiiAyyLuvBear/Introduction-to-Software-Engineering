@@ -60,11 +60,13 @@ app.use(bodyParser.json());
  * Đăng ký routes (API endpoints)
  * Tất cả endpoints đều có prefix /api để phân biệt với frontend routes
  */
-app.use('/auth', authRouter)                  // Authentication (login, register, logout)
-app.use('/accounts', accountRouter)            // Account management (profile sync)
-app.use('/transactions', transactionsRouter)  // Quản lý giao dịch thu/chi (M1-06, M1-07)
-app.use('/users', usersRouter)                // Quản lý người dùng (M1-04)
-app.use('/balance', balanceRouter)            // Quản lý balance tổng hợp (Wallet + Budget + Saving Goal)
+app.use('/api/auth', authRouter)                  // Authentication (login, register, logout)
+// Compatibility alias (some clients call endpoints without the /api prefix)
+app.use('/auth', authRouter)
+app.use('/api/accounts', accountRouter)            // Account management (profile sync)
+app.use('/api/transactions', transactionsRouter)  // Quản lý giao dịch thu/chi (M1-06, M1-07)
+app.use('/api/users', usersRouter)                // Quản lý người dùng (M1-04)
+app.use('/api/balance', balanceRouter)            // Quản lý balance tổng hợp (Wallet + Budget + Saving Goal)
 // app.use('/api/categories', categoriesRouter)      // Quản lý danh mục
 // app.use('/api/accounts', accountsRouter)          // Quản lý tài khoản/ví
 // app.use('/api/wallets', walletsRouter)            // Quản lý ví tiền (Use Cases U010-U014)
