@@ -27,6 +27,7 @@ import accountsRouter from './routes/accounts.js'
 import usersRouter from './routes/users.js'
 import walletsRouter from './routes/wallets.js'
 import invitationsRouter from './routes/invitations.js'
+import budgetsRouter from './routes/budgets.js'
 
 // Load biến môi trường từ .env file (MONGODB_URI, PORT)
 dotenv.config()
@@ -59,13 +60,14 @@ app.use('/api/accounts', accountsRouter)          // Quản lý tài khoản/ví
 app.use('/api/users', usersRouter)                // Quản lý người dùng
 app.use('/api/wallets', walletsRouter)            // Quản lý ví tiền (Use Cases U010-U014)
 app.use('/api/invitations', invitationsRouter)    // Quản lý lời mời ví chia sẻ (Use Case U011)
+app.use('/api/budgets', budgetsRouter)            // Quản lý ngân sách (M3-02)
 
 /**
  * Health check endpoint
  * Dùng để kiểm tra server có đang chạy không
  * Hữu ích khi deploy lên cloud (health check, monitoring)
  */
-app.get('/api/health', (req, res) => res.json({status: 'ok'}))
+app.get('/api/health', (req, res) => res.json({ status: 'ok' }))
 
 // Port mặc định 4000, có thể override bằng biến môi trường PORT
 const PORT = process.env.PORT || 4000
@@ -78,18 +80,18 @@ const PORT = process.env.PORT || 4000
  * 2. Nếu kết nối thành công, start Express server
  * 3. Nếu thất bại, log error và exit process
  */
-async function start(){
+async function start() {
   // Lấy MongoDB URI từ .env hoặc dùng local MongoDB
   const uri = process.env.MONGODB_URI || 'mongodb://localhost:27017/moneylover'
-  
-  try{
+
+  try {
     // Kết nối MongoDB
     await mongoose.connect(uri)
     console.log('Connected to MongoDB')
-    
+
     // Start server và lắng nghe requests
-    app.listen(PORT, ()=> console.log('Server running on port', PORT))
-  }catch(err){
+    app.listen(PORT, () => console.log('Server running on port', PORT))
+  } catch (err) {
     console.error('Failed to start', err)
     process.exit(1)  // Exit với code 1 (error)
   }
