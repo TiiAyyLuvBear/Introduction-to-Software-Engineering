@@ -1,4 +1,6 @@
 import SavingGoal from '../models/SavingGoal.js'
+import Wallet from '../models/Wallet.js'
+import Transaction from '../models/Transaction.js'
 import { sendSuccess, sendError, sendNotFound, sendValidationError } from '../utils/response.js'
 
 /**
@@ -127,11 +129,46 @@ export async function addContribution(req, res) {
         const { id } = req.params
         const { amount, note } = req.body
 
+        // Validate amount
+        if (!amount || amount <= 0) {
+            return sendValidationError(res, 'Amount must be positive')
+        }
+
         const goal = await SavingGoal.findById(id)
         if (!goal) return sendNotFound(res, 'Saving Goal')
 
-        const updatedGoalInfo = await goal.addContribution(amount, note)
-        sendSuccess(res, updatedGoalInfo, 'Contribution added')
+        // LOGIC M4-03: Goal Transaction Integration
+        let transactionId = null
+
+        if (goal.walletId) {
+            // 1. Check Wallet Balance
+            const wallet = await Wallet.findById(goal.walletId)
+            if (!wallet) return sendNotFound(res, 'Linked Wallet')
+
+            if (wallet.currentBalance < amount) {
+                return sendError(res, 'Insufficient wallet balance', 'INSUFFICIENT_BALANCE', 400)
+            }
+
+            // 2. Create Transaction (Expense)
+            const transaction = await Transaction.create({
+                userId: goal.userId,
+                walletId: goal.walletId,
+                amount,
+                type: 'expense',
+                category: 'Savings',
+                account: wallet.type, // or wallet name
+                note: note || `Contribution to goal: ${goal.name}`,
+                date: new Date()
+            })
+            transactionId = transaction._id
+
+            // 3. Update Wallet Balance
+            wallet.currentBalance -= amount
+            await wallet.save()
+        }
+
+        const updatedGoalInfo = await goal.addContribution(amount, note, transactionId)
+        sendSuccess(res, updatedGoalInfo, 'Contribution added successfully')
     } catch (err) {
         console.error('Add Contribution Error:', err)
         sendError(res, err.message, 'ADD_CONTRIBUTION_ERROR', 400)
@@ -149,8 +186,26 @@ export async function removeContribution(req, res) {
         const goal = await SavingGoal.findById(id)
         if (!goal) return sendNotFound(res, 'Saving Goal')
 
+        const contribution = goal.contributions.id(contributionId)
+        if (!contribution) return sendNotFound(res, 'Contribution')
+
+        // LOGIC M4-03: Undo Transaction
+        if (contribution.transactionId) {
+            // 1. Delete Transaction
+            await Transaction.findByIdAndDelete(contribution.transactionId)
+
+            // 2. Refund Wallet (if goal has walletId)
+            if (goal.walletId) {
+                const wallet = await Wallet.findById(goal.walletId)
+                if (wallet) {
+                    wallet.currentBalance += contribution.amount
+                    await wallet.save()
+                }
+            }
+        }
+
         const updatedGoalInfo = await goal.removeContribution(contributionId)
-        sendSuccess(res, updatedGoalInfo, 'Contribution removed')
+        sendSuccess(res, updatedGoalInfo, 'Contribution removed and refunded')
     } catch (err) {
         console.error('Remove Contribution Error:', err)
         sendError(res, err.message, 'REMOVE_CONTRIBUTION_ERROR', 400)
