@@ -4,6 +4,7 @@
 import mongoose from 'mongoose'
 import User from './models/User.js'
 import Wallet from './models/Wallet.js'
+import Budget from './models/Budget.js'
 import dotenv from 'dotenv'
 import path from 'path'
 import { fileURLToPath } from 'url'
