@@ -106,13 +106,40 @@ export async function updateGoal(req, res) {
  * Controller: Xóa goal
  * Endpoint: DELETE /api/saving-goals/:id
  */
+/**
+ * Controller: Xóa goal
+ * Endpoint: DELETE /api/saving-goals/:id
+ */
 export async function deleteGoal(req, res) {
     try {
         const { id } = req.params
-        const goal = await SavingGoal.findByIdAndDelete(id)
+        const goal = await SavingGoal.findById(id)
         if (!goal) return sendNotFound(res, 'Saving Goal')
 
-        sendSuccess(res, null, 'Saving goal deleted')
+        // LOGIC TC24: Delete Goal - Transaction Integrity
+        // Refund remaining amount to wallet if applicable
+        if (goal.walletId && goal.currentAmount > 0) {
+            const wallet = await Wallet.findById(goal.walletId)
+            if (wallet) {
+                wallet.currentBalance += goal.currentAmount
+                await wallet.save()
+            }
+        }
+
+        // Delete associated transactions
+        // Note: We need to find transactions linked to this goal's contributions
+        // Simplest way is if we stored goalId on Transaction, but we didn't. 
+        // We relied on contributions storing transactionId.
+        const transactionIds = goal.contributions
+            .map(c => c.transactionId)
+            .filter(id => id != null)
+
+        if (transactionIds.length > 0) {
+            await Transaction.deleteMany({ _id: { $in: transactionIds } })
+        }
+
+        await SavingGoal.findByIdAndDelete(id)
+        sendSuccess(res, null, 'Saving goal deleted and funds refunded')
     } catch (err) {
         console.error('Delete Goal Error:', err)
         sendError(res, err.message, 'DELETE_GOAL_ERROR', 500)

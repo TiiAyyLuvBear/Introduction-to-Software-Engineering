@@ -132,6 +132,28 @@ async function runTests() {
         if (transRef) throw new Error('Transaction should be deleted')
         console.log('Transaction deleted correctly')
 
+        // 4. Test Delete Goal Refund (TC24)
+        console.log('\n--- Test 4: Delete Goal with Refund (TC24) ---')
+        // Re-add contribution to check delete refund
+        await fetch(`${API_URL}/saving-goals/${goal.id}/contributions`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ amount: 2000, note: 'For delete test' })
+        })
+
+        // Check balance before delete (Should be 10000 - 2000 = 8000)
+        const walletBefore = await Wallet.findById(walletId)
+        if (walletBefore.currentBalance !== 8000) throw new Error(`Pre-delete balance mismatch. Expected 8000, got ${walletBefore.currentBalance}`)
+
+        // Delete Goal
+        const deleteGoalRes = await fetch(`${API_URL}/saving-goals/${goal.id}`, { method: 'DELETE' })
+        if (!deleteGoalRes.ok) throw new Error(`Delete Goal failed: ${deleteGoalRes.status}`)
+
+        // Check Wallet Refund (Should be 10000)
+        const walletAfter = await Wallet.findById(walletId)
+        if (walletAfter.currentBalance !== 10000) throw new Error(`Post-delete balance mismatch. Expected 10000, got ${walletAfter.currentBalance}`)
+        console.log('Goal deleted and wallet refunded correctly')
+
         console.log('\nVERIFICATION SUCCESSFUL')
     } catch (err) {
         console.error('\nVERIFICATION FAILED:', err)

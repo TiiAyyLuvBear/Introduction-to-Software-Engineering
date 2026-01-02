@@ -17,6 +17,11 @@ export async function createBudget(req, res) {
             return res.status(400).json({ error: 'Missing required fields (walletId, amount, startDate, endDate)' })
         }
 
+        // TC16: Budget amount must be greater than 0
+        if (amount <= 0) {
+            return res.status(400).json({ error: 'Budget amount must be greater than 0' })
+        }
+
         // TODO: Verify wallet ownership/permission here if req.user is available
         // const wallet = await Wallet.findOne({ _id: walletId, userId: req.user.id })
         // if (!wallet) return res.status(404).json({ error: 'Wallet not found' })

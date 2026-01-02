@@ -190,10 +190,9 @@ BudgetSchema.statics.updateSpentAmount = async function (userId, walletId, categ
   const result = await Transaction.aggregate([
     {
       $match: {
-        userId: mongoose.Types.ObjectId(userId),
-        // Note: Transaction model currently lacks walletId/accountId reference
-        // Should query by wallet/account if available in the future
-        categoryId: mongoose.Types.ObjectId(categoryId),
+        userId: new mongoose.Types.ObjectId(userId),
+        // Transaction stores category as 'category' (String), not 'categoryId' (ObjectId)
+        category: String(categoryId),
         type: 'expense',
         date: { $gte: periodStart, $lte: periodEnd }
       }
