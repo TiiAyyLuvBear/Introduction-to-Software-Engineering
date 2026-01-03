@@ -30,7 +30,7 @@ export default function Login({ onLogin, onNavigate }) {
       if (email === demoEmail && password === demoPassword) {
         localStorage.setItem('isAuthenticated', 'true')
         localStorage.setItem('currentUser', JSON.stringify({
-          id: 'demo-user-1',
+          id: '6957fd0d4b2aa1c3fe4390e3', // Valid MongoDB ObjectId for backend
           name: 'Demo User',
           email: email
         }))

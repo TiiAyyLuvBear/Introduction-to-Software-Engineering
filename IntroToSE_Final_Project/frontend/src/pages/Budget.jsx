@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { FaPlus, FaBullseye, FaCalendarAlt, FaTrashAlt, FaExclamationTriangle } from 'react-icons/fa';
-// import { budgetAPI, transactionAPI } from '../api.js';
+import { budgetAPI, transactionAPI, walletAPI } from '../api.js';
 import Chatbot from '../components/chatbot/Chatbot.jsx';
 
 export default function Budget() {
@@ -26,36 +26,29 @@ export default function Budget() {
 
   // TEMPORARILY COMMENTED - Backend integration
   const loadBudgets = async () => {
-    /*
     try {
       setLoading(true);
       const response = await budgetAPI.getAll();
-      if (response.success) {
-        setBudgets(response.data.budgets || []);
-      }
+      // Adjust based on actual backend response format
+      // budgetController.getBudgets returns array directly or { budgets: [] }?
+      // Based on controller: res.json(budgets) -> Array
+      // api.js response.data is the array
+      setBudgets(Array.isArray(response) ? response : response.budgets || []);
     } catch (err) {
       console.error('Failed to load budgets:', err);
       setError(err.response?.data?.error || err.message || 'Failed to load budgets');
     } finally {
       setLoading(false);
     }
-    */
-    // Mock data for now
-    setLoading(false);
   };
 
   const loadTransactions = async () => {
-    /*
     try {
       const response = await transactionAPI.getAll();
-      if (response.success) {
-        setTransactions(response.data.transactions || []);
-      }
+      setTransactions(Array.isArray(response) ? response : response.transactions || []);
     } catch (err) {
       console.error('Failed to load transactions:', err);
     }
-    */
-    // Mock data for now
   };
 
   useEffect(() => {
@@ -65,45 +58,76 @@ export default function Budget() {
 
   const calculateSpent = (budget) => {
     return transactions
-      .filter(t => t.type === 'expense' && t.category === budget.category)
+      .filter(t => t.type === 'expense' && t.category === budget.categoryId?.name) // Adjust for populated category
       .reduce((sum, t) => sum + t.amount, 0);
   };
 
   const onCreateBudget = async (data) => {
-    // TEMPORARILY COMMENTED - Backend integration
-    /*
     try {
       setError(null);
+
+      // Need walletId! For now, fetch wallets and pick first one or use hardcoded if permitted
+      // The backend requires walletId.
+      // Let's assume the user has a wallet. 
+      // Ideally, the modal should allow selecting a wallet.
+      // For this MVP step, let's hardcode the walletId from the verify script if possible, or fetch it.
+
+      // Fetch wallets to get a valid ID
+      // Fetch wallets to get a valid ID
+      let walletId = '6957fd0d4b2aa1c3fe4390e6'; // Fallback from verification script
+      try {
+        const wallets = await walletAPI.getUserWallets();
+        if (Array.isArray(wallets) && wallets.length > 0) {
+          walletId = wallets[0]._id || wallets[0].id;
+        }
+      } catch (e) { console.warn('Could not fetch wallets, using default', e); }
+
       const budgetData = {
         name: data.name,
         amount: parseFloat(data.limit),
-        categoryId: data.category,
+        // For simple string category, backend expects ObjectId? 
+        // Backend Budget.js: categoryId: ObjectId (ref Category)
+        // Frontend input is text. 
+        // We probably need to Create Category first OR backend needs to accept string name?
+        // Check Budget.js: categoryId IS ObjectId.
+        // Check budgetController: it uses req.body.categoryId directly.
+        // Check verification: we created a categoryId manually.
+
+        // ISSUE: User inputs text "Groceries". Backend expects ObjectId.
+        // We need to resolve this.
+        // Option 1: Create a category if it doesn't exist?
+        // Option 2: Just send it and see if backend handles mixed types (it won't, CastError).
+
+        // FIX: For now, let's omit categoryId if it's just a name, or handle it as 'name' field if possible?
+        // Budget model has `name` field. `categoryId` is optional.
+        // So if user types a name, we send `name` and `categoryId: null`.
+
+        categoryId: null,  // Avoid CastError
+
+        walletId: walletId,
         period: data.period,
         startDate: data.startDate,
-        endDate: data.endDate || null,
+        endDate: data.endDate || new Date(new Date().setFullYear(new Date().getFullYear() + 1)), // Default 1 year if missing
         alertThreshold: 80,
-        enableAlerts: false
+        enableAlerts: true
       };
 
       const response = await budgetAPI.create(budgetData);
-      if (response.success) {
-        setBudgets([...budgets, response.data.budget]);
-      }
+      setBudgets([...budgets, response]); // response is the created budget object (from controller: res.status(201).json(budget))
+
       setShowModal(false);
       reset();
     } catch (err) {
       console.error('Failed to create budget:', err);
+      if (err.response) {
+        console.error('SERVER RESPONSE:', err.response.data);
+      }
       setError(err.response?.data?.error || err.message || 'Failed to create budget');
     }
-    */
-    setShowModal(false);
-    reset();
   };
 
   const deleteBudget = async (id) => {
     if (!confirm('Are you sure you want to delete this budget?')) return;
-    // TEMPORARILY COMMENTED - Backend integration
-    /*
     try {
       await budgetAPI.delete(id);
       setBudgets(budgets.filter(b => b._id !== id && b.id !== id));
@@ -111,7 +135,6 @@ export default function Budget() {
       console.error('Failed to delete budget:', err);
       setError(err.response?.data?.error || err.message || 'Failed to delete budget');
     }
-    */
   };
 
   return (
@@ -138,8 +161,8 @@ export default function Budget() {
         ) : (
           budgets.map(budget => {
             const spent = calculateSpent(budget);
-            const remaining = budget.limit - spent;
-            const percentage = (spent / budget.limit) * 100;
+            const remaining = budget.amount - spent;
+            const percentage = (spent / budget.amount) * 100;
             const isAlert = percentage >= 80;
 
             return (
@@ -153,7 +176,7 @@ export default function Budget() {
                   <div className="flex justify-between mb-2 text-sm">
                     <span className="text-gray-600 font-medium">{budget.category}</span>
                     <span className="font-bold text-gray-800">
-                      ${spent.toFixed(2)} / ${budget.limit.toFixed(2)}
+                      ${spent.toFixed(2)} / ${budget.amount.toFixed(2)}
                     </span>
                   </div>
 

@@ -9,7 +9,7 @@ export default function SavingGoals() {
   const [showModal, setShowModal] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
-  
+
   const { register, handleSubmit, reset, formState: { errors } } = useForm({
     defaultValues: {
       name: '',
@@ -25,28 +25,19 @@ export default function SavingGoals() {
   }, [])
 
   const loadGoals = async () => {
-    // TEMPORARILY COMMENTED - Backend integration
-    /*
     try {
       setLoading(true)
       const response = await savingGoalAPI.getAll()
-      if (response.success) {
-        setGoals(response.data.goals || [])
-      }
+      setGoals(Array.isArray(response) ? response : response.goals || [])
     } catch (err) {
       console.error('Failed to load saving goals:', err)
       setError(err.response?.data?.error || err.message || 'Failed to load saving goals')
     } finally {
       setLoading(false)
     }
-    */
-    // Mock data for now
-    setLoading(false)
   }
 
   const onCreateGoal = async (data) => {
-    // TEMPORARILY COMMENTED - Backend integration
-    /*
     try {
       setError(null)
       const goalData = {
@@ -59,42 +50,34 @@ export default function SavingGoals() {
       }
 
       const response = await savingGoalAPI.create(goalData)
-      if (response.success) {
-        setGoals([response.data.goal, ...goals])
-      }
+      // Controller returns the created goal object directly
+      setGoals([response, ...goals])
       setShowModal(false)
       reset()
     } catch (err) {
       console.error('Failed to create goal:', err)
       setError(err.response?.data?.error || err.message || 'Failed to create goal')
     }
-    */
-    setShowModal(false)
-    reset()
   }
 
   const addContribution = async (id, amount) => {
-    // TEMPORARILY COMMENTED - Backend integration
-    /*
     try {
       const response = await savingGoalAPI.addContribution(id, {
         amount: parseFloat(amount),
         note: 'Contribution'
       })
-      if (response.success) {
-        setGoals(goals.map(g => g._id === id || g.id === id ? response.data.goal : g))
+      // Controller returns { message, goal, transaction }
+      if (response && response.goal) {
+        setGoals(goals.map(g => g._id === id || g.id === id ? response.goal : g))
       }
     } catch (err) {
       console.error('Failed to add contribution:', err)
       setError(err.response?.data?.error || err.message || 'Failed to add contribution')
     }
-    */
   }
 
   const deleteGoal = async (id) => {
     if (!confirm('Are you sure you want to delete this saving goal?')) return
-    // TEMPORARILY COMMENTED - Backend integration
-    /*
     try {
       await savingGoalAPI.delete(id)
       setGoals(goals.filter(g => g._id !== id && g.id !== id))
@@ -102,7 +85,6 @@ export default function SavingGoals() {
       console.error('Failed to delete goal:', err)
       setError(err.response?.data?.error || err.message || 'Failed to delete goal')
     }
-    */
   }
 
   const daysRemaining = (deadline) => {
@@ -121,16 +103,16 @@ export default function SavingGoals() {
             {/* Outer rotating circle */}
             <div className="absolute inset-0 rounded-full border-4 border-green-100"></div>
             <div className="absolute inset-0 rounded-full border-4 border-t-green-500 border-r-teal-500 border-b-transparent border-l-transparent animate-spin"></div>
-            
+
             {/* Inner pulsing target icon */}
             <div className="absolute inset-0 flex items-center justify-center">
               <Target className="w-10 h-10 text-green-500 animate-pulse" />
             </div>
           </div>
-          
+
           <h3 className="text-xl font-semibold text-gray-800 mb-2">Loading Saving Goals</h3>
           <p className="text-gray-600">Please wait while we fetch your data...</p>
-          
+
           {/* Loading dots animation */}
           <div className="flex justify-center gap-2 mt-4">
             <div className="w-2 h-2 bg-green-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
@@ -181,7 +163,7 @@ export default function SavingGoals() {
                   <span className="font-bold text-gray-800">${goal.currentAmount.toFixed(2)} / ${goal.targetAmount.toFixed(2)}</span>
                 </div>
                 <div className="w-full h-4 bg-gray-200 rounded-full overflow-hidden shadow-inner">
-                  <div 
+                  <div
                     className={`h-full transition-all duration-700 ${isCompleted ? 'bg-gradient-to-r from-green-500 to-green-600' : 'bg-gradient-to-r from-blue-500 to-blue-600'}`}
                     style={{ width: `${Math.min(percentage, 100)}%` }}
                   />
@@ -194,8 +176,8 @@ export default function SavingGoals() {
 
               <div className="flex gap-3 mb-3 text-xs">
                 <span className="bg-blue-100 px-3 py-1 rounded-full text-blue-700 font-semibold flex items-center gap-1"><Calendar className="w-3 h-3" /> {new Date(goal.deadline).toLocaleDateString()}</span>
-                <span className={`px-3 py-1 rounded-full font-semibold ${daysLeft===0?'bg-red-100 text-red-700':'bg-gray-100 text-gray-700'}`}>
-                  {daysLeft===0?'Expired':daysLeft+' days left'}
+                <span className={`px-3 py-1 rounded-full font-semibold ${daysLeft === 0 ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-700'}`}>
+                  {daysLeft === 0 ? 'Expired' : daysLeft + ' days left'}
                 </span>
               </div>
 
@@ -211,7 +193,7 @@ export default function SavingGoals() {
                 <button className="bg-gradient-to-r from-green-500 to-green-600 text-white px-6 py-2 rounded-lg font-medium hover:from-green-600 hover:to-green-700 hover:shadow-lg transition-all duration-300"
                   onClick={() => {
                     const input = document.getElementById(`contribution-${goal.id}`)
-                    if(input.value) { addContribution(goal.id, input.value); input.value=''; }
+                    if (input.value) { addContribution(goal.id, input.value); input.value = ''; }
                   }}>Add</button>
               </div>
 
@@ -230,16 +212,16 @@ export default function SavingGoals() {
           <div className="bg-white rounded-lg w-full max-w-md p-6" onClick={e => e.stopPropagation()}>
             <h3 className="text-xl font-bold mb-4 flex items-center gap-2"><Plus className="w-5 h-5" /> Create Saving Goal</h3>
             <form onSubmit={handleSubmit(onCreateGoal)} className="space-y-4">
-              <input type="text" placeholder="Goal Name" {...register('name',{ required:true })} className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-green-500" />
+              <input type="text" placeholder="Goal Name" {...register('name', { required: true })} className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-green-500" />
               {errors.name && <p className="text-red-500 text-sm">Goal name required</p>}
-              <input type="number" placeholder="Target Amount" {...register('targetAmount',{ required:true, min:0.01 })} className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-green-500" />
+              <input type="number" placeholder="Target Amount" {...register('targetAmount', { required: true, min: 0.01 })} className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-green-500" />
               {errors.targetAmount && <p className="text-red-500 text-sm">Target amount required</p>}
-              <input type="number" placeholder="Current Amount" {...register('currentAmount',{ min:0 })} className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-green-500" />
-              <input type="date" {...register('deadline',{ required:true })} className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-green-500" />
+              <input type="number" placeholder="Current Amount" {...register('currentAmount', { min: 0 })} className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-green-500" />
+              <input type="date" {...register('deadline', { required: true })} className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-green-500" />
               <textarea placeholder="Description" {...register('description')} rows={3} className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-green-500" />
               <div className="flex gap-2">
                 <button type="submit" className="flex-1 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition">Create</button>
-                <button type="button" onClick={()=>{ setShowModal(false); reset(); }} className="flex-1 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 transition">Cancel</button>
+                <button type="button" onClick={() => { setShowModal(false); reset(); }} className="flex-1 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 transition">Cancel</button>
               </div>
             </form>
           </div>
