@@ -68,9 +68,10 @@ export default function SavingGoals() {
         amount: parseFloat(amount),
         note: 'Contribution'
       })
-      // Controller returns { message, goal, transaction }
-      if (response && response.goal) {
-        setGoals(goals.map(g => g._id === id || g.id === id ? response.goal : g))
+      // Controller returns { success: true, data: goal, message }
+      if (response && response.data) {
+        const updatedGoal = response.data
+        setGoals(goals.map(g => g._id === id || g.id === id ? updatedGoal : g))
       }
     } catch (err) {
       console.error('Failed to add contribution:', err)
