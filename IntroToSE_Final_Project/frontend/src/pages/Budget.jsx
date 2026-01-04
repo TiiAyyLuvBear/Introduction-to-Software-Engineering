@@ -126,11 +126,21 @@ export default function Budget() {
     }
   };
 
-  const deleteBudget = async (id) => {
-    if (!confirm('Are you sure you want to delete this budget?')) return;
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteTargetId, setDeleteTargetId] = useState(null);
+
+  const deleteBudget = (id) => {
+    setDeleteTargetId(id);
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteTargetId) return;
     try {
-      await budgetAPI.delete(id);
-      setBudgets(budgets.filter(b => b._id !== id && b.id !== id));
+      await budgetAPI.delete(deleteTargetId);
+      setBudgets(budgets.filter(b => b._id !== deleteTargetId && b.id !== deleteTargetId));
+      setShowDeleteConfirm(false);
+      setDeleteTargetId(null);
     } catch (err) {
       console.error('Failed to delete budget:', err);
       setError(err.response?.data?.error || err.message || 'Failed to delete budget');
@@ -226,7 +236,7 @@ export default function Budget() {
         )}
       </div>
 
-      {/* Modal */}
+      {/* Create Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => setShowModal(false)}>
           <div className="bg-white rounded-xl w-full max-w-md p-6 shadow-lg" onClick={e => e.stopPropagation()}>
@@ -302,6 +312,37 @@ export default function Budget() {
                 <button type="button" onClick={() => { setShowModal(false); reset(); }} className="flex-1 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-all duration-300">Cancel</button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl shadow-2xl p-6 max-w-sm w-full mx-4 transform transition-all scale-100">
+            <div className="flex flex-col items-center text-center">
+              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4">
+                <FaTrashAlt className="w-8 h-8 text-red-600" />
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 mb-2">Delete Budget?</h3>
+              <p className="text-gray-500 mb-6">
+                Are you sure you want to delete this budget? This action cannot be undone.
+              </p>
+              <div className="flex gap-3 w-full">
+                <button
+                  onClick={() => setShowDeleteConfirm(false)}
+                  className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 font-medium transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmDelete}
+                  className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium shadow-md hover:shadow-lg transition-all"
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
