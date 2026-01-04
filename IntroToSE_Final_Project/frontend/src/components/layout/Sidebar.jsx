@@ -61,18 +61,17 @@ export default function Sidebar({ isOpen, setIsOpen }) {
                   <Link
                     key={item.path}
                     to={item.path}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium
-                      transition-all duration-200
-                      ${
-                        active
-                          ? "bg-green-600 text-white shadow-md"
-                          : "hover:bg-gray-700 text-gray-300"
+                    className={`flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-semibold whitespace-nowrap
+                      transition-all duration-300 border
+                      ${active
+                        ? "bg-green-500/20 text-green-400 border-green-500/50 shadow-[0_0_15px_rgba(74,222,128,0.15)]"
+                        : "border-transparent hover:bg-white/5 text-gray-400 hover:text-white"
                       }`}
                   >
-                    <span className="text-base">
+                    <span className="text-lg">
                       {React.cloneElement(item.icon, {
                         size: 16,
-                        color: active ? "#ffffff" : "#9ca3af",
+                        color: active ? "#4ade80" : "currentColor", // Tailwind green-400
                       })}
                     </span>
                     <span>{item.label}</span>
@@ -102,9 +101,8 @@ export default function Sidebar({ isOpen, setIsOpen }) {
 
         {/* Mobile Navigation Menu */}
         <div
-          className={`lg:hidden bg-gray-800 border-t border-gray-700 transition-all duration-300 overflow-hidden ${
-            isOpen ? "max-h-screen" : "max-h-0"
-          }`}
+          className={`lg:hidden bg-gray-800 border-t border-gray-700 transition-all duration-300 overflow-hidden ${isOpen ? "max-h-screen" : "max-h-0"
+            }`}
         >
           <div className="px-4 py-4 space-y-2">
             {menuItems.map((item) => {
@@ -116,10 +114,9 @@ export default function Sidebar({ isOpen, setIsOpen }) {
                   onClick={() => setIsOpen(false)}
                   className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium
                     transition-all duration-200
-                    ${
-                      active
-                        ? "bg-green-600 text-white shadow-md"
-                        : "hover:bg-gray-700 text-gray-300"
+                    ${active
+                      ? "bg-green-600 text-white shadow-md"
+                      : "hover:bg-gray-700 text-gray-300"
                     }`}
                 >
                   <span className="text-lg">
