@@ -28,7 +28,8 @@ export default function SavingGoals() {
     try {
       setLoading(true)
       const response = await savingGoalAPI.getAll()
-      setGoals(Array.isArray(response) ? response : response.goals || [])
+      // response is { success: true, data: [...] }
+      setGoals(Array.isArray(response) ? response : response.data || [])
     } catch (err) {
       console.error('Failed to load saving goals:', err)
       setError(err.response?.data?.error || err.message || 'Failed to load saving goals')
@@ -50,8 +51,9 @@ export default function SavingGoals() {
       }
 
       const response = await savingGoalAPI.create(goalData)
-      // Controller returns the created goal object directly
-      setGoals([response, ...goals])
+      // Response is { success: true, data: goal }
+      const newGoal = response.data || response
+      setGoals([newGoal, ...goals])
       setShowModal(false)
       reset()
     } catch (err) {
