@@ -79,11 +79,21 @@ export default function SavingGoals() {
     }
   }
 
-  const deleteGoal = async (id) => {
-    if (!confirm('Are you sure you want to delete this saving goal?')) return
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [deleteTargetId, setDeleteTargetId] = useState(null)
+
+  const deleteGoal = (id) => {
+    setDeleteTargetId(id)
+    setShowDeleteConfirm(true)
+  }
+
+  const confirmDelete = async () => {
+    if (!deleteTargetId) return
     try {
-      await savingGoalAPI.delete(id)
-      setGoals(goals.filter(g => g._id !== id && g.id !== id))
+      await savingGoalAPI.delete(deleteTargetId)
+      setGoals(goals.filter(g => g._id !== deleteTargetId && g.id !== deleteTargetId))
+      setShowDeleteConfirm(false)
+      setDeleteTargetId(null)
     } catch (err) {
       console.error('Failed to delete goal:', err)
       setError(err.response?.data?.error || err.message || 'Failed to delete goal')
@@ -209,7 +219,7 @@ export default function SavingGoals() {
         })}
       </div>
 
-      {/* Modal */}
+      {/* Create Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => setShowModal(false)}>
           <div className="bg-white rounded-lg w-full max-w-md p-6" onClick={e => e.stopPropagation()}>
@@ -227,6 +237,37 @@ export default function SavingGoals() {
                 <button type="button" onClick={() => { setShowModal(false); reset(); }} className="flex-1 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 transition">Cancel</button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl shadow-2xl p-6 max-w-sm w-full mx-4 transform transition-all scale-100">
+            <div className="flex flex-col items-center text-center">
+              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4">
+                <Trash2 className="w-8 h-8 text-red-600" />
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 mb-2">Delete Saving Goal?</h3>
+              <p className="text-gray-500 mb-6">
+                Are you sure you want to delete this goal? This action cannot be undone and any funds will be returned to your wallet.
+              </p>
+              <div className="flex gap-3 w-full">
+                <button
+                  onClick={() => setShowDeleteConfirm(false)}
+                  className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 font-medium transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmDelete}
+                  className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium shadow-md hover:shadow-lg transition-all"
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
