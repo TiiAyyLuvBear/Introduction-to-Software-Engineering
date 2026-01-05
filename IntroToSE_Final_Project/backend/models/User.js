@@ -19,6 +19,24 @@ const UserSchema = new mongoose.Schema({
   
   // Mật khẩu - nên được hash bằng bcrypt trước khi lưu (sẽ implement sau)
   password: { type: String, required: true },
+
+  // Số điện thoại (Optional, Unique)
+  phoneNumber: { 
+    type: String, 
+    unique: true, 
+    sparse: true, // Cho phép nhiều user có phoneNumber là null
+    trim: true,
+    minLength: [10, 'Phone number must be at least 10 digits'],
+    maxLength: [11, 'Phone number must be at most 11 digits']
+  },
+
+  // Avatar URL
+  avatarUrl: { 
+    type: String, 
+    trim: true,
+    // Simple URL validation regex or logic could be added here
+    match: [/^(http|https):\/\/[^ "]+$/, 'Please provide a valid URL for avatar']
+  }
 }, { 
   // timestamps: true tự động thêm createdAt và updatedAt
   timestamps: true 

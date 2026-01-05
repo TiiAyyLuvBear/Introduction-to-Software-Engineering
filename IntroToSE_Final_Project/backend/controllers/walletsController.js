@@ -110,18 +110,31 @@ export const getUserWallets = async (req, res) => {
     const userId = req.user?.id
     const { status = 'active' } = req.query
 
-    const wallets = await Wallet.getUserWallets(userId, status)
+    // Updated query to find wallets where user is OWNER or MEMBER (isShared logic)
+    // Use Case U010/U011: User sees their own wallets and wallets they are invited to
+    const wallets = await Wallet.find({
+      $or: [
+        { userId: userId },
+        { 'members.userId': userId }
+      ],
+      status: status
+    }).sort({ createdAt: -1 })
 
-    // Calculate total balance across all wallets
-    const totalBalance = wallets.reduce((sum, wallet) => {
-      // In real app, implement currency conversion
-      return sum + wallet.balance
+    // Transform data for display
+    const formattedWallets = wallets.map(wallet => wallet.getDisplayInfo())
+
+    // Calculate total balance across all wallets (only if owner, or maybe exclude shared balance? 
+    // Spec doesn't specify, but usually "My Assets" implies own wallets. 
+    // For now, we sum all visible wallets or maybe just owned ones. 
+    // Let's sum all visible for simplicity as per requirement "Lấy ví của tôi & ví được share")
+    const totalBalance = formattedWallets.reduce((sum, wallet) => {
+      return sum + (wallet.balance || 0)
     }, 0)
 
     res.json({
       success: true,
       data: {
-        wallets,
+        wallets: formattedWallets,
         totalBalance,
         walletCount: wallets.length
       }
@@ -145,9 +158,13 @@ export const getWallet = async (req, res) => {
     const { id } = req.params
     const userId = req.user?.id
 
-    const wallet = await Wallet.findOne({ 
-      _id: id, 
-      userId,
+    const wallet = await Wallet.findOne({
+      _id: id,
+      // Implement permissions: Owner OR Member can view
+      $or: [
+        { userId },
+        { 'members.userId': userId }
+      ],
       status: 'active'
     })
 
@@ -182,9 +199,9 @@ export const updateWallet = async (req, res) => {
     const { name, type, currency, description, status } = req.body
     const userId = req.user?.id
 
-    const wallet = await Wallet.findOne({ 
-      _id: id, 
-      userId 
+    const wallet = await Wallet.findOne({
+      _id: id,
+      userId
     })
 
     if (!wallet) {
@@ -198,7 +215,7 @@ export const updateWallet = async (req, res) => {
     if (name && name.trim()) {
       wallet.name = name.trim()
     }
-    
+
     if (type && ['Cash', 'Bank', 'Savings'].includes(type)) {
       wallet.type = type
     }
@@ -250,10 +267,10 @@ export const deleteWallet = async (req, res) => {
     const { id } = req.params
     const userId = req.user?.id
 
-    const wallet = await Wallet.findOne({ 
-      _id: id, 
+    const wallet = await Wallet.findOne({
+      _id: id,
       userId,
-      status: 'active' 
+      status: 'active'
     })
 
     if (!wallet) {
@@ -298,8 +315,8 @@ export const updateWalletBalance = async (req, res) => {
       })
     }
 
-    const wallet = await Wallet.findOne({ 
-      _id: id, 
+    const wallet = await Wallet.findOne({
+      _id: id,
       userId,
       status: 'active'
     })
@@ -445,9 +462,9 @@ export const inviteMember = async (req, res) => {
     }
 
     // Find wallet and verify ownership
-    const wallet = await Wallet.findOne({ 
-      _id: walletId, 
-      status: 'active' 
+    const wallet = await Wallet.findOne({
+      _id: walletId,
+      status: 'active'
     }).populate('members.userId', 'name email')
 
     if (!wallet) {
@@ -476,7 +493,7 @@ export const inviteMember = async (req, res) => {
     }
 
     // Check if user already a member
-    const existingMember = wallet.members.find(member => 
+    const existingMember = wallet.members.find(member =>
       member.userId._id.toString() === invitee._id.toString()
     )
     if (existingMember) {
@@ -586,7 +603,7 @@ export const respondToInvitation = async (req, res) => {
     // Handle response
     if (response === 'accept') {
       await invitation.accept(userId)
-      
+
       // Add user to wallet members
       const wallet = await Wallet.findById(invitation.walletId._id)
       wallet.members.push({
@@ -609,7 +626,7 @@ export const respondToInvitation = async (req, res) => {
 
     } else {
       await invitation.decline(userId)
-      
+
       res.json({
         success: true,
         message: 'Invitation declined'
@@ -673,9 +690,9 @@ export const leaveWallet = async (req, res) => {
     const { id: walletId } = req.params
     const userId = req.user?.id
 
-    const wallet = await Wallet.findOne({ 
-      _id: walletId, 
-      status: 'active' 
+    const wallet = await Wallet.findOne({
+      _id: walletId,
+      status: 'active'
     })
 
     if (!wallet) {
@@ -686,7 +703,7 @@ export const leaveWallet = async (req, res) => {
     }
 
     // Check if user is a member
-    const memberIndex = wallet.members.findIndex(member => 
+    const memberIndex = wallet.members.findIndex(member =>
       member.userId.toString() === userId.toString()
     )
 
@@ -706,10 +723,10 @@ export const leaveWallet = async (req, res) => {
         data: {
           eligibleMembers: wallet.members
             .filter(m => m.userId.toString() !== userId.toString())
-            .map(m => ({ 
-              id: m.userId, 
+            .map(m => ({
+              id: m.userId,
               permission: m.permission,
-              joinedAt: m.joinedAt 
+              joinedAt: m.joinedAt
             }))
         }
       })
@@ -748,9 +765,9 @@ export const transferOwnership = async (req, res) => {
       })
     }
 
-    const wallet = await Wallet.findOne({ 
-      _id: walletId, 
-      status: 'active' 
+    const wallet = await Wallet.findOne({
+      _id: walletId,
+      status: 'active'
     })
 
     if (!wallet) {
@@ -788,9 +805,9 @@ export const removeMemberFromWallet = async (req, res) => {
     const { id: walletId, memberId } = req.params
     const ownerId = req.user?.id
 
-    const wallet = await Wallet.findOne({ 
-      _id: walletId, 
-      status: 'active' 
+    const wallet = await Wallet.findOne({
+      _id: walletId,
+      status: 'active'
     })
 
     if (!wallet) {
@@ -840,9 +857,9 @@ export const setMemberPermission = async (req, res) => {
       })
     }
 
-    const wallet = await Wallet.findOne({ 
-      _id: walletId, 
-      status: 'active' 
+    const wallet = await Wallet.findOne({
+      _id: walletId,
+      status: 'active'
     })
 
     if (!wallet) {
@@ -880,9 +897,9 @@ export const getWalletMembers = async (req, res) => {
     const { id: walletId } = req.params
     const userId = req.user?.id
 
-    const wallet = await Wallet.findOne({ 
-      _id: walletId, 
-      status: 'active' 
+    const wallet = await Wallet.findOne({
+      _id: walletId,
+      status: 'active'
     }).populate('members.userId', 'name email')
       .populate('ownerId', 'name email')
 
@@ -894,7 +911,7 @@ export const getWalletMembers = async (req, res) => {
     }
 
     // Check if user is member or owner
-    const isMember = wallet.members.some(member => 
+    const isMember = wallet.members.some(member =>
       member.userId._id.toString() === userId.toString()
     )
     const isOwner = wallet.ownerId && wallet.ownerId._id.toString() === userId.toString()
