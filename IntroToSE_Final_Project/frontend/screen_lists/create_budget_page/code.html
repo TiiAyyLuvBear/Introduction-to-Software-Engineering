@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Create Budget - Money Lover</title>
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;family=Noto+Sans:wght@400;500;700&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Theme Configuration -->
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "primary": "#19e65e",
+              "background-light": "#f6f8f6",
+              "background-dark": "#112116",
+              "surface-dark": "#1c261f",
+              "surface-border": "#3c5344",
+              "text-secondary": "#9db8a6",
+            },
+            fontFamily: {
+              "display": ["Manrope", "sans-serif"],
+              "body": ["Noto Sans", "sans-serif"],
+            },
+            borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-white font-display antialiased selection:bg-primary selection:text-background-dark">
+<div class="relative flex min-h-screen flex-col overflow-x-hidden">
+<!-- TopNavBar -->
+<header class="flex items-center justify-between whitespace-nowrap border-b border-solid border-surface-border bg-background-dark px-10 py-3">
+<div class="flex items-center gap-4 text-white">
+<div class="size-8 text-primary flex items-center justify-center">
+<span class="material-symbols-outlined text-3xl">account_balance_wallet</span>
+</div>
+<h2 class="text-white text-lg font-bold leading-tight tracking-[-0.015em]">Money Lover</h2>
+</div>
+<div class="flex flex-1 justify-end gap-8">
+<div class="hidden md:flex items-center gap-9">
+<a class="text-white text-sm font-medium leading-normal hover:text-primary transition-colors" href="#">Dashboard</a>
+<a class="text-primary text-sm font-bold leading-normal" href="#">Budgets</a>
+<a class="text-white text-sm font-medium leading-normal hover:text-primary transition-colors" href="#">Transactions</a>
+<a class="text-white text-sm font-medium leading-normal hover:text-primary transition-colors" href="#">Reports</a>
+</div>
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10 ring-2 ring-surface-border" data-alt="User profile avatar showing a smiling person" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuA3uBVBaEY629DpcAPzfJJRqcZI5qSfhyqCHAmCzAH0jA1o8llHiUb8eTj8uN6x7n_vqwAvh8WEGak7qePmDooiG657Zbt6FnCUKGnjQGB8-BSuYcj4EjbWA0pDriEEYh6qZfFHMlTI_ALD-WExO2Gq0yg-vogz43uxoHJwmZHC_vKi3M7ashjbDnPqC_DNeplaOSpUWdLcb_BO4RBZvh5B5wY7FGtmR0ybBbXUoB-8KNfFU5YbaKeQm5oioSRMvqwvAJ5loGF4J1T_");'></div>
+</div>
+</header>
+<!-- Main Content -->
+<main class="flex-1 w-full max-w-[960px] mx-auto px-4 md:px-10 py-8">
+<!-- Breadcrumbs -->
+<div class="flex flex-wrap items-center gap-2 pb-6">
+<a class="text-text-secondary hover:text-primary text-sm font-medium leading-normal transition-colors" href="#">Home</a>
+<span class="text-text-secondary text-sm font-medium leading-normal">/</span>
+<a class="text-text-secondary hover:text-primary text-sm font-medium leading-normal transition-colors" href="#">Budgets</a>
+<span class="text-text-secondary text-sm font-medium leading-normal">/</span>
+<span class="text-white text-sm font-medium leading-normal">Create New</span>
+</div>
+<!-- Page Heading -->
+<div class="flex flex-wrap justify-between gap-3 pb-8">
+<div class="flex min-w-72 flex-col gap-2">
+<h1 class="text-white text-4xl font-black leading-tight tracking-[-0.033em]">Create New Budget</h1>
+<p class="text-text-secondary text-base font-normal leading-normal">Take control of your spending by setting limits for categories.</p>
+</div>
+</div>
+<!-- Form Layout -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+<!-- Left Column: Primary Inputs -->
+<div class="lg:col-span-7 flex flex-col gap-8">
+<!-- Budget Name -->
+<div class="flex flex-col gap-2">
+<label class="text-white text-base font-bold leading-normal">Budget Name</label>
+<input class="form-input w-full rounded-xl border border-surface-border bg-surface-dark h-14 placeholder:text-text-secondary px-4 text-white focus:border-primary focus:ring-1 focus:ring-primary transition-all text-base font-medium" placeholder="e.g. Monthly Groceries, Summer Trip" type="text"/>
+</div>
+<!-- Category Selection -->
+<div class="flex flex-col gap-4">
+<h2 class="text-white text-lg font-bold leading-tight">Select Category</h2>
+<div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+<!-- Category Item: Selected -->
+<button class="group flex flex-col items-center justify-center p-4 rounded-xl border border-primary bg-primary/10 transition-all cursor-pointer ring-1 ring-primary/50">
+<div class="size-10 rounded-full bg-primary text-background-dark flex items-center justify-center mb-2">
+<span class="material-symbols-outlined">shopping_cart</span>
+</div>
+<span class="text-white font-semibold text-sm">Groceries</span>
+</button>
+<!-- Category Item: Default -->
+<button class="group flex flex-col items-center justify-center p-4 rounded-xl border border-surface-border bg-surface-dark hover:border-text-secondary transition-all cursor-pointer">
+<div class="size-10 rounded-full bg-background-dark border border-surface-border text-text-secondary group-hover:text-white flex items-center justify-center mb-2">
+<span class="material-symbols-outlined">restaurant</span>
+</div>
+<span class="text-text-secondary group-hover:text-white font-medium text-sm">Dining</span>
+</button>
+<!-- Category Item: Default -->
+<button class="group flex flex-col items-center justify-center p-4 rounded-xl border border-surface-border bg-surface-dark hover:border-text-secondary transition-all cursor-pointer">
+<div class="size-10 rounded-full bg-background-dark border border-surface-border text-text-secondary group-hover:text-white flex items-center justify-center mb-2">
+<span class="material-symbols-outlined">directions_car</span>
+</div>
+<span class="text-text-secondary group-hover:text-white font-medium text-sm">Transport</span>
+</button>
+<!-- Category Item: Default -->
+<button class="group flex flex-col items-center justify-center p-4 rounded-xl border border-surface-border bg-surface-dark hover:border-text-secondary transition-all cursor-pointer">
+<div class="size-10 rounded-full bg-background-dark border border-surface-border text-text-secondary group-hover:text-white flex items-center justify-center mb-2">
+<span class="material-symbols-outlined">movie</span>
+</div>
+<span class="text-text-secondary group-hover:text-white font-medium text-sm">Fun</span>
+</button>
+<!-- Category Item: Default -->
+<button class="group flex flex-col items-center justify-center p-4 rounded-xl border border-surface-border bg-surface-dark hover:border-text-secondary transition-all cursor-pointer">
+<div class="size-10 rounded-full bg-background-dark border border-surface-border text-text-secondary group-hover:text-white flex items-center justify-center mb-2">
+<span class="material-symbols-outlined">home</span>
+</div>
+<span class="text-text-secondary group-hover:text-white font-medium text-sm">Housing</span>
+</button>
+<!-- Category Item: Default -->
+<button class="group flex flex-col items-center justify-center p-4 rounded-xl border border-surface-border bg-surface-dark hover:border-text-secondary transition-all cursor-pointer">
+<div class="size-10 rounded-full bg-background-dark border border-surface-border text-text-secondary group-hover:text-white flex items-center justify-center mb-2">
+<span class="material-symbols-outlined">medical_services</span>
+</div>
+<span class="text-text-secondary group-hover:text-white font-medium text-sm">Health</span>
+</button>
+</div>
+</div>
+<!-- Time Period -->
+<div class="flex flex-col gap-3">
+<label class="text-white text-base font-bold leading-normal">Time Period</label>
+<div class="flex bg-surface-dark p-1 rounded-xl border border-surface-border">
+<button class="flex-1 py-2.5 rounded-lg text-sm font-medium text-text-secondary hover:text-white transition-colors">Weekly</button>
+<button class="flex-1 py-2.5 rounded-lg text-sm font-bold bg-primary text-background-dark shadow-sm">Monthly</button>
+<button class="flex-1 py-2.5 rounded-lg text-sm font-medium text-text-secondary hover:text-white transition-colors">One-time</button>
+</div>
+<p class="text-text-secondary text-sm pl-1">This budget will reset on the 1st of every month.</p>
+</div>
+</div>
+<!-- Right Column: Amount & Summary -->
+<div class="lg:col-span-5 flex flex-col gap-6">
+<div class="sticky top-6">
+<!-- Amount Card -->
+<div class="bg-surface-dark border border-surface-border rounded-2xl p-6 flex flex-col gap-6 shadow-xl">
+<div class="flex flex-col gap-2">
+<label class="text-text-secondary text-sm font-medium uppercase tracking-wider">Set Limit</label>
+<div class="relative flex items-center">
+<span class="absolute left-0 text-text-secondary text-4xl font-light">$</span>
+<input class="w-full bg-transparent border-none p-0 pl-8 text-5xl font-bold text-white placeholder:text-text-secondary/30 focus:ring-0" placeholder="0" type="text" value="500"/>
+</div>
+</div>
+<hr class="border-surface-border/50"/>
+<!-- Live Preview Summary -->
+<div class="flex gap-4 items-start">
+<div class="p-3 rounded-lg bg-surface-border/30 text-primary">
+<span class="material-symbols-outlined">visibility</span>
+</div>
+<div>
+<p class="text-sm text-text-secondary mb-1">Preview</p>
+<p class="text-white text-base font-medium leading-snug">
+                                        You are setting a <span class="text-primary font-bold">$500</span> budget for <span class="text-white font-bold">Groceries</span> this <span class="text-white font-bold">Month</span>.
+                                    </p>
+</div>
+</div>
+<!-- Actions -->
+<div class="flex flex-col gap-3 mt-4">
+<button class="w-full bg-primary hover:bg-green-400 text-background-dark h-12 rounded-lg text-base font-bold transition-colors shadow-[0_0_15px_rgba(25,230,94,0.3)]">
+                                    Create Budget
+                                </button>
+<button class="w-full bg-transparent hover:bg-surface-border text-text-secondary hover:text-white h-12 rounded-lg text-base font-medium transition-colors">
+                                    Cancel
+                                </button>
+</div>
+</div>
+<!-- Tip Card -->
+<div class="mt-6 p-4 rounded-xl bg-gradient-to-br from-surface-dark to-surface-border/20 border border-surface-border">
+<div class="flex gap-3">
+<span class="material-symbols-outlined text-primary">lightbulb</span>
+<div>
+<p class="text-white font-bold text-sm mb-1">Pro Tip</p>
+<p class="text-text-secondary text-sm leading-relaxed">Setting realistic limits helps you stick to your goals longer. Start small and adjust as needed.</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+</body></html>

@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Add Category - Money Lover</title>
+<!-- Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200..800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Tailwind Configuration -->
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#19e65e",
+                        "background-light": "#f6f8f6",
+                        "background-dark": "#112116",
+                        "surface-dark": "#1c261f",
+                        "border-dark": "#3c5344",
+                        "text-secondary": "#9db8a6",
+                    },
+                    fontFamily: {
+                        "display": ["Manrope", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-[#111418] dark:text-white overflow-x-hidden min-h-screen flex flex-col">
+<div class="relative flex flex-1 w-full flex-col">
+<!-- Main Layout Container -->
+<div class="layout-container flex h-full grow flex-col">
+<!-- Centered Content Area -->
+<div class="px-4 md:px-40 flex flex-1 justify-center py-10">
+<div class="layout-content-container flex flex-col max-w-[600px] flex-1 gap-8">
+<!-- Header Section -->
+<div class="flex flex-col gap-2 px-4">
+<h1 class="text-[#111418] dark:text-white tracking-tight text-[32px] font-bold leading-tight">Add Category</h1>
+<p class="text-[#637588] dark:text-text-secondary text-base font-normal leading-normal">Create a new transaction category to organize your finances.</p>
+</div>
+<!-- Form Section -->
+<div class="flex flex-col gap-6 px-4">
+<!-- Type Switcher (Segmented Control) -->
+<div class="w-full">
+<label class="block text-[#111418] dark:text-white text-base font-medium leading-normal pb-3">Transaction Type</label>
+<div class="flex h-12 w-full items-center justify-center rounded-xl bg-[#e0e0e0] dark:bg-[#29382e] p-1">
+<label class="flex cursor-pointer h-full grow items-center justify-center overflow-hidden rounded-lg px-2 transition-all duration-200 has-[:checked]:bg-white dark:has-[:checked]:bg-primary has-[:checked]:shadow-sm has-[:checked]:text-[#111418] text-[#637588] dark:text-text-secondary font-medium leading-normal">
+<span class="truncate">Expense</span>
+<input checked="" class="invisible w-0 absolute" name="type" type="radio" value="Expense"/>
+</label>
+<label class="flex cursor-pointer h-full grow items-center justify-center overflow-hidden rounded-lg px-2 transition-all duration-200 has-[:checked]:bg-white dark:has-[:checked]:bg-primary has-[:checked]:shadow-sm has-[:checked]:text-[#111418] text-[#637588] dark:text-text-secondary font-medium leading-normal">
+<span class="truncate">Income</span>
+<input class="invisible w-0 absolute" name="type" type="radio" value="Income"/>
+</label>
+</div>
+</div>
+<!-- Category Name Input -->
+<div class="flex flex-col gap-3">
+<label class="flex flex-col w-full flex-1">
+<p class="text-[#111418] dark:text-white text-base font-medium leading-normal pb-2">Category Name</p>
+<input class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-xl text-[#111418] dark:text-white focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-[#dce0e5] dark:border-border-dark bg-white dark:bg-surface-dark focus:border-primary h-14 placeholder:text-[#9ca3af] dark:placeholder:text-text-secondary p-[15px] text-base font-normal leading-normal transition-colors" placeholder="e.g., Groceries, Rent, Salary" value=""/>
+</label>
+</div>
+<!-- Parent Category (Optional) -->
+<div class="flex flex-col gap-3">
+<label class="flex flex-col w-full flex-1">
+<p class="text-[#111418] dark:text-white text-base font-medium leading-normal pb-2">Parent Group <span class="text-[#637588] dark:text-text-secondary font-normal text-sm">(Optional)</span></p>
+<div class="relative">
+<select class="form-select flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-xl text-[#111418] dark:text-white focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-[#dce0e5] dark:border-border-dark bg-white dark:bg-surface-dark focus:border-primary h-14 p-[15px] pr-10 text-base font-normal leading-normal appearance-none transition-colors">
+<option disabled="" selected="" value="">Select a parent group</option>
+<option value="food">Food &amp; Beverage</option>
+<option value="transport">Transportation</option>
+<option value="utilities">Bills &amp; Utilities</option>
+<option value="entertainment">Entertainment</option>
+</select>
+<div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-[#637588] dark:text-text-secondary">
+<span class="material-symbols-outlined">expand_more</span>
+</div>
+</div>
+</label>
+</div>
+<!-- Icon Selection Grid -->
+<div class="flex flex-col gap-3 pt-2">
+<h3 class="text-[#111418] dark:text-white text-base font-medium leading-normal pb-2">Select Icon</h3>
+<div class="grid grid-cols-5 sm:grid-cols-6 md:grid-cols-8 gap-4">
+<!-- Active Icon Example -->
+<button class="group flex flex-col items-center gap-2 focus:outline-none">
+<div class="flex items-center justify-center w-12 h-12 rounded-full bg-primary text-[#112116] shadow-[0_0_15px_rgba(25,230,94,0.4)] transition-all transform hover:scale-105">
+<span class="material-symbols-outlined">restaurant</span>
+</div>
+</button>
+<!-- Inactive Icons -->
+<button class="group flex flex-col items-center gap-2 focus:outline-none">
+<div class="flex items-center justify-center w-12 h-12 rounded-full bg-[#e0e0e0] dark:bg-[#29382e] text-[#637588] dark:text-text-secondary hover:bg-[#d0d0d0] dark:hover:bg-[#3c5344] hover:text-[#111418] dark:hover:text-white transition-all">
+<span class="material-symbols-outlined">shopping_cart</span>
+</div>
+</button>
+<button class="group flex flex-col items-center gap-2 focus:outline-none">
+<div class="flex items-center justify-center w-12 h-12 rounded-full bg-[#e0e0e0] dark:bg-[#29382e] text-[#637588] dark:text-text-secondary hover:bg-[#d0d0d0] dark:hover:bg-[#3c5344] hover:text-[#111418] dark:hover:text-white transition-all">
+<span class="material-symbols-outlined">commute</span>
+</div>
+</button>
+<button class="group flex flex-col items-center gap-2 focus:outline-none">
+<div class="flex items-center justify-center w-12 h-12 rounded-full bg-[#e0e0e0] dark:bg-[#29382e] text-[#637588] dark:text-text-secondary hover:bg-[#d0d0d0] dark:hover:bg-[#3c5344] hover:text-[#111418] dark:hover:text-white transition-all">
+<span class="material-symbols-outlined">home</span>
+</div>
+</button>
+<button class="group flex flex-col items-center gap-2 focus:outline-none">
+<div class="flex items-center justify-center w-12 h-12 rounded-full bg-[#e0e0e0] dark:bg-[#29382e] text-[#637588] dark:text-text-secondary hover:bg-[#d0d0d0] dark:hover:bg-[#3c5344] hover:text-[#111418] dark:hover:text-white transition-all">
+<span class="material-symbols-outlined">payments</span>
+</div>
+</button>
+<button class="group flex flex-col items-center gap-2 focus:outline-none">
+<div class="flex items-center justify-center w-12 h-12 rounded-full bg-[#e0e0e0] dark:bg-[#29382e] text-[#637588] dark:text-text-secondary hover:bg-[#d0d0d0] dark:hover:bg-[#3c5344] hover:text-[#111418] dark:hover:text-white transition-all">
+<span class="material-symbols-outlined">flight</span>
+</div>
+</button>
+<button class="group flex flex-col items-center gap-2 focus:outline-none">
+<div class="flex items-center justify-center w-12 h-12 rounded-full bg-[#e0e0e0] dark:bg-[#29382e] text-[#637588] dark:text-text-secondary hover:bg-[#d0d0d0] dark:hover:bg-[#3c5344] hover:text-[#111418] dark:hover:text-white transition-all">
+<span class="material-symbols-outlined">medical_services</span>
+</div>
+</button>
+<button class="group flex flex-col items-center gap-2 focus:outline-none">
+<div class="flex items-center justify-center w-12 h-12 rounded-full bg-[#e0e0e0] dark:bg-[#29382e] text-[#637588] dark:text-text-secondary hover:bg-[#d0d0d0] dark:hover:bg-[#3c5344] hover:text-[#111418] dark:hover:text-white transition-all">
+<span class="material-symbols-outlined">school</span>
+</div>
+</button>
+<button class="group flex flex-col items-center gap-2 focus:outline-none">
+<div class="flex items-center justify-center w-12 h-12 rounded-full bg-[#e0e0e0] dark:bg-[#29382e] text-[#637588] dark:text-text-secondary hover:bg-[#d0d0d0] dark:hover:bg-[#3c5344] hover:text-[#111418] dark:hover:text-white transition-all">
+<span class="material-symbols-outlined">pets</span>
+</div>
+</button>
+<button class="group flex flex-col items-center gap-2 focus:outline-none">
+<div class="flex items-center justify-center w-12 h-12 rounded-full bg-[#e0e0e0] dark:bg-[#29382e] text-[#637588] dark:text-text-secondary hover:bg-[#d0d0d0] dark:hover:bg-[#3c5344] hover:text-[#111418] dark:hover:text-white transition-all">
+<span class="material-symbols-outlined">sports_esports</span>
+</div>
+</button>
+<button class="group flex flex-col items-center gap-2 focus:outline-none">
+<div class="flex items-center justify-center w-12 h-12 rounded-full bg-[#e0e0e0] dark:bg-[#29382e] text-[#637588] dark:text-text-secondary hover:bg-[#d0d0d0] dark:hover:bg-[#3c5344] hover:text-[#111418] dark:hover:text-white transition-all">
+<span class="material-symbols-outlined">local_cafe</span>
+</div>
+</button>
+<button class="group flex flex-col items-center gap-2 focus:outline-none">
+<div class="flex items-center justify-center w-12 h-12 rounded-full bg-[#e0e0e0] dark:bg-[#29382e] text-[#637588] dark:text-text-secondary hover:bg-[#d0d0d0] dark:hover:bg-[#3c5344] hover:text-[#111418] dark:hover:text-white transition-all">
+<span class="material-symbols-outlined">local_gas_station</span>
+</div>
+</button>
+<button class="group flex flex-col items-center gap-2 focus:outline-none">
+<div class="flex items-center justify-center w-12 h-12 rounded-full bg-[#e0e0e0] dark:bg-[#29382e] text-[#637588] dark:text-text-secondary hover:bg-[#d0d0d0] dark:hover:bg-[#3c5344] hover:text-[#111418] dark:hover:text-white transition-all">
+<span class="material-symbols-outlined">fitness_center</span>
+</div>
+</button>
+<button class="group flex flex-col items-center gap-2 focus:outline-none">
+<div class="flex items-center justify-center w-12 h-12 rounded-full bg-[#e0e0e0] dark:bg-[#29382e] text-[#637588] dark:text-text-secondary hover:bg-[#d0d0d0] dark:hover:bg-[#3c5344] hover:text-[#111418] dark:hover:text-white transition-all">
+<span class="material-symbols-outlined">savings</span>
+</div>
+</button>
+<button class="group flex flex-col items-center gap-2 focus:outline-none">
+<div class="flex items-center justify-center w-12 h-12 rounded-full bg-[#e0e0e0] dark:bg-[#29382e] text-[#637588] dark:text-text-secondary hover:bg-[#d0d0d0] dark:hover:bg-[#3c5344] hover:text-[#111418] dark:hover:text-white transition-all">
+<span class="material-symbols-outlined">add</span>
+</div>
+</button>
+</div>
+</div>
+<!-- Action Buttons -->
+<div class="flex flex-col-reverse md:flex-row gap-4 pt-8">
+<button class="flex-1 h-12 items-center justify-center rounded-xl bg-transparent border border-[#dce0e5] dark:border-border-dark text-[#111418] dark:text-white text-base font-bold leading-normal hover:bg-[#e0e0e0] dark:hover:bg-[#1c261f] transition-colors">
+                                Cancel
+                            </button>
+<button class="flex-1 h-12 items-center justify-center rounded-xl bg-primary text-[#112116] text-base font-bold leading-normal hover:bg-[#15c54e] shadow-lg shadow-primary/20 transition-all">
+                                Save Category
+                            </button>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</body></html>

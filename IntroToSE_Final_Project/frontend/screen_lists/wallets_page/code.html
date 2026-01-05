@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Money Lover - Wallets</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#19e65e",
+                        "background-light": "#f6f8f6",
+                        "background-dark": "#112116",
+                        "surface-dark": "#1c2b22",
+                        "surface-light": "#29382e", // Used for cards in dark mode based on examples
+                    },
+                    fontFamily: {
+                        "display": ["Manrope", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        /* Custom scrollbar for dark mode vibe */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #112116; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #29382e; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #3e5244; 
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-white font-display overflow-hidden h-screen flex">
+<!-- Side Navigation -->
+<aside class="w-64 flex-shrink-0 border-r border-[#29382e] bg-[#111813] flex flex-col h-full hidden lg:flex">
+<div class="p-6">
+<div class="flex flex-col gap-1 mb-8">
+<h1 class="text-white text-xl font-bold leading-normal flex items-center gap-2">
+<span class="material-symbols-outlined text-primary">account_balance_wallet</span>
+                    Money Lover
+                </h1>
+<p class="text-[#9db8a6] text-sm font-normal leading-normal pl-8">Pro Plan</p>
+</div>
+<nav class="flex flex-col gap-2">
+<a class="flex items-center gap-3 px-3 py-3 rounded-lg hover:bg-[#29382e] transition-colors group" href="#">
+<span class="material-symbols-outlined text-[#9db8a6] group-hover:text-white">dashboard</span>
+<p class="text-[#9db8a6] group-hover:text-white text-sm font-medium leading-normal">Dashboard</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-3 rounded-lg hover:bg-[#29382e] transition-colors group" href="#">
+<span class="material-symbols-outlined text-[#9db8a6] group-hover:text-white">compare_arrows</span>
+<p class="text-[#9db8a6] group-hover:text-white text-sm font-medium leading-normal">Transactions</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-3 rounded-lg hover:bg-[#29382e] transition-colors group" href="#">
+<span class="material-symbols-outlined text-[#9db8a6] group-hover:text-white">pie_chart</span>
+<p class="text-[#9db8a6] group-hover:text-white text-sm font-medium leading-normal">Budgets</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-3 rounded-lg bg-[#29382e]" href="#">
+<span class="material-symbols-outlined text-primary">account_balance_wallet</span>
+<p class="text-white text-sm font-medium leading-normal">Wallets</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-3 rounded-lg hover:bg-[#29382e] transition-colors group" href="#">
+<span class="material-symbols-outlined text-[#9db8a6] group-hover:text-white">settings</span>
+<p class="text-[#9db8a6] group-hover:text-white text-sm font-medium leading-normal">Settings</p>
+</a>
+</nav>
+</div>
+<div class="mt-auto p-6 border-t border-[#29382e]">
+<div class="flex items-center gap-3 px-3 py-2 cursor-pointer hover:bg-[#29382e] rounded-lg transition-colors">
+<span class="material-symbols-outlined text-[#9db8a6]">logout</span>
+<p class="text-[#9db8a6] text-sm font-medium leading-normal">Log Out</p>
+</div>
+</div>
+</aside>
+<!-- Main Content -->
+<main class="flex-1 flex flex-col h-full overflow-hidden relative">
+<!-- Top Nav -->
+<header class="flex items-center justify-between whitespace-nowrap border-b border-solid border-b-[#29382e] px-6 py-4 bg-background-dark/95 backdrop-blur-sm z-10">
+<div class="flex items-center gap-4 text-white lg:hidden">
+<button class="text-white">
+<span class="material-symbols-outlined">menu</span>
+</button>
+<h2 class="text-white text-lg font-bold">Wallets</h2>
+</div>
+<!-- Breadcrumbs / Title for Desktop -->
+<div class="hidden lg:flex items-center gap-2 text-sm">
+<span class="text-[#9db8a6]">Financials</span>
+<span class="text-[#9db8a6] material-symbols-outlined" style="font-size: 16px;">chevron_right</span>
+<span class="text-white font-medium">My Wallets</span>
+</div>
+<div class="flex flex-1 justify-end gap-6 items-center">
+<div class="flex gap-2">
+<button class="flex items-center justify-center rounded-lg size-10 bg-[#29382e] hover:bg-[#384b3e] text-white transition-colors">
+<span class="material-symbols-outlined" style="font-size: 20px;">notifications</span>
+</button>
+<button class="flex items-center justify-center rounded-lg size-10 bg-[#29382e] hover:bg-[#384b3e] text-white transition-colors">
+<span class="material-symbols-outlined" style="font-size: 20px;">chat</span>
+</button>
+</div>
+<div class="flex items-center gap-3 pl-4 border-l border-[#29382e]">
+<div class="text-right hidden sm:block">
+<p class="text-sm font-bold text-white">Alex Morgan</p>
+<p class="text-xs text-[#9db8a6]">alex.morgan@example.com</p>
+</div>
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10 border-2 border-[#29382e]" data-alt="User profile picture showing a smiling person" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuAzLBbuZl3wz-p6tIR3EWCBslfcQaYhZwXX2Y4PHMkfJ2XYBdqdwPAD4ow6U6U0MaBE4SVUzLmt_43BWebH6R0eg4r8OTb9I9iiV09jqBGW07oVNfNViwxF1EwSEJ-68261Tg967C9GH5X21X7aw6leeHCEjPVpx0CIpYfKQKpnfI7Ex03Yh3yyxm9WESDXcq2vT0qLX_mOzP9_gn5OUSlaZuYGAg4TDSyhha80oYXrX1YBlrj4uRtHiO1xzfQHU3lvCKNZe2RG-oF-");'>
+</div>
+</div>
+</div>
+</header>
+<!-- Scrollable Content -->
+<div class="flex-1 overflow-y-auto p-4 md:p-8">
+<div class="max-w-[1400px] mx-auto flex flex-col gap-8">
+<!-- Page Heading & Actions -->
+<div class="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
+<div class="flex flex-col gap-2">
+<h1 class="text-white text-3xl md:text-4xl font-black leading-tight tracking-tight">My Wallets</h1>
+<p class="text-[#9db8a6] text-base font-normal">Manage your accounts, cards, and cash flow in one place.</p>
+</div>
+<button class="flex items-center justify-center gap-2 rounded-lg h-12 px-6 bg-primary hover:bg-[#15c550] text-black text-sm font-bold leading-normal tracking-wide transition-colors shadow-[0_0_15px_rgba(25,230,94,0.3)]">
+<span class="material-symbols-outlined">add</span>
+<span>Add New Wallet</span>
+</button>
+</div>
+<!-- Total Stats Section -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+<!-- Main Net Worth Card -->
+<div class="flex flex-col justify-between gap-4 rounded-xl p-6 bg-gradient-to-br from-[#1c2b22] to-[#111813] border border-[#29382e] md:col-span-2 relative overflow-hidden group">
+<!-- Decorative glow -->
+<div class="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 group-hover:bg-primary/10 transition-all duration-500"></div>
+<div class="flex justify-between items-start relative z-10">
+<div>
+<p class="text-[#9db8a6] text-sm font-medium mb-1 flex items-center gap-2">
+                                    Total Net Worth 
+                                    <button class="text-[#9db8a6] hover:text-white transition-colors">
+<span class="material-symbols-outlined" style="font-size: 16px;">visibility</span>
+</button>
+</p>
+<h2 class="text-white text-4xl font-bold leading-tight">$12,450.00</h2>
+</div>
+<div class="bg-[#29382e] px-3 py-1 rounded-full flex items-center gap-1">
+<span class="material-symbols-outlined text-primary text-sm">trending_up</span>
+<span class="text-primary text-sm font-bold">+5.2%</span>
+</div>
+</div>
+<div class="relative z-10 mt-2">
+<p class="text-[#9db8a6] text-xs">Updated just now</p>
+</div>
+</div>
+<!-- Quick Stat Card -->
+<div class="flex flex-col justify-center gap-2 rounded-xl p-6 bg-[#1c2b22] border border-[#29382e]">
+<div class="flex items-center gap-3 mb-2">
+<div class="size-10 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-400">
+<span class="material-symbols-outlined">savings</span>
+</div>
+<span class="text-white font-bold">Total Savings</span>
+</div>
+<p class="text-2xl font-bold text-white pl-1">$8,000.00</p>
+<p class="text-[#9db8a6] text-xs pl-1">Target: $10k by Dec</p>
+</div>
+</div>
+<!-- Search and Filters -->
+<div class="flex flex-col sm:flex-row gap-4">
+<label class="flex-1 min-w-[200px] h-12 relative group">
+<div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+<span class="material-symbols-outlined text-[#9db8a6] group-focus-within:text-white transition-colors">search</span>
+</div>
+<input class="w-full h-full bg-[#1c2b22] border border-[#29382e] rounded-lg pl-12 pr-4 text-white placeholder-[#9db8a6] focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all" placeholder="Search wallet name or currency..."/>
+</label>
+<div class="flex gap-2">
+<button class="h-12 px-4 rounded-lg bg-[#1c2b22] border border-[#29382e] hover:bg-[#29382e] text-[#9db8a6] hover:text-white flex items-center gap-2 transition-colors">
+<span class="material-symbols-outlined">filter_list</span>
+<span class="hidden sm:inline">Filter</span>
+</button>
+<button class="h-12 px-4 rounded-lg bg-[#1c2b22] border border-[#29382e] hover:bg-[#29382e] text-[#9db8a6] hover:text-white flex items-center gap-2 transition-colors">
+<span class="material-symbols-outlined">sort</span>
+<span class="hidden sm:inline">Sort</span>
+</button>
+</div>
+</div>
+<!-- Wallets Grid -->
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 pb-8">
+<!-- Wallet Card 1 -->
+<div class="group bg-[#1c2b22] hover:bg-[#223329] border border-[#29382e] hover:border-primary/50 rounded-xl p-5 transition-all duration-300 relative cursor-pointer">
+<div class="flex justify-between items-start mb-4">
+<div class="size-12 rounded-lg bg-white p-2 flex items-center justify-center overflow-hidden">
+<img alt="Chase Bank Logo" class="w-full h-auto object-contain" data-alt="Chase Bank Logo" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC6cGfgmlQe85_eE0FkVnOJ7Q3Qa0NIN_pUmVDM3tzyNGP2yUYOQxHGAxKJ8UMaDXyF4J_YC1paf9UFAg2fsCephMYmaqZqib-Ocao-VsWyoMQuhGwjsyOuzWKrhYt6xy6x4xTudbLkH550ApcmSas1l25paJ3vRV6uVhlYvAE0rCvF-GNv7caPpseNuFFFfpuY5-BZbBvrvCiG8Zos0k5Gwmh1WvAjAdOhcelB4fyj_h2EQTg4qxE3ELc05rpoZGLEWRk_IGOl2gjT"/>
+</div>
+<button class="text-[#9db8a6] opacity-0 group-hover:opacity-100 transition-opacity hover:text-white">
+<span class="material-symbols-outlined">more_vert</span>
+</button>
+</div>
+<div class="flex flex-col gap-1">
+<h3 class="text-white font-bold text-lg">Chase Checking</h3>
+<p class="text-[#9db8a6] text-xs font-mono">**** 4592</p>
+</div>
+<div class="mt-4 pt-4 border-t border-[#29382e] flex justify-between items-end">
+<div class="flex flex-col">
+<span class="text-[#9db8a6] text-xs mb-1">Balance</span>
+<span class="text-primary text-xl font-bold tracking-tight">$4,200.50</span>
+</div>
+<span class="text-[#9db8a6] text-xs">USD</span>
+</div>
+</div>
+<!-- Wallet Card 2 -->
+<div class="group bg-[#1c2b22] hover:bg-[#223329] border border-[#29382e] hover:border-primary/50 rounded-xl p-5 transition-all duration-300 relative cursor-pointer">
+<div class="flex justify-between items-start mb-4">
+<div class="size-12 rounded-lg bg-[#29382e] text-white flex items-center justify-center">
+<span class="material-symbols-outlined" style="font-size: 28px;">payments</span>
+</div>
+<button class="text-[#9db8a6] opacity-0 group-hover:opacity-100 transition-opacity hover:text-white">
+<span class="material-symbols-outlined">more_vert</span>
+</button>
+</div>
+<div class="flex flex-col gap-1">
+<h3 class="text-white font-bold text-lg">Cash on Hand</h3>
+<p class="text-[#9db8a6] text-xs">Physical Wallet</p>
+</div>
+<div class="mt-4 pt-4 border-t border-[#29382e] flex justify-between items-end">
+<div class="flex flex-col">
+<span class="text-[#9db8a6] text-xs mb-1">Balance</span>
+<span class="text-white text-xl font-bold tracking-tight">$120.00</span>
+</div>
+<span class="text-[#9db8a6] text-xs">USD</span>
+</div>
+</div>
+<!-- Wallet Card 3 -->
+<div class="group bg-[#1c2b22] hover:bg-[#223329] border border-[#29382e] hover:border-primary/50 rounded-xl p-5 transition-all duration-300 relative cursor-pointer">
+<div class="flex justify-between items-start mb-4">
+<div class="size-12 rounded-lg bg-blue-600 text-white flex items-center justify-center">
+<span class="material-symbols-outlined" style="font-size: 28px;">account_balance</span>
+</div>
+<button class="text-[#9db8a6] opacity-0 group-hover:opacity-100 transition-opacity hover:text-white">
+<span class="material-symbols-outlined">more_vert</span>
+</button>
+</div>
+<div class="flex flex-col gap-1">
+<h3 class="text-white font-bold text-lg">General Savings</h3>
+<p class="text-[#9db8a6] text-xs">Emergency Fund</p>
+</div>
+<div class="mt-4 pt-4 border-t border-[#29382e] flex justify-between items-end">
+<div class="flex flex-col">
+<span class="text-[#9db8a6] text-xs mb-1">Balance</span>
+<span class="text-primary text-xl font-bold tracking-tight">$8,000.00</span>
+</div>
+<span class="text-[#9db8a6] text-xs">USD</span>
+</div>
+</div>
+<!-- Wallet Card 4 (Debt/Negative) -->
+<div class="group bg-[#1c2b22] hover:bg-[#223329] border border-[#29382e] hover:border-red-400/50 rounded-xl p-5 transition-all duration-300 relative cursor-pointer">
+<div class="flex justify-between items-start mb-4">
+<div class="size-12 rounded-lg bg-white p-2 flex items-center justify-center overflow-hidden">
+<img alt="Visa Logo" class="w-full h-auto object-contain" data-alt="Visa Logo" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBdTH-xKA2H69kQ6RJqD_N9vP5EyLLAZTaHI60wc_nZggSsuQsnlNS13tgdcQhH0aDnzS7yECiq9VIsviVPT5NHf2IhLh6wwuvsVqGRxhjWVsMcxttk4qwny1dYDqyaAitqI-n7TqCbvNbQTD2-8TfvD7Qq7ouvkg1Eb_BFEBWMIw1v2ZCkeVWgj1w7JtSd16YDPlSbhaMjICJisj9EU6fEjN-xy3o_hWaAFQTvr4G82q2sxD3XEdlgM3UjbJWIhLmjbjv1Z07JKThJ"/>
+</div>
+<button class="text-[#9db8a6] opacity-0 group-hover:opacity-100 transition-opacity hover:text-white">
+<span class="material-symbols-outlined">more_vert</span>
+</button>
+</div>
+<div class="flex flex-col gap-1">
+<h3 class="text-white font-bold text-lg">Visa Credit Card</h3>
+<p class="text-[#9db8a6] text-xs font-mono">**** 9921</p>
+</div>
+<div class="mt-4 pt-4 border-t border-[#29382e] flex justify-between items-end">
+<div class="flex flex-col">
+<span class="text-[#9db8a6] text-xs mb-1">Balance</span>
+<span class="text-red-400 text-xl font-bold tracking-tight">-$500.00</span>
+</div>
+<span class="text-[#9db8a6] text-xs">USD</span>
+</div>
+</div>
+<!-- Wallet Card 5 -->
+<div class="group bg-[#1c2b22] hover:bg-[#223329] border border-[#29382e] hover:border-primary/50 rounded-xl p-5 transition-all duration-300 relative cursor-pointer">
+<div class="flex justify-between items-start mb-4">
+<div class="size-12 rounded-lg bg-orange-500 text-white flex items-center justify-center">
+<span class="material-symbols-outlined" style="font-size: 28px;">currency_bitcoin</span>
+</div>
+<button class="text-[#9db8a6] opacity-0 group-hover:opacity-100 transition-opacity hover:text-white">
+<span class="material-symbols-outlined">more_vert</span>
+</button>
+</div>
+<div class="flex flex-col gap-1">
+<h3 class="text-white font-bold text-lg">Crypto Stash</h3>
+<p class="text-[#9db8a6] text-xs">Binance</p>
+</div>
+<div class="mt-4 pt-4 border-t border-[#29382e] flex justify-between items-end">
+<div class="flex flex-col">
+<span class="text-[#9db8a6] text-xs mb-1">Balance</span>
+<div class="flex items-center gap-2">
+<span class="text-primary text-xl font-bold tracking-tight">0.054</span>
+<span class="text-[#9db8a6] text-xs bg-[#29382e] px-1.5 py-0.5 rounded">BTC</span>
+</div>
+</div>
+<span class="text-[#9db8a6] text-xs">~$2.3k</span>
+</div>
+</div>
+<!-- Add New Wallet Card -->
+<button class="group flex flex-col items-center justify-center gap-4 rounded-xl p-5 border-2 border-dashed border-[#29382e] hover:border-primary hover:bg-[#29382e]/30 transition-all duration-300 min-h-[200px]">
+<div class="size-14 rounded-full bg-[#29382e] group-hover:bg-primary text-[#9db8a6] group-hover:text-black flex items-center justify-center transition-colors">
+<span class="material-symbols-outlined" style="font-size: 32px;">add</span>
+</div>
+<span class="text-[#9db8a6] group-hover:text-white font-bold text-base transition-colors">Create New Wallet</span>
+</button>
+</div>
+</div>
+</div>
+</main>
+</body></html>
