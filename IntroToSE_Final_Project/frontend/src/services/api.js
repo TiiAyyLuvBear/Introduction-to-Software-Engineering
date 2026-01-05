@@ -1,55 +1,46 @@
-// services/api.js
 import axios from 'axios';
-import tokenResolver from './tokenResolver';
 
-// 1. Tạo instance
-// Note: Vite tự động load env variables từ .env file
-// Không cần import dotenv trong frontend!
 const api = axios.create({
-    baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000', // Thay bằng URL Backend của bạn
+    baseURL: 'http://localhost:4000/api',
     headers: {
         'Content-Type': 'application/json',
     },
 });
 
-// 2. Request Interceptor: Tự động gắn Token vào mỗi request
+// Request Interceptor: Inject userId into params/body
 api.interceptors.request.use(
     (config) => {
-        const token = tokenResolver.getToken();
-        if (token) {
-            config.headers['Authorization'] = `Bearer ${token}`;
+        try {
+            const userStr = localStorage.getItem('ml_user');
+            if (userStr) {
+                const user = JSON.parse(userStr);
+                const userId = user.id || user._id;
+
+                if (userId) {
+                    if (config.method === 'get' || config.method === 'delete') {
+                        config.params = { ...config.params, userId };
+                    } else if (config.method === 'post' || config.method === 'put') {
+                        config.data = { ...config.data, userId };
+                    }
+                }
+            }
+        } catch (e) {
+            console.error('Error injecting user ID:', e);
         }
         return config;
     },
     (error) => Promise.reject(error)
 );
 
-// 3. Response Interceptor: Xử lý khi Token hết hạn (Lỗi 401)
+// Response interceptor
 api.interceptors.response.use(
-    (response) => response, // Trả về data nếu thành công
-    async (error) => {
-        const originalRequest = error.config;
-
-        // Nếu lỗi 401 và chưa từng thử retry (để tránh vòng lặp vô hạn)
-        if (error.response?.status === 401 && !originalRequest._retry) {
-            originalRequest._retry = true;
-
-            try {
-                // Gọi hàm refresh token từ tokenResolver
-                const newToken = await tokenResolver.refreshAccessToken(axios);
-
-                // Gán token mới vào header của request cũ
-                originalRequest.headers['Authorization'] = `Bearer ${newToken}`;
-
-                // Thực hiện lại request ban đầu
-                return api(originalRequest);
-            } catch (refreshError) {
-                return Promise.reject(refreshError);
-            }
-        }
-
-        return Promise.reject(error);
-    }
+    (response) => response,
+    (error) => Promise.reject(error)
 );
+
+export const get = (url, params) => api.get(url, { params });
+export const post = (url, data) => api.post(url, data);
+export const put = (url, data) => api.put(url, data);
+export const del = (url) => api.delete(url);
 
 export default api;

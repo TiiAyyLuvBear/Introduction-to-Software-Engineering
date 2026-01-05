@@ -1,30 +1,34 @@
-import api from './api.js'
+/**
+ * Transaction Service
+ * Handles all transaction-related API calls
+ */
 
-const transactionService = {
-    getTransactions: async (params = {}) => {
-        const queryString = new URLSearchParams(params).toString();
-        const url = queryString ? `/transactions?${queryString}` : '/transactions';
-        return await api.get(url);
-    },
+import { get, post, put, del } from './api.js'
 
-    getTransactionById: async (id) => {
-        return await api.get(`/transactions/${id}`);
-    },
-
-    createTransaction: async (transaction) => {
-        return await api.post('/transactions', transaction);
-    },
-
-    updateTransaction: async (id, transaction) => {
-        return await api.put(`/transactions/${id}`, transaction);
-    },
-
-    deleteTransaction: async (id) => {
-        return await api.delete(`/transactions/${id}`);
-    }
+export async function listTransactions(params) {
+    return get('/transactions', params)
 }
 
+export async function createTransaction(data) {
+    return post('/transactions', data)
+}
 
+export async function updateTransaction(id, data) {
+    return put(`/transactions/${id}`, data)
+}
 
+export async function deleteTransaction(id) {
+    return del(`/transactions/${id}`)
+}
 
-export default transactionService;
+export async function getTransaction(id) {
+    return get(`/transactions/${id}`)
+}
+
+export default {
+    listTransactions,
+    createTransaction,
+    updateTransaction,
+    deleteTransaction,
+    getTransaction
+}

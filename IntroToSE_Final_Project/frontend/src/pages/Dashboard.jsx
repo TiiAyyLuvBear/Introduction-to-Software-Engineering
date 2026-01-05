@@ -1,7 +1,10 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
 
-// import api from '../services/api.js'
+import walletService from '../services/walletService.js'
+import goalService from '../services/goalService.js'
+import budgetService from '../services/budgetService.js'
+import transactionService from '../services/transactionService.js'
 import { formatMoney } from '../lib/format.js'
 
 export default function Dashboard() {
@@ -28,29 +31,37 @@ export default function Dashboard() {
 
   React.useEffect(() => {
     let mounted = true
-    ;(async () => {
-      try {
-        const [w, g, b, t] = await Promise.all([
-          api.listWallets(),
-          api.listGoals(),
-          api.listBudgets(),
-          api.listTransactions(),
-        ])
-        if (!mounted) return
+      ; (async () => {
+        try {
+          const [w, g, b, t] = await Promise.all([
+            walletService.listWallets(),
+            goalService.listGoals(),
+            budgetService.listBudgets(),
+            transactionService.listTransactions(),
+          ])
+          if (!mounted) return
 
-        const walletsList = w?.data?.wallets || w?.data || w || []
-        const goalsList = g?.data || g || []
-        const budgetsList = b?.data || b || []
-        const txList = t || []
+          // Handle response wrappers
+          const walletsList = w?.data?.wallets || w?.wallets || w?.data || w || []
 
-        setWallets(walletsList)
-        setGoals(goalsList)
-        setBudgets(budgetsList)
-        setTx(txList)
-      } catch {
-        // keep empty; auth/connection errors handled by login flow
-      }
-    })()
+          // Goals: { success: true, data: [...] }
+          const goalsBody = g?.data || g || {}
+          const goalsList = Array.isArray(goalsBody) ? goalsBody : (goalsBody.data || [])
+
+          // Budgets: [...]
+          const budgetsList = b?.data || b || []
+
+          // Transactions: [...]
+          const txList = t?.data || t || []
+
+          setWallets(walletsList)
+          setGoals(goalsList)
+          setBudgets(budgetsList)
+          setTx(txList)
+        } catch {
+          // keep empty; auth/connection errors handled by login flow
+        }
+      })()
     return () => {
       mounted = false
     }
@@ -58,30 +69,60 @@ export default function Dashboard() {
 
   React.useEffect(() => {
     let mounted = true
-    ;(async () => {
-      setCashflowBusy(true)
-      setCashflowError('')
-      try {
-        const res = await api.reportBarChart({
-          startDate: cashflowRangeParams.startDate,
-          endDate: cashflowRangeParams.endDate,
-          interval: cashflowRangeParams.interval,
-        })
-        const rows = res?.data || res || []
-        if (!mounted) return
-        setCashflowRows(Array.isArray(rows) ? rows : [])
-      } catch (e) {
-        if (!mounted) return
-        setCashflowRows([])
-        setCashflowError(e?.message || 'Failed to load cashflow')
-      } finally {
-        if (mounted) setCashflowBusy(false)
-      }
-    })()
+      ; (async () => {
+        setCashflowBusy(true)
+        setCashflowError('')
+        try {
+          // Calculate cashflow locally
+          if (!tx.length) {
+            if (mounted) {
+              setCashflowRows([])
+              setCashflowBusy(false)
+            }
+            return
+          }
+
+          const start = new Date(cashflowRangeParams.startDate)
+          const end = new Date(cashflowRangeParams.endDate)
+          const interval = cashflowRangeParams.interval
+
+          const filtered = tx.filter(t => {
+            const d = new Date(t.date || t.createdAt)
+            return d >= start && d <= end
+          })
+
+          const groups = {}
+          filtered.forEach(t => {
+            const d = new Date(t.date || t.createdAt)
+            let key = ''
+            if (interval === 'month') {
+              key = d.toISOString().slice(0, 7)
+            } else {
+              key = d.toISOString().slice(0, 10)
+            }
+            if (!groups[key]) groups[key] = { period: key, income: 0, expense: 0 }
+            const amount = Number(t.amount || 0)
+            if (t.type === 'income') groups[key].income += amount
+            if (t.type === 'expense') groups[key].expense += amount
+          })
+
+          const calculatedRows = Object.values(groups).sort((a, b) => a.period.localeCompare(b.period))
+          const res = { data: calculatedRows }
+          const rows = res?.data || res || []
+          if (!mounted) return
+          setCashflowRows(Array.isArray(rows) ? rows : [])
+        } catch (e) {
+          if (!mounted) return
+          setCashflowRows([])
+          setCashflowError(e?.message || 'Failed to load cashflow')
+        } finally {
+          if (mounted) setCashflowBusy(false)
+        }
+      })()
     return () => {
       mounted = false
     }
-  }, [cashflowRangeParams])
+  }, [cashflowRangeParams, tx])
 
   const cashflowChart = React.useMemo(() => {
     const rows = Array.isArray(cashflowRows) ? cashflowRows : []

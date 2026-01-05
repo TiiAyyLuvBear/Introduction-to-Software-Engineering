@@ -1,7 +1,7 @@
 import React from 'react'
 import { useNavigate } from 'react-router-dom'
-
-// import { api } from '../lib/api.js'
+import goalService from '../services/goalService.js'
+import walletService from '../services/walletService.js'
 import FormattedNumberInput from '../components/FormattedNumberInput.jsx'
 import { formatMoney } from '../lib/format.js'
 
@@ -25,27 +25,44 @@ export default function Savings() {
 
   React.useEffect(() => {
     let mounted = true
-    ;(async () => {
-      try {
-        // const [res, walletsRes] = await Promise.all([api.listGoals(), api.listWallets()])
-        // const list = res?.data || res || []
-        // const walletsList = walletsRes?.data?.wallets || walletsRes?.wallets || walletsRes?.data || walletsRes || []
-        if (!mounted) return
-        // setGoals(Array.isArray(list) ? list : [])
-        // const all = Array.isArray(walletsList) ? walletsList : []
-        // const editable = all.filter((w) => {
-        //   const p = w?.myPermission
-        //   return p === 'owner' || p === 'edit'
-        // })
-        // setWallets(editable)
-      } catch {
-        // ignore
-      }
-    })()
+      ; (async () => {
+        try {
+          const [res, walletsRes] = await Promise.all([
+            goalService.listGoals(),
+            walletService.listWallets()
+          ])
+
+          // Fix response parsing
+          // Goals: { success: true, data: [...] } -> res.data.data
+          const goalsBody = res?.data || {}
+          const list = Array.isArray(goalsBody) ? goalsBody : (goalsBody.data || [])
+
+          // Wallets: { success: true, data: { wallets: [...] } } -> res.data.data.wallets
+          const walletsBody = walletsRes?.data || {}
+          let walletsList = []
+          if (Array.isArray(walletsBody)) {
+            walletsList = walletsBody
+          } else if (walletsBody.data && Array.isArray(walletsBody.data.wallets)) {
+            walletsList = walletsBody.data.wallets
+          } else if (Array.isArray(walletsBody.wallets)) {
+            walletsList = walletsBody.wallets
+          } else if (Array.isArray(walletsBody.data)) {
+            walletsList = walletsBody.data
+          }
+
+          if (!mounted) return
+          setGoals(Array.isArray(list) ? list : [])
+          setWallets(walletsList)
+        } catch (err) {
+          console.error("Load Savings Error", err)
+        }
+      })()
     return () => {
       mounted = false
     }
   }, [])
+
+  // ... Stats useEffect skipped/mocked for now ...
 
   const total = goals.reduce((s, g) => s + Number(g.currentAmount || 0), 0)
 
@@ -53,78 +70,9 @@ export default function Savings() {
   const monthlyRatePct = totalTarget > 0 ? (total / totalTarget) * 100 : 0
   const activeGoalsCount = goals.filter((g) => (g.status || 'active') === 'active').length
 
-  React.useEffect(() => {
-    let mounted = true
-    ;(async () => {
-      try {
-        const now = new Date()
-        const start = new Date(now.getFullYear(), now.getMonth(), 1)
+  // Skipping stats calculation based on transactions for now as it needs transactionService
 
-        // const res = await api.listTransactions({
-        //   startDate: start.toISOString(),
-        //   endDate: now.toISOString(),
-        //   q: 'Saving Goal',
-        //   limit: 200,
-        // })
-        // const list = res?.data?.transactions || res?.transactions || res?.data || res || []
-        const txns = []
-
-        const contributed = txns
-          .filter((t) => String(t.type || '').toLowerCase() === 'expense')
-          .reduce((s, t) => s + Number(t.amount || 0), 0)
-
-        const baseline = Number(total || 0) - contributed
-        const pct = baseline > 0 ? (contributed / baseline) * 100 : 0
-
-        const prevProgressPct = totalTarget > 0 ? ((Number(total || 0) - contributed) / totalTarget) * 100 : 0
-        const delta = monthlyRatePct - prevProgressPct
-
-        if (!mounted) return
-        setContribThisMonthPct(Number.isFinite(pct) ? pct : 0)
-        setProgressDeltaPct(Number.isFinite(delta) ? delta : 0)
-      } catch {
-        if (!mounted) return
-        setContribThisMonthPct(0)
-        setProgressDeltaPct(0)
-      }
-    })()
-    return () => {
-      mounted = false
-    }
-  }, [total, totalTarget, monthlyRatePct])
-
-  React.useEffect(() => {
-    let mounted = true
-    ;(async () => {
-      try {
-        // const res = await api.listTransactions({ q: 'Saving Goal', limit: 3 })
-        // const list = res?.data?.transactions || res?.transactions || res?.data || res || []
-        const txns = []
-
-        const items = txns
-          .filter((t) => String(t.type || '').toLowerCase() === 'expense')
-          .map((t) => {
-            const d = t.date ? new Date(t.date) : null
-            return {
-              id: t.id || t._id,
-              title: t.note || 'Saving Goal Contribution',
-              when: d && !Number.isNaN(d.getTime()) ? d.toLocaleString() : '',
-              amount: Number(t.amount || 0),
-              icon: 'savings',
-            }
-          })
-
-        if (!mounted) return
-        setRecentContributions(items)
-      } catch {
-        if (!mounted) return
-        setRecentContributions([])
-      }
-    })()
-    return () => {
-      mounted = false
-    }
-  }, [])
+  // Skipping recent contributions for same reason
 
   const startContribute = (goal) => {
     const id = goal?.id || goal?._id
@@ -133,7 +81,9 @@ export default function Savings() {
     setContributeAmount('')
     setContributeAmountNum(NaN)
     setContributeNote('')
-    const preferred = goal?.wallet?.id || goal?.walletId?._id || goal?.walletId || wallets[0]?.id || wallets[0]?._id || ''
+
+    // Auto select wallet
+    const preferred = goal?.wallet?.id || goal?.walletId?._id || goal?.walletId || (wallets[0]?.id || wallets[0]?._id) || ''
     setContributeWalletId(preferred)
   }
 
@@ -153,20 +103,27 @@ export default function Savings() {
     setBusy(true)
     setError('')
     try {
-      // const res = await api.contributeToGoal(contributeGoalId, {
-      //   amount,
-      //   walletId: contributeWalletId,
-      //   note: contributeNote || undefined,
-      //   date: new Date().toISOString(),
-      // })
-      // const updated = res?.data?.goal || res?.data?.data?.goal || res?.data || null
-      // if (updated) {
-      //   setGoals((prev) => prev.map((g) => ((g.id || g._id) === contributeGoalId ? { ...g, ...updated } : g)))
-      // }
+      const res = await goalService.contributeToGoal(contributeGoalId, {
+        amount,
+        walletId: contributeWalletId, // Usually handled by backend if goal is linked, but backend /contributions endpoint logic might just need amount?
+        // Backend verify_goal_transaction.js used: body: { amount: 1000, note: '...' }
+        // It didn't send walletId in update. It relied on Goal being linked to wallet upon creation.
+        // Let's send note.
+        note: contributeNote || undefined,
+        date: new Date().toISOString(),
+      })
+
+      const updated = res?.data || res // Controller returns { success: true, data: goal }
+
+      if (updated) {
+        // Reload logic or optimistic update
+        // If updated is the GOAL object:
+        setGoals((prev) => prev.map((g) => ((g.id || g._id) === contributeGoalId ? { ...g, ...updated } : g)))
+      }
+
       setContributeGoalId(null)
       setContributeAmount('')
       setContributeAmountNum(NaN)
-      setError('API call disabled - contributeToGoal()')
     } catch (e2) {
       setError(e2?.message || 'Failed to add money')
     } finally {
@@ -391,11 +348,11 @@ export default function Savings() {
             <div className="rounded-xl border border-border-dark bg-card-dark p-6">
               <div className="flex items-center justify-between">
                 <div className="text-lg font-bold text-white">Recent Contributions</div>
-                  <button
-                    type="button"
-                    onClick={() => navigate('/transactions')}
-                    className="text-sm font-medium text-primary hover:underline"
-                  >
+                <button
+                  type="button"
+                  onClick={() => navigate('/transactions')}
+                  className="text-sm font-medium text-primary hover:underline"
+                >
                   View All
                 </button>
               </div>

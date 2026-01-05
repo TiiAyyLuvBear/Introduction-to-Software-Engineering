@@ -1,62 +1,58 @@
-// /**
-//  * Goal Service
-//  *
-//  * Handles all saving goal-related API calls
-//  */
+/**
+ * Goal Service
+ * Handles all saving goal-related API calls
+ */
 
-// import { get, post } from './api.js'
+import { get, post, del, put } from './api.js'
 
-// /**
-//  * List all goals
-//  *
-//  * @returns {Promise<Object>} List of goals
-//  */
-// export async function listGoals() {
-//     return get('/goals')
-// }
+/**
+ * List all goals
+ */
+export async function listGoals(params) {
+    return get('/saving-goals', params)
+}
 
-// /**
-//  * Get a specific goal
-//  *
-//  * @param {string} id - Goal ID
-//  * @returns {Promise<Object>} Goal details
-//  */
-// export async function getGoal(id) {
-//     return get(`/goals/${encodeURIComponent(id)}`)
-// }
+/**
+ * Get a specific goal
+ */
+export async function getGoal(id) {
+    return get(`/saving-goals/${encodeURIComponent(id)}`)
+}
 
-// /**
-//  * Create a new goal
-//  *
-//  * @param {Object} data - Goal data
-//  * @param {string} data.name - Goal name
-//  * @param {number} data.targetAmount - Target amount
-//  * @param {string} data.deadline - Deadline date (ISO string)
-//  * @param {string} data.priority - Priority (low, medium, high)
-//  * @returns {Promise<Object>} Created goal
-//  */
-// export async function createGoal({ name, targetAmount, deadline, priority }) {
-//     return post('/goals', { name, targetAmount, deadline, priority })
-// }
+/**
+ * Create a new goal
+ */
+export async function createGoal(data) {
+    return post('/saving-goals', data)
+}
 
-// /**
-//  * Contribute to a goal
-//  *
-//  * @param {string} goalId - Goal ID
-//  * @param {Object} data - Contribution data
-//  * @param {number} data.amount - Contribution amount
-//  * @param {string} data.walletId - Wallet ID
-//  * @param {string} data.date - Contribution date (ISO string)
-//  * @param {string} data.note - Contribution note
-//  * @returns {Promise<Object>} Updated goal
-//  */
-// export async function contributeToGoal(goalId, { amount, walletId, date, note } = {}) {
-//     return post(`/goals/${encodeURIComponent(goalId)}/contribute`, { amount, walletId, date, note })
-// }
+/**
+ * Update a goal
+ */
+export async function updateGoal(id, data) {
+    return put(`/saving-goals/${id}`, data)
+}
 
-// export default {
-//     listGoals,
-//     getGoal,
-//     createGoal,
-//     contributeToGoal,
-// }
+/**
+ * Delete a goal
+ */
+export async function deleteGoal(id) {
+    return del(`/saving-goals/${id}`)
+}
+
+/**
+ * Contribute to a goal
+ * Backend: POST /api/saving-goals/:id/contributions
+ */
+export async function contributeToGoal(goalId, data) {
+    return post(`/saving-goals/${encodeURIComponent(goalId)}/contributions`, data)
+}
+
+export default {
+    listGoals,
+    getGoal,
+    createGoal,
+    updateGoal,
+    deleteGoal,
+    contributeToGoal
+}
