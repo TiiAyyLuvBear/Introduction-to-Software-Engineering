@@ -1,29 +1,28 @@
-import { initializeApp } from 'firebase/app'
-import { getAuth } from 'firebase/auth'
+// Import the functions you need from the SDKs you need
+import { initializeApp } from "firebase/app";
+import { getAnalytics } from "firebase/analytics";
+import { getAuth } from "firebase/auth";
+import { getStorage } from "firebase/storage";
+// TODO: Add SDKs for Firebase products that you want to use
+// https://firebase.google.com/docs/web/setup#available-libraries
 
-/**
- * Firebase Configuration
- * 
- * Best Practice: Sử dụng environment variables (VITE_*)
- * Fallback: Hardcoded values cho development
- * 
- * Lưu ý: Firebase API key là PUBLIC và an toàn để expose.
- * Security được bảo vệ bởi Firebase Authentication và Security Rules.
- */
+// Your web app's Firebase configuration
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyCuxetKnCRpm4sCBRWcpuTfqTtdmEJwNMk",
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "se-4-money.firebaseapp.com",
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "se-4-money",
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "se-4-money.firebasestorage.app",
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "132985259368",
-  appId: import.meta.env.VITE_FIREBASE_APP_ID || "1:132985259368:web:aed705f3f1fd24fd98c2dd",
-  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID || "G-6L3XEBR0BD"
+    apiKey: "AIzaSyCuxetKnCRpm4sCBRWcpuTfqTtdmEJwNMk",
+    authDomain: "se-4-money.firebaseapp.com",
+    projectId: "se-4-money",
+    storageBucket: "se-4-money.firebasestorage.app",
+    messagingSenderId: "132985259368",
+    appId: "1:132985259368:web:aed705f3f1fd24fd98c2dd",
+    measurementId: "G-6L3XEBR0BD"
 };
 
 // Initialize Firebase
-const app = initializeApp(firebaseConfig)
+const app = initializeApp(firebaseConfig);
+const analytics = getAnalytics(app);
+const auth = getAuth(app);
+const storage = getStorage(app);
 
-// Export auth instance để sử dụng trong app
-export const auth = getAuth(app)
-
-export default app
+export { storage };
+export default auth;

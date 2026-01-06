@@ -1,8 +1,17 @@
-/** 
- * Status 200: OK
- * GET, PUT response on success
-*/
+/**
+ * RESPONSE HELPERS
+ * 
+ * Các hàm helper để format response thống nhất cho toàn bộ API
+ * Đảm bảo structure nhất quán: { success, data/error, message }
+ */
 
+/**
+ * Format success response
+ * @param {Object} res - Express response object
+ * @param {Object} data - Dữ liệu trả về cho client
+ * @param {String} message - Thông báo thành công (optional)
+ * @param {Number} statusCode - HTTP status code (default: 200)
+ */
 export const sendSuccess = (res, data = {}, message = 'Success', statusCode = 200) => {
   return res.status(statusCode).json({
     success: true,
@@ -11,87 +20,86 @@ export const sendSuccess = (res, data = {}, message = 'Success', statusCode = 20
   });
 };
 
-/** 
- * Status 201: Created
- * POST response on success
-*/
-
-export const sendCreated = (res, data = {}, message = 'Created', statusCode = 201) => {
-  return res.status(statusCode).json({
-    success: true,
-    data,
-    message
-  });
-};
-
-/** 
- * Status 204: No Content
- * DELETE response on success
-*/
-
-export const sendNoContent = (res, message = 'No Content', statusCode = 204) => {
+/**
+ * Format error response
+ * @param {Object} res - Express response object
+ * @param {String} error - Thông báo lỗi
+ * @param {String} code - Error code để frontend xử lý
+ * @param {Number} statusCode - HTTP status code (default: 400)
+ */
+export const sendError = (res, error = 'An error occurred', code = 'UNKNOWN_ERROR', statusCode = 400) => {
   return res.status(statusCode).json({
     success: true,
     message
   });
 };
 
-/** 
- * Status 400: Bad Request
- * POST response on success
-*/
-
-export const sendBadRequest = (res, message = 'Bad Request', statusCode = 400) => {
-  return res.status(statusCode).json({
+/**
+ * Format validation error response
+ * @param {Object} res - Express response object
+ * @param {Object|Array} errors - Chi tiết các lỗi validation
+ */
+export const sendValidationError = (res, errors) => {
+  return res.status(400).json({
     success: false,
     message
   });
 };
 
-/** 
- * Status 401: Unauthorized
- * POST response on success
-*/
-
-export const sendUnauthorized = (res, message = 'Unauthorized', statusCode = 401) => {
-  return res.status(statusCode).json({
+/**
+ * Format unauthorized error response
+ * @param {Object} res - Express response object
+ * @param {String} message - Thông báo lỗi authentication
+ */
+export const sendUnauthorized = (res, message = 'Authentication required') => {
+  return res.status(401).json({
     success: false,
     message
   });
 };
 
-/** 
- * Status 403: Forbidden
- * POST response on success
-*/
-
-export const sendForbidden = (res, message = 'Forbidden', statusCode = 403) => {
-  return res.status(statusCode).json({
+/**
+ * Format forbidden error response
+ * @param {Object} res - Express response object
+ * @param {String} message - Thông báo lỗi authorization
+ */
+export const sendForbidden = (res, message = 'Permission denied') => {
+  return res.status(403).json({
     success: false,
     message
   });
 };
 
-/** 
- * Status 404: Not Found
- * POST response on success
-*/
-
-export const sendNotFound = (res, message = 'Not Found', statusCode = 404) => {
-  return res.status(statusCode).json({
+/**
+ * Format not found error response
+ * @param {Object} res - Express response object
+ * @param {String} resource - Tài nguyên không tìm thấy
+ */
+export const sendNotFound = (res, resource = 'Resource') => {
+  return res.status(404).json({
     success: false,
     message
   });
 };
 
-/** 
- * Status 500: Internal Server Error
- * POST response on success
-*/
-
-export const sendServerError = (res, message = 'Internal Server Error', statusCode = 500) => {
-  return res.status(statusCode).json({
+/**
+ * Format server error response
+ * @param {Object} res - Express response object
+ * @param {String} message - Thông báo lỗi server
+ */
+export const sendServerError = (res, message = 'Internal server error') => {
+  return res.status(500).json({
     success: false,
     message
   });
 };
+
+export default {
+  sendSuccess,
+  sendError,
+  sendValidationError,
+  sendUnauthorized,
+  sendForbidden,
+  sendNotFound,
+  sendServerError,
+}

@@ -1,58 +1,55 @@
-/**
- * Axios API Instance
- * 
- * Tự động attach Firebase token vào mọi request
- */
-
+// services/api.js
 import axios from 'axios';
-import { auth } from './firebase';
+import tokenResolver from './tokenResolver';
 
-// Create axios instance
+// 1. Tạo instance
+// Note: Vite tự động load env variables từ .env file
+// Không cần import dotenv trong frontend!
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api',
-  headers: {
-    'Content-Type': 'application/json'
-  }
+    baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000', // Thay bằng URL Backend của bạn
+    headers: {
+        'Content-Type': 'application/json',
+    },
 });
 
-// Request interceptor: Tự động thêm Firebase token
+// 2. Request Interceptor: Tự động gắn Token vào mỗi request
 api.interceptors.request.use(
-  async (config) => {
-    try {
-      // Lấy current user từ Firebase
-      const user = auth.currentUser;
-
-      if (user) {
-        // Lấy ID token từ Firebase
-        const token = await user.getIdToken();
-
-        // Attach vào Authorization header
-        config.headers.Authorization = `Bearer ${token}`;
-      }
-    } catch (error) {
-      console.error('Error getting Firebase token:', error);
-    }
-
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
-  }
+    (config) => {
+        const token = tokenResolver.getToken();
+        if (token) {
+            config.headers['Authorization'] = `Bearer ${token}`;
+        }
+        return config;
+    },
+    (error) => Promise.reject(error)
 );
 
-// Response interceptor: Handle errors
+// 3. Response Interceptor: Xử lý khi Token hết hạn (Lỗi 401)
 api.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      // Token expired hoặc invalid
-      console.error('Unauthorized - Please login again');
-      // Có thể redirect về login page
-      // window.location.href = '/login';
-    }
+    (response) => response, // Trả về data nếu thành công
+    async (error) => {
+        const originalRequest = error.config;
 
-    return Promise.reject(error);
-  }
+        // Nếu lỗi 401 và chưa từng thử retry (để tránh vòng lặp vô hạn)
+        if (error.response?.status === 401 && !originalRequest._retry) {
+            originalRequest._retry = true;
+
+            try {
+                // Gọi hàm refresh token từ tokenResolver
+                const newToken = await tokenResolver.refreshAccessToken(axios);
+
+                // Gán token mới vào header của request cũ
+                originalRequest.headers['Authorization'] = `Bearer ${newToken}`;
+
+                // Thực hiện lại request ban đầu
+                return api(originalRequest);
+            } catch (refreshError) {
+                return Promise.reject(refreshError);
+            }
+        }
+
+        return Promise.reject(error);
+    }
 );
 
 export default api;

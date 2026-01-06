@@ -1,547 +1,345 @@
-import React, { useState, useEffect } from 'react'
-import { BarChart3, Wallet, FileText, Download, Share2, TrendingUp, TrendingDown, DollarSign, Briefcase } from 'lucide-react'
-import Chatbot from '../components/chatbot/Chatbot.jsx'
+import React from 'react'
+import { Link } from 'react-router-dom'
+
+// import { api } from '../lib/api.js'
+import { formatMoney } from '../lib/format.js'
+
+function toYmd(d) {
+  return new Date(d).toISOString().slice(0, 10)
+}
+
+function LineChart({ rows, valueKey, colorClass, range }) {
+  const chart = React.useMemo(() => {
+    const safe = Array.isArray(rows) ? rows : []
+    const height = 160
+    const width = 640
+
+    if (!safe.length) {
+      return { viewBox: `0 0 ${width} ${height}`, path: '', points: [], labels: [] }
+    }
+
+    const padX = 16
+    const padY = 16
+    const chartW = width - padX * 2
+    const chartH = height - padY * 2
+
+    const maxVal = Math.max(1, ...safe.map((r) => Number(r?.[valueKey] || 0)))
+    const n = safe.length
+    const stepX = n <= 1 ? 0 : chartW / (n - 1)
+    const yBase = padY + chartH
+
+    const points = safe.map((r, i) => {
+      const v = Number(r?.[valueKey] || 0)
+      const x = padX + i * stepX
+      const y = yBase - (v / maxVal) * chartH
+      return { key: `${r.period}-${valueKey}`, x, y }
+    })
+
+    const path = points
+      .map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x.toFixed(2)} ${p.y.toFixed(2)}`)
+      .join(' ')
+
+    const labelEvery = range === 'year' ? 1 : Math.ceil(safe.length / 6)
+    const labels = safe
+      .map((r, i) => ({ period: String(r.period || ''), i }))
+      .filter((x) => x.i % labelEvery === 0)
+      .map((x) => {
+        const x0 = padX + x.i * stepX
+        const text = range === 'year' ? x.period.slice(5) : x.period.slice(8)
+        return { key: `${x.period}-${valueKey}-lbl`, x: x0, text }
+      })
+
+    return { viewBox: `0 0 ${width} ${height}`, path, points, labels }
+  }, [rows, valueKey, range])
+
+  return (
+    <div className="h-44 rounded-xl border border-border-dark bg-border-dark/20 p-3">
+      {Array.isArray(rows) && rows.length ? (
+        <svg className="h-full w-full" viewBox={chart.viewBox} preserveAspectRatio="none" role="img">
+          <line x1="0" y1="159" x2="640" y2="159" stroke="rgba(255,255,255,0.10)" strokeWidth="1" />
+          <path d={chart.path} className={`fill-none stroke-current ${colorClass}`} strokeWidth="2.5" />
+          {chart.points.map((p) => (
+            <circle key={p.key} cx={p.x} cy={p.y} r="2.5" className={`fill-current ${colorClass}`} />
+          ))}
+          {chart.labels.map((l) => (
+            <text key={l.key} x={l.x} y="156" fontSize="10" fill="rgba(255,255,255,0.45)">
+              {l.text}
+            </text>
+          ))}
+        </svg>
+      ) : (
+        <div className="h-full flex items-center justify-center text-sm text-text-secondary">No data yet</div>
+      )}
+    </div>
+  )
+}
 
 export default function Reports() {
-  const [reportType, setReportType] = useState('category') // 'category' or 'wallet'
-  const [transactions, setTransactions] = useState([])
-  const [wallets, setWallets] = useState([])
-  const [timeRange, setTimeRange] = useState('month') // 'month', 'quarter', 'year', 'custom'
-  const [startDate, setStartDate] = useState(new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0])
-  const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0])
-  const [selectedWallet, setSelectedWallet] = useState('all')
+  const [range, setRange] = React.useState('month')
+  const [customStart, setCustomStart] = React.useState(toYmd(new Date()))
+  const [customEnd, setCustomEnd] = React.useState(toYmd(new Date()))
 
-  useEffect(() => {
-    // Load transactions
-    const savedTx = localStorage.getItem('transactions_demo')
-    if (savedTx) {
-      try { setTransactions(JSON.parse(savedTx)) } catch (e) { setTransactions([]) }
+  const [expenseTotal, setExpenseTotal] = React.useState(0)
+  const [incomeTotal, setIncomeTotal] = React.useState(0)
+  const [topCategory, setTopCategory] = React.useState(null)
+  const [chartRows, setChartRows] = React.useState([])
+  const [busy, setBusy] = React.useState(false)
+  const [error, setError] = React.useState('')
+
+  const rangeParams = React.useMemo(() => {
+    const now = new Date()
+    if (range === 'year') {
+      const start = new Date(now.getFullYear(), 0, 1)
+      const end = new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999)
+      return { interval: 'month', startDate: start.toISOString(), endDate: end.toISOString(), label: 'This Year' }
     }
-
-    // Load wallets
-    const savedWallets = localStorage.getItem('wallets_demo')
-    if (savedWallets) {
-      try { setWallets(JSON.parse(savedWallets)) } catch (e) { setWallets([]) }
+    if (range === 'custom') {
+      const start = new Date(`${customStart}T00:00:00.000Z`)
+      const end = new Date(`${customEnd}T23:59:59.999Z`)
+      return { interval: 'day', startDate: start.toISOString(), endDate: end.toISOString(), label: 'Custom Range' }
     }
-  }, [])
+    const start = new Date(now.getFullYear(), now.getMonth(), 1)
+    const end = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999)
+    return { interval: 'day', startDate: start.toISOString(), endDate: end.toISOString(), label: 'This Month' }
+  }, [range, customStart, customEnd])
 
-  const filterTransactionsByDate = (txs) => {
-    return txs.filter(tx => {
-      const txDate = new Date(tx.date)
-      return txDate >= new Date(startDate) && txDate <= new Date(endDate)
-    })
-  }
+  React.useEffect(() => {
+    let mounted = true
+    ;(async () => {
+      setBusy(true)
+      setError('')
+      try {
+        const [summaryRes, byCatRes, barRes] = await Promise.all([
+          api.reportSummary({ startDate: rangeParams.startDate, endDate: rangeParams.endDate }),
+          api.reportByCategory({ startDate: rangeParams.startDate, endDate: rangeParams.endDate, type: 'expense' }),
+          api.reportBarChart({
+            startDate: rangeParams.startDate,
+            endDate: rangeParams.endDate,
+            interval: rangeParams.interval,
+          }),
+        ])
 
-  const filterTransactionsByWallet = (txs) => {
-    if (selectedWallet === 'all') return txs
-    return txs.filter(tx => tx.account === selectedWallet)
-  }
+        const expense = summaryRes?.data?.expense ?? 0
+        const income = summaryRes?.data?.income ?? 0
+        const rows = byCatRes?.data || []
+        const top = Array.isArray(rows) && rows.length
+          ? { name: rows[0]?.category || 'Uncategorized', total: Number(rows[0]?.total || 0) }
+          : null
 
-  const getFilteredTransactions = () => {
-    let filtered = filterTransactionsByDate(transactions)
-    filtered = filterTransactionsByWallet(filtered)
-    return filtered
-  }
+        const fetched = barRes?.data || barRes || []
 
-  // Category Report
-  const generateCategoryReport = () => {
-    const filtered = getFilteredTransactions()
-    const byCategory = {}
-
-    filtered.forEach(tx => {
-      if (!byCategory[tx.category]) {
-        byCategory[tx.category] = { income: 0, expense: 0 }
+        if (!mounted) return
+        setExpenseTotal(Number(expense) || 0)
+        setIncomeTotal(Number(income) || 0)
+        setTopCategory(top)
+        setChartRows(Array.isArray(fetched) ? fetched : [])
+      } catch (e2) {
+        if (!mounted) return
+        setError(e2?.message || 'Failed to load reports')
+        setChartRows([])
+      } finally {
+        if (mounted) setBusy(false)
       }
-      if (tx.type === 'income') {
-        byCategory[tx.category].income += tx.amount
-      } else {
-        byCategory[tx.category].expense += tx.amount
-      }
-    })
-
-    return byCategory
-  }
-
-  // Wallet Report
-  const generateWalletReport = () => {
-    const filtered = getFilteredTransactions()
-    const byWallet = {}
-
-    wallets.forEach(wallet => {
-      byWallet[wallet.name] = { income: 0, expense: 0, balance: wallet.balance }
-    })
-
-    filtered.forEach(tx => {
-      if (byWallet[tx.account]) {
-        if (tx.type === 'income') {
-          byWallet[tx.account].income += tx.amount
-        } else {
-          byWallet[tx.account].expense += tx.amount
-        }
-      }
-    })
-
-    return byWallet
-  }
-
-  const categoryReport = generateCategoryReport()
-  const walletReport = generateWalletReport()
-
-  const totalIncome = getFilteredTransactions()
-    .filter(tx => tx.type === 'income')
-    .reduce((sum, tx) => sum + tx.amount, 0)
-  const totalExpense = getFilteredTransactions()
-    .filter(tx => tx.type === 'expense')
-    .reduce((sum, tx) => sum + tx.amount, 0)
-  const netBalance = totalIncome - totalExpense
-
-  // Derived values for charts and exports
-  const totalByCategory = Object.entries(categoryReport).map(([category, data]) => {
-    const net = (data.income || 0) - (data.expense || 0)
-    const total = (data.income || 0) + (data.expense || 0)
-    const pct = totalIncome + totalExpense === 0 ? 0 : (total / (totalIncome + totalExpense)) * 100
-    return { category, income: data.income || 0, expense: data.expense || 0, net, total, pct }
-  }).sort((a,b) => b.total - a.total)
-
-  const totalByWallet = Object.entries(walletReport).map(([wallet, data]) => {
-    const net = (data.income || 0) - (data.expense || 0)
-    const total = (data.income || 0) + (data.expense || 0)
-    const pct = (totalIncome + totalExpense) === 0 ? 0 : (total / (totalIncome + totalExpense)) * 100
-    return { wallet, income: data.income || 0, expense: data.expense || 0, net, total, pct }
-  }).sort((a,b) => b.total - a.total)
-
-  const [openCategory, setOpenCategory] = React.useState(null)
-  const [openWallet, setOpenWallet] = React.useState(null)
-
-  const exportCSV = (rows, filename = 'report.csv') => {
-    const lines = rows.map(r => r.join(','))
-    const csv = lines.join('\n')
-    const blob = new Blob([csv], { type: 'text/csv' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = filename
-    document.body.appendChild(a)
-    a.click()
-    a.remove()
-    URL.revokeObjectURL(url)
-  }
-
-  const exportJSON = (data, filename = 'report.json') => {
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = filename
-    document.body.appendChild(a)
-    a.click()
-    a.remove()
-    URL.revokeObjectURL(url)
-  }
-
-  const tryShare = async (title, text) => {
-    if (navigator.share) {
-      try { await navigator.share({ title, text }) } catch (e) { console.warn('Share failed', e) }
-    } else {
-      // fallback: copy to clipboard
-      try { await navigator.clipboard.writeText(text); alert('Report copied to clipboard') } catch (e) { alert('Share not supported') }
+    })()
+    return () => {
+      mounted = false
     }
+  }, [rangeParams])
+
+  const topPct = expenseTotal && topCategory ? (topCategory.total / expenseTotal) * 100 : 0
+  const donutStyle = {
+    background: `conic-gradient(#19e65e 0 ${topPct}%, #29382e ${topPct}% 100%)`,
   }
 
   return (
-    <div>
-      <div className="page-header mb-8">
-        <h2 className="text-3xl font-bold text-gray-800 mb-2">Financial Reports</h2>
-        <p className="text-gray-600">Analyze your spending and income patterns</p>
-      </div>
+    <div className="px-4 py-6 md:px-10">
+      <div className="mx-auto max-w-7xl">
+        <div className="flex flex-col gap-2">
+          <h1 className="text-3xl md:text-4xl font-black tracking-tight">Reports</h1>
+          <p className="text-text-secondary">Analyze your spending and track progress.</p>
+        </div>
 
-      <div className="flex gap-4 mb-6 flex-wrap">
-        <button
-          className={`px-6 py-3 rounded-xl font-semibold transition-all duration-300 hover:scale-105 hover:shadow-lg ${
-            reportType === 'category' 
-              ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white' 
-              : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-          }`}
-          onClick={() => setReportType('category')}
-        >
-          <BarChart3 className="w-5 h-5 inline mr-2" /> By Category
-        </button>
-        <button
-          className={`px-6 py-3 rounded-xl font-semibold transition-all duration-300 hover:scale-105 hover:shadow-lg ${
-            reportType === 'wallet' 
-              ? 'bg-gradient-to-r from-green-500 to-teal-600 text-white' 
-              : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-          }`}
-          onClick={() => setReportType('wallet')}
-        >
-          <Wallet className="w-5 h-5 inline mr-2" /> By Wallet
-        </button>
-      </div>
+        <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
+          <div className="lg:col-span-2 rounded-2xl border border-border-dark bg-card-dark p-6">
+            <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+              <div>
+                <div className="text-lg font-bold text-white">Spending overview</div>
+                <div className="mt-1 text-sm text-text-secondary">Expenses breakdown from your transactions</div>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="rounded-md bg-primary/20 px-2 py-1 text-xs font-bold text-primary">{rangeParams.label}</span>
+                {error ? <span className="text-xs text-red-200">{error}</span> : null}
+              </div>
+            </div>
 
-      <div className="bg-gradient-to-br from-white to-blue-50 rounded-xl shadow-md hover:shadow-xl transition-all duration-300 p-6 mb-6 border border-blue-100">
-        <h3 className="text-xl font-bold text-gray-800 mb-4">Filters</h3>
-        <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-          <div style={{ flex: 1, minWidth: '150px' }}>
-            <label>Time Range</label>
-            <select
-              className="form-control"
-              value={timeRange}
-              onChange={(e) => {
-                setTimeRange(e.target.value)
-                const now = new Date()
-                if (e.target.value === 'month') {
-                  setStartDate(new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0])
-                  setEndDate(now.toISOString().split('T')[0])
-                } else if (e.target.value === 'quarter') {
-                  const quarter = Math.floor(now.getMonth() / 3)
-                  setStartDate(new Date(now.getFullYear(), quarter * 3, 1).toISOString().split('T')[0])
-                  setEndDate(now.toISOString().split('T')[0])
-                } else if (e.target.value === 'year') {
-                  setStartDate(new Date(now.getFullYear(), 0, 1).toISOString().split('T')[0])
-                  setEndDate(now.toISOString().split('T')[0])
-                }
-              }}
-            >
-              <option value="month">This Month</option>
-              <option value="quarter">This Quarter</option>
-              <option value="year">This Year</option>
-              <option value="custom">Custom</option>
-            </select>
+            <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex rounded-lg bg-border-dark p-1">
+                <button
+                  className={
+                    'px-3 py-1 text-xs font-bold ' +
+                    (range === 'month' ? 'rounded-md bg-primary text-background-dark' : 'text-text-secondary')
+                  }
+                  type="button"
+                  onClick={() => setRange('month')}
+                >
+                  Month
+                </button>
+                <button
+                  className={
+                    'px-3 py-1 text-xs font-bold ' +
+                    (range === 'year' ? 'rounded-md bg-primary text-background-dark' : 'text-text-secondary')
+                  }
+                  type="button"
+                  onClick={() => setRange('year')}
+                >
+                  Year
+                </button>
+                <button
+                  className={
+                    'px-3 py-1 text-xs font-bold ' +
+                    (range === 'custom' ? 'rounded-md bg-primary text-background-dark' : 'text-text-secondary')
+                  }
+                  type="button"
+                  onClick={() => setRange('custom')}
+                >
+                  Range
+                </button>
+              </div>
+
+              {range === 'custom' ? (
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                  <input
+                    type="date"
+                    value={customStart}
+                    onChange={(e) => setCustomStart(e.target.value)}
+                    className="h-10 rounded-lg border border-border-dark bg-border-dark/30 px-3 text-sm text-white outline-none"
+                  />
+                  <span className="text-xs text-text-secondary">to</span>
+                  <input
+                    type="date"
+                    value={customEnd}
+                    onChange={(e) => setCustomEnd(e.target.value)}
+                    className="h-10 rounded-lg border border-border-dark bg-border-dark/30 px-3 text-sm text-white outline-none"
+                  />
+                </div>
+              ) : null}
+            </div>
+
+            <div className="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-[240px_1fr]">
+              <div className="flex items-center gap-5">
+                <div className="relative size-32 rounded-full" style={donutStyle}>
+                  <div className="absolute inset-4 rounded-full bg-card-dark" />
+                </div>
+                <div>
+                  <div className="text-xs font-semibold uppercase tracking-wide text-text-secondary">Total expenses</div>
+                  <div className="mt-1 text-2xl font-bold text-white">{formatMoney(expenseTotal)}</div>
+                  <div className="mt-2 text-sm text-text-secondary">
+                    Total income: <span className="font-semibold text-white">{formatMoney(incomeTotal)}</span>
+                  </div>
+                  <div className="mt-2 text-sm text-text-secondary">
+                    Top category:{' '}
+                    <span className="font-semibold text-white">{topCategory?.name || '—'}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <Link
+                  to="/reports/category"
+                  className="rounded-xl border border-border-dark bg-border-dark/30 p-5 hover:bg-border-dark/50 transition-colors"
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <div className="flex size-10 items-center justify-center rounded-full bg-primary/20 text-primary">
+                        <span className="material-symbols-outlined text-[20px]">pie_chart</span>
+                      </div>
+                      <div>
+                        <div className="text-base font-bold text-white">By Category</div>
+                        <div className="text-sm text-text-secondary">Totals + % + drill-down</div>
+                      </div>
+                    </div>
+                    <span className="material-symbols-outlined text-text-secondary">chevron_right</span>
+                  </div>
+                </Link>
+
+                <Link
+                  to="/reports/wallet"
+                  className="rounded-xl border border-border-dark bg-border-dark/30 p-5 hover:bg-border-dark/50 transition-colors"
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <div className="flex size-10 items-center justify-center rounded-full bg-primary/20 text-primary">
+                        <span className="material-symbols-outlined text-[20px]">account_balance_wallet</span>
+                      </div>
+                      <div>
+                        <div className="text-base font-bold text-white">By Wallet</div>
+                        <div className="text-sm text-text-secondary">Totals + % + drill-down</div>
+                      </div>
+                    </div>
+                    <span className="material-symbols-outlined text-text-secondary">chevron_right</span>
+                  </div>
+                </Link>
+              </div>
+            </div>
+
+            <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div className="rounded-xl border border-border-dark bg-card-dark p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="text-sm font-bold text-white">Income trend</div>
+                    <div className="mt-1 text-xs text-text-secondary">{rangeParams.label}</div>
+                  </div>
+                  {busy ? <div className="text-xs text-text-secondary">Loading…</div> : null}
+                </div>
+                <div className="mt-3">
+                  <LineChart rows={chartRows} valueKey="income" colorClass="text-primary" range={range} />
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-border-dark bg-card-dark p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="text-sm font-bold text-white">Expense trend</div>
+                    <div className="mt-1 text-xs text-text-secondary">{rangeParams.label}</div>
+                  </div>
+                  {busy ? <div className="text-xs text-text-secondary">Loading…</div> : null}
+                </div>
+                <div className="mt-3">
+                  <LineChart rows={chartRows} valueKey="expense" colorClass="text-red-400" range={range} />
+                </div>
+              </div>
+            </div>
           </div>
 
-          {timeRange === 'custom' && (
-            <>
-              <div style={{ flex: 1, minWidth: '150px' }}>
-                <label>Start Date</label>
-                <input
-                  type="date"
-                  className="form-control"
-                  value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
-                />
-              </div>
-              <div style={{ flex: 1, minWidth: '150px' }}>
-                <label>End Date</label>
-                <input
-                  type="date"
-                  className="form-control"
-                  value={endDate}
-                  onChange={(e) => setEndDate(e.target.value)}
-                />
-              </div>
-            </>
-          )}
+          <div className="rounded-2xl border border-border-dark bg-card-dark p-6">
+            <div className="text-lg font-bold text-white">Quick actions</div>
+            <div className="mt-1 text-sm text-text-secondary">Jump into common reports</div>
 
-          {reportType === 'wallet' && (
-            <div style={{ flex: 1, minWidth: '150px' }}>
-              <label>Wallet</label>
-              <select
-                className="form-control"
-                value={selectedWallet}
-                onChange={(e) => setSelectedWallet(e.target.value)}
+            <div className="mt-5 flex flex-col gap-3">
+              <Link
+                to="/reports/category"
+                className="flex items-center justify-between rounded-xl border border-border-dark bg-border-dark/30 px-4 py-3 hover:bg-border-dark/50 transition-colors"
               >
-                <option value="all">All Wallets</option>
-                {wallets.map(w => (
-                  <option key={w.id} value={w.name}>{w.name}</option>
-                ))}
-              </select>
+                <div className="flex items-center gap-3">
+                  <span className="material-symbols-outlined text-primary">category</span>
+                  <span className="font-semibold text-white">Report by Category</span>
+                </div>
+                <span className="material-symbols-outlined text-text-secondary">chevron_right</span>
+              </Link>
+              <Link
+                to="/reports/wallet"
+                className="flex items-center justify-between rounded-xl border border-border-dark bg-border-dark/30 px-4 py-3 hover:bg-border-dark/50 transition-colors"
+              >
+                <div className="flex items-center gap-3">
+                  <span className="material-symbols-outlined text-primary">wallet</span>
+                  <span className="font-semibold text-white">Report by Wallet</span>
+                </div>
+                <span className="material-symbols-outlined text-text-secondary">chevron_right</span>
+              </Link>
             </div>
-          )}
+          </div>
         </div>
       </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div className="bg-gradient-to-br from-green-50 to-white rounded-xl shadow-md hover:shadow-2xl transition-all duration-300 p-6 border-2 border-green-200 hover:border-green-400 hover:scale-105">
-          <div className="flex justify-between items-start mb-4">
-            <span className="text-gray-600 font-semibold">Total Income</span>
-            <TrendingUp className="w-8 h-8 text-green-600 animate-bounce" />
-          </div>
-          <div className="text-3xl font-bold text-green-600">${totalIncome.toFixed(2)}</div>
-        </div>
-        <div className="bg-gradient-to-br from-red-50 to-white rounded-xl shadow-md hover:shadow-2xl transition-all duration-300 p-6 border-2 border-red-200 hover:border-red-400 hover:scale-105">
-          <div className="flex justify-between items-start mb-4">
-            <span className="text-gray-600 font-semibold">Total Expense</span>
-            <TrendingDown className="w-8 h-8 text-red-600 animate-bounce" />
-          </div>
-          <div className="text-3xl font-bold text-red-600">${totalExpense.toFixed(2)}</div>
-        </div>
-        <div className="bg-gradient-to-br from-blue-50 to-white rounded-xl shadow-md hover:shadow-2xl transition-all duration-300 p-6 border-2 border-blue-200 hover:border-blue-400 hover:scale-105">
-          <div className="flex justify-between items-start mb-4">
-            <span className="text-gray-600 font-semibold">Net Balance</span>
-            <DollarSign className="w-8 h-8 text-blue-600 animate-bounce" />
-          </div>
-          <div className="text-3xl font-bold text-blue-600">${netBalance.toFixed(2)}</div>
-        </div>
-      </div>
-
-      {reportType === 'category' && (
-        <div className="bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 border border-gray-200 overflow-hidden">
-          <div className="bg-gradient-to-r from-blue-500 to-purple-600 p-6">
-            <h3 className="text-2xl font-bold text-white flex items-center gap-3">
-              <BarChart3 className="w-7 h-7" />
-              Expenses by Category
-            </h3>
-          </div>
-
-          {Object.keys(categoryReport).length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 px-6">
-              <BarChart3 className="w-20 h-20 text-gray-300 mb-6" />
-              <h3 className="text-2xl font-bold text-gray-800 mb-2">No data available</h3>
-              <p className="text-gray-500 text-center">Add transactions to see category breakdown</p>
-            </div>
-          ) : (
-            <div className="p-6">
-              <div className="flex flex-wrap justify-between items-center mb-6 gap-4">
-                <div className="text-sm text-gray-600 font-medium">Totals & distribution for selected period</div>
-                <div className="flex flex-wrap gap-2">
-                  <button 
-                    className="bg-gradient-to-r from-blue-500 to-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:from-blue-600 hover:to-blue-700 hover:shadow-lg transition-all duration-300 flex items-center gap-2"
-                    onClick={() => exportJSON(categoryReport, 'category-report.json')}
-                  >
-                    <FileText className="w-4 h-4" /> JSON
-                  </button>
-                  <button 
-                    className="bg-gradient-to-r from-green-500 to-green-600 text-white px-4 py-2 rounded-lg font-medium hover:from-green-600 hover:to-green-700 hover:shadow-lg transition-all duration-300 flex items-center gap-2"
-                    onClick={() => {
-                      const rows = [['Category','Income','Expense','Net','Pct']].concat(totalByCategory.map(r => [r.category, r.income.toFixed(2), r.expense.toFixed(2), r.net.toFixed(2), r.pct.toFixed(1)+'%']))
-                      exportCSV(rows, 'category-report.csv')
-                    }}
-                  >
-                    <Download className="w-4 h-4" /> CSV
-                  </button>
-                  <button 
-                    className="bg-gradient-to-r from-purple-500 to-purple-600 text-white px-4 py-2 rounded-lg font-medium hover:from-purple-600 hover:to-purple-700 hover:shadow-lg transition-all duration-300 flex items-center gap-2"
-                    onClick={() => tryShare('Category report', JSON.stringify(totalByCategory,null,2))}
-                  >
-                    <Share2 className="w-4 h-4" /> Share
-                  </button>
-                </div>
-              </div>
-
-              <div className="flex flex-col lg:flex-row gap-8 items-start">
-                <div className="w-full lg:w-64 flex-shrink-0">
-                  <div className="w-full aspect-square rounded-full shadow-xl mx-auto" style={{ background: (() => {
-                    const totalSum = totalByCategory.reduce((s,r)=>s+r.total,0) || 1
-                    return 'conic-gradient(' + totalByCategory.map((p,i) => {
-                      const start = totalByCategory.slice(0,i).reduce((s,a)=>s+a.total,0)/totalSum*100
-                      const v = p.total/totalSum*100
-                      const end = start + v
-                      const color = ['#3498db','#27ae60','#9b59b6','#f39c12','#e74c3c','#2ecc71','#1abc9c','#34495e'][i % 8]
-                      return `${color} ${start}% ${end}%`
-                    }).join(',') + ')'
-                  })() }} />
-
-                  <div className="mt-6">
-                    <h4 className="text-sm font-semibold text-gray-700 mb-3">Top Categories</h4>
-                    <ul className="space-y-2">
-                      {totalByCategory.slice(0,8).map((r, idx) => (
-                        <li key={r.category} className="flex justify-between items-center p-2 rounded-lg hover:bg-gray-50 transition-colors duration-200">
-                          <div className="flex items-center gap-2">
-                            <div 
-                              className="w-3 h-3 rounded-full" 
-                              style={{ backgroundColor: ['#3498db','#27ae60','#9b59b6','#f39c12','#e74c3c','#2ecc71','#1abc9c','#34495e'][idx % 8] }}
-                            />
-                            <span className="text-gray-700 font-medium">{r.category}</span>
-                          </div>
-                          <span className="font-bold text-gray-900">${r.total.toFixed(2)}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                </div>
-
-                <div className="flex-1 w-full overflow-x-auto">
-                  <table className="w-full border-collapse">
-                    <thead>
-                      <tr className="bg-gradient-to-r from-gray-50 to-gray-100">
-                        <th className="text-left py-4 px-4 font-bold text-gray-700">Category</th>
-                        <th className="text-right py-4 px-4 font-bold text-gray-700">Income</th>
-                        <th className="text-right py-4 px-4 font-bold text-gray-700">Expense</th>
-                        <th className="text-right py-4 px-4 font-bold text-gray-700">Net</th>
-                        <th className="text-right py-4 px-4 font-bold text-gray-700">%</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {totalByCategory.map(r => (
-                        <tr 
-                          key={r.category} 
-                          className="border-b border-gray-200 hover:bg-blue-50 cursor-pointer transition-all duration-200"
-                          onClick={() => setOpenCategory(openCategory === r.category ? null : r.category)}
-                        >
-                          <td className="py-3 px-4 font-medium text-gray-800">{r.category}</td>
-                          <td className="text-right py-3 px-4 text-green-600 font-semibold">+${r.income.toFixed(2)}</td>
-                          <td className="text-right py-3 px-4 text-red-600 font-semibold">-${r.expense.toFixed(2)}</td>
-                          <td className="text-right py-3 px-4 font-bold text-gray-900">${r.net.toFixed(2)}</td>
-                          <td className="text-right py-3 px-4 font-semibold text-gray-700">{r.pct.toFixed(1)}%</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-
-                  {openCategory && (
-                    <div className="mt-6 bg-gradient-to-br from-blue-50 to-white rounded-xl p-6 border border-blue-200 shadow-md">
-                      <h4 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
-                        <BarChart3 className="w-5 h-5 text-blue-600" />
-                        Transactions — {openCategory}
-                      </h4>
-                      <div className="max-h-80 overflow-y-auto space-y-3">
-                        {getFilteredTransactions().filter(tx => tx.category === openCategory).map(tx => (
-                          <div key={tx._id} className="flex justify-between items-center p-4 bg-white rounded-lg border border-gray-200 hover:shadow-md transition-all duration-200">
-                            <div>
-                              <div className="font-semibold text-gray-800">{tx.note || tx.category}</div>
-                              <div className="text-xs text-gray-500 mt-1">{tx.account} • {new Date(tx.date).toLocaleDateString()}</div>
-                            </div>
-                            <div className="text-right">
-                              <div className={`text-lg font-bold ${tx.type === 'expense' ? 'text-red-600' : 'text-green-600'}`}>
-                                {tx.type === 'expense' ? '-' : '+'}${tx.amount.toFixed(2)}
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      {reportType === 'wallet' && (
-        <div className="bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 border border-gray-200 overflow-hidden">
-          <div className="bg-gradient-to-r from-green-500 to-teal-600 p-6">
-            <h3 className="text-2xl font-bold text-white flex items-center gap-3">
-              <Wallet className="w-7 h-7" />
-              Summary by Wallet
-            </h3>
-          </div>
-
-          {Object.keys(walletReport).length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 px-6">
-              <Briefcase className="w-20 h-20 text-gray-300 mb-6" />
-              <h3 className="text-2xl font-bold text-gray-800 mb-2">No wallets available</h3>
-              <p className="text-gray-500 text-center">Create a wallet to see wallet summary</p>
-            </div>
-          ) : (
-            <div className="p-6">
-              <div className="flex flex-wrap justify-between items-center mb-6 gap-4">
-                <div className="text-sm text-gray-600 font-medium">Wallet totals and contributions</div>
-                <div className="flex flex-wrap gap-2">
-                  <button 
-                    className="bg-gradient-to-r from-blue-500 to-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:from-blue-600 hover:to-blue-700 hover:shadow-lg transition-all duration-300 flex items-center gap-2"
-                    onClick={() => exportJSON(walletReport, 'wallet-report.json')}
-                  >
-                    <FileText className="w-4 h-4" /> JSON
-                  </button>
-                  <button 
-                    className="bg-gradient-to-r from-green-500 to-green-600 text-white px-4 py-2 rounded-lg font-medium hover:from-green-600 hover:to-green-700 hover:shadow-lg transition-all duration-300 flex items-center gap-2"
-                    onClick={() => {
-                      const rows = [['Wallet','Income','Expense','Net','Pct']].concat(totalByWallet.map(r => [r.wallet, r.income.toFixed(2), r.expense.toFixed(2), r.net.toFixed(2), r.pct.toFixed(1)+'%']))
-                      exportCSV(rows, 'wallet-report.csv')
-                    }}
-                  >
-                    <Download className="w-4 h-4" /> CSV
-                  </button>
-                  <button 
-                    className="bg-gradient-to-r from-purple-500 to-purple-600 text-white px-4 py-2 rounded-lg font-medium hover:from-purple-600 hover:to-purple-700 hover:shadow-lg transition-all duration-300 flex items-center gap-2"
-                    onClick={() => tryShare('Wallet report', JSON.stringify(totalByWallet,null,2))}
-                  >
-                    <Share2 className="w-4 h-4" /> Share
-                  </button>
-                </div>
-              </div>
-
-              <div className="flex flex-col lg:flex-row gap-8">
-                <div className="flex-1">
-                  <h4 className="text-lg font-bold text-gray-800 mb-4">Visual Progress</h4>
-                  <div className="space-y-4">
-                    {totalByWallet.map(w => {
-                      const max = Math.max(...totalByWallet.map(x=>Math.abs(x.net)), 1)
-                      const widthPct = Math.abs(w.net) / max * 100
-                      return (
-                        <div key={w.wallet} className="group">
-                          <div className="flex items-center gap-4 p-3 rounded-xl hover:bg-gray-50 transition-all duration-200">
-                            <div className="w-32 font-semibold text-gray-700 truncate">{w.wallet}</div>
-                            <div 
-                              className="flex-1 bg-gray-200 h-6 rounded-full overflow-hidden cursor-pointer shadow-inner hover:shadow-md transition-shadow duration-200" 
-                              onClick={() => setOpenWallet(openWallet === w.wallet ? null : w.wallet)}
-                            >
-                              <div 
-                                className={`h-full transition-all duration-500 ${w.net >= 0 ? 'bg-gradient-to-r from-green-400 to-green-600' : 'bg-gradient-to-r from-red-400 to-red-600'}`}
-                                style={{ width: `${widthPct}%` }}
-                              />
-                            </div>
-                            <div className="w-28 text-right font-bold text-gray-900">${w.net.toFixed(2)}</div>
-                          </div>
-                        </div>
-                      )
-                    })}
-                  </div>
-                </div>
-
-                <div className="w-full lg:w-96 flex-shrink-0">
-                  <h4 className="text-lg font-bold text-gray-800 mb-4">Wallet Breakdown</h4>
-                  <div className="overflow-x-auto">
-                    <table className="w-full border-collapse">
-                      <thead>
-                        <tr className="bg-gradient-to-r from-gray-50 to-gray-100">
-                          <th className="text-left py-3 px-4 font-bold text-gray-700">Wallet</th>
-                          <th className="text-right py-3 px-4 font-bold text-gray-700">Income</th>
-                          <th className="text-right py-3 px-4 font-bold text-gray-700">Expense</th>
-                          <th className="text-right py-3 px-4 font-bold text-gray-700">Net</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {totalByWallet.map(w => (
-                          <tr 
-                            key={w.wallet} 
-                            className="border-b border-gray-200 hover:bg-green-50 cursor-pointer transition-all duration-200"
-                            onClick={() => setOpenWallet(openWallet === w.wallet ? null : w.wallet)}
-                          >
-                            <td className="py-3 px-4 font-semibold text-gray-800">{w.wallet}</td>
-                            <td className="text-right py-3 px-4 text-green-600 font-semibold">+${w.income.toFixed(2)}</td>
-                            <td className="text-right py-3 px-4 text-red-600 font-semibold">-${w.expense.toFixed(2)}</td>
-                            <td className="text-right py-3 px-4 font-bold text-gray-900">${w.net.toFixed(2)}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-
-                  {openWallet && (
-                    <div className="mt-6 bg-gradient-to-br from-green-50 to-white rounded-xl p-6 border border-green-200 shadow-md">
-                      <h4 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
-                        <Wallet className="w-5 h-5 text-green-600" />
-                        Transactions — {openWallet}
-                      </h4>
-                      <div className="max-h-80 overflow-y-auto space-y-3">
-                        {getFilteredTransactions().filter(tx => tx.account === openWallet).map(tx => (
-                          <div key={tx._id} className="flex justify-between items-center p-4 bg-white rounded-lg border border-gray-200 hover:shadow-md transition-all duration-200">
-                            <div>
-                              <div className="font-semibold text-gray-800">{tx.note || tx.category}</div>
-                              <div className="text-xs text-gray-500 mt-1">{tx.category} • {new Date(tx.date).toLocaleDateString()}</div>
-                            </div>
-                            <div className="text-right">
-                              <div className={`text-lg font-bold ${tx.type === 'expense' ? 'text-red-600' : 'text-green-600'}`}>
-                                {tx.type === 'expense' ? '-' : '+'}${tx.amount.toFixed(2)}
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Chatbot */}
-      <Chatbot />
     </div>
   )
 }

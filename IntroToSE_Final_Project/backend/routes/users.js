@@ -1,5 +1,17 @@
 /**
- * User Routes
+ * Routes: User endpoints
+ *
+ * Base path: /api/users
+ *
+ * Định nghĩa các REST API endpoints cho User resource:
+ * - GET    /api/users          -> Lấy danh sách users (có pagination)
+ * - GET    /api/users/:id      -> Lấy chi tiết 1 user
+ * - POST   /api/users          -> Tạo user mới (đăng ký)
+ * - PUT    /api/users/:id      -> Cập nhật thông tin user
+ * - DELETE /api/users/:id      -> Xóa user
+ *
+ * Router được đăng ký trong server.js:
+ * app.use('/api/users', usersRouter)
  */
 
 import express from 'express'

@@ -1,6 +1,26 @@
 import Wallet from '../models/Wallet.js'
 import Invitation from '../models/Invitation.js'
 import User from '../models/User.js'
+import Transaction from '../models/Transaction.js'
+import mongoose from 'mongoose'
+import { withMongoSession } from '../utils/mongoSession.js'
+
+function canViewWallet(wallet, userId) {
+  if (!wallet || !userId) return false
+  const uid = userId.toString()
+  if (wallet.userId?.toString() === uid) return true
+  if (wallet.ownerId?.toString() === uid) return true
+  if (Array.isArray(wallet.members) && wallet.members.some(m => m.userId?.toString() === uid)) return true
+  return false
+}
+
+function isWalletOwner(wallet, userId) {
+  if (!wallet || !userId) return false
+  const uid = userId.toString()
+  if (wallet.ownerId?.toString() === uid) return true
+  if (wallet.userId?.toString() === uid) return true
+  return false
+}
 
 /**
  * Wallets Controller - Handle Wallet Management Use Cases
@@ -145,8 +165,8 @@ export const getWallet = async (req, res) => {
     const { id } = req.params
     const userId = req.user?.id
 
-    const wallet = await Wallet.findOne({ 
-      _id: id, 
+    const wallet = await Wallet.findOne({
+      _id: id,
       userId,
       status: 'active'
     })
@@ -182,9 +202,9 @@ export const updateWallet = async (req, res) => {
     const { name, type, currency, description, status } = req.body
     const userId = req.user?.id
 
-    const wallet = await Wallet.findOne({ 
-      _id: id, 
-      userId 
+    const wallet = await Wallet.findOne({
+      _id: id,
+      userId
     })
 
     if (!wallet) {
@@ -198,7 +218,7 @@ export const updateWallet = async (req, res) => {
     if (name && name.trim()) {
       wallet.name = name.trim()
     }
-    
+
     if (type && ['Cash', 'Bank', 'Savings'].includes(type)) {
       wallet.type = type
     }
@@ -250,10 +270,10 @@ export const deleteWallet = async (req, res) => {
     const { id } = req.params
     const userId = req.user?.id
 
-    const wallet = await Wallet.findOne({ 
-      _id: id, 
+    const wallet = await Wallet.findOne({
+      _id: id,
       userId,
-      status: 'active' 
+      status: 'active'
     })
 
     if (!wallet) {
@@ -298,8 +318,8 @@ export const updateWalletBalance = async (req, res) => {
       })
     }
 
-    const wallet = await Wallet.findOne({ 
-      _id: id, 
+    const wallet = await Wallet.findOne({
+      _id: id,
       userId,
       status: 'active'
     })
@@ -445,9 +465,9 @@ export const inviteMember = async (req, res) => {
     }
 
     // Find wallet and verify ownership
-    const wallet = await Wallet.findOne({ 
-      _id: walletId, 
-      status: 'active' 
+    const wallet = await Wallet.findOne({
+      _id: walletId,
+      status: 'active'
     }).populate('members.userId', 'name email')
 
     if (!wallet) {
@@ -476,7 +496,7 @@ export const inviteMember = async (req, res) => {
     }
 
     // Check if user already a member
-    const existingMember = wallet.members.find(member => 
+    const existingMember = wallet.members.find(member =>
       member.userId._id.toString() === invitee._id.toString()
     )
     if (existingMember) {
@@ -563,64 +583,88 @@ export const respondToInvitation = async (req, res) => {
       })
     }
 
-    // Find invitation
-    const invitation = await Invitation.findById(invitationId)
-      .populate('walletId', 'name type')
-      .populate('inviterId', 'name')
+    const result = await withMongoSession(async (session) => {
+      const invitation = await Invitation.findById(invitationId).session(session)
+      if (!invitation) {
+        const err = new Error('Invitation not found')
+        err.status = 404
+        throw err
+      }
 
-    if (!invitation) {
-      return res.status(404).json({
-        success: false,
-        error: 'Invitation not found'
-      })
-    }
+      // Verify invitee
+      if (invitation.inviteeId?.toString() !== userId.toString()) {
+        const err = new Error('Only invited user can respond to invitation')
+        err.status = 403
+        throw err
+      }
 
-    // Verify invitee
-    if (invitation.inviteeId?.toString() !== userId.toString()) {
-      return res.status(403).json({
-        success: false,
-        error: 'Only invited user can respond to invitation'
-      })
-    }
+      if (response === 'accept') {
+        await invitation.accept(userId)
 
-    // Handle response
-    if (response === 'accept') {
-      await invitation.accept(userId)
-      
-      // Add user to wallet members
-      const wallet = await Wallet.findById(invitation.walletId._id)
-      wallet.members.push({
-        userId: userId,
-        permission: 'view',
-        joinedAt: new Date()
-      })
-      await wallet.save()
+        const wallet = await Wallet.findById(invitation.walletId).session(session)
+        if (!wallet || wallet.status !== 'active') {
+          const err = new Error('Wallet not found')
+          err.status = 404
+          throw err
+        }
 
-      res.json({
-        success: true,
-        data: {
+        // Ensure shared wallet invariants
+        wallet.isShared = true
+        if (!wallet.ownerId) wallet.ownerId = new mongoose.Types.ObjectId(invitation.inviterId)
+
+        // Ensure owner is a member with edit permission
+        const ownerId = wallet.ownerId?.toString()
+        if (ownerId) {
+          const ownerMember = wallet.members?.find((m) => m.userId?.toString() === ownerId)
+          if (!ownerMember) {
+            wallet.members.push({ userId: wallet.ownerId, permission: 'edit', joinedAt: new Date() })
+          } else if (ownerMember.permission !== 'edit') {
+            ownerMember.permission = 'edit'
+          }
+        }
+
+        // Add invitee as member if missing
+        const uid = userId.toString()
+        const existing = wallet.members?.find((m) => m.userId?.toString() === uid)
+        if (!existing) {
+          wallet.members.push({ userId: new mongoose.Types.ObjectId(userId), permission: 'view', joinedAt: new Date() })
+        }
+
+        await wallet.save({ session })
+
+        return {
+          accepted: true,
           walletId: wallet._id,
           walletName: wallet.name,
           permission: 'view',
-          memberCount: wallet.members.length
-        },
-        message: 'Invitation accepted successfully'
-      })
+          memberCount: wallet.members?.length || 0,
+        }
+      }
 
-    } else {
       await invitation.decline(userId)
-      
-      res.json({
-        success: true,
-        message: 'Invitation declined'
-      })
+      return { accepted: false }
+    })
+
+    if (!result.accepted) {
+      return res.json({ success: true, message: 'Invitation declined' })
     }
+
+    return res.json({
+      success: true,
+      data: {
+        walletId: result.walletId,
+        walletName: result.walletName,
+        permission: result.permission,
+        memberCount: result.memberCount,
+      },
+      message: 'Invitation accepted successfully',
+    })
 
   } catch (error) {
     console.error('Respond to invitation error:', error)
-    res.status(500).json({
+    res.status(error.status || 500).json({
       success: false,
-      error: error.message || 'Failed to respond to invitation'
+      error: error.status ? error.message : error.message || 'Failed to respond to invitation',
     })
   }
 }
@@ -673,61 +717,70 @@ export const leaveWallet = async (req, res) => {
     const { id: walletId } = req.params
     const userId = req.user?.id
 
-    const wallet = await Wallet.findOne({ 
-      _id: walletId, 
-      status: 'active' 
-    })
+    const result = await withMongoSession(async (session) => {
+      const wallet = await Wallet.findOne({ _id: walletId, status: 'active' })
+        .populate('members.userId', 'name email')
+        .session(session)
 
-    if (!wallet) {
-      return res.status(404).json({
-        success: false,
-        error: 'Wallet not found'
-      })
-    }
+      if (!wallet) {
+        const err = new Error('Wallet not found')
+        err.status = 404
+        throw err
+      }
 
-    // Check if user is a member
-    const memberIndex = wallet.members.findIndex(member => 
-      member.userId.toString() === userId.toString()
-    )
+      const uid = userId.toString()
+      const memberIndex = wallet.members.findIndex((m) => m.userId?._id?.toString() === uid || m.userId?.toString() === uid)
+      if (memberIndex === -1) {
+        const err = new Error('You are not a member of this wallet')
+        err.status = 404
+        throw err
+      }
 
-    if (memberIndex === -1) {
-      return res.status(404).json({
-        success: false,
-        error: 'You are not a member of this wallet'
-      })
-    }
+      const isOwner = wallet.ownerId && wallet.ownerId.toString() === uid
+      const otherMembers = wallet.members.filter((m) => (m.userId?._id?.toString() || m.userId?.toString()) !== uid)
 
-    // Alternative Scenario 4a: Owner cannot leave without transferring ownership
-    if (wallet.ownerId && wallet.ownerId.toString() === userId.toString()) {
-      return res.status(400).json({
-        success: false,
-        error: 'Please transfer ownership before leaving',
-        code: 'OWNER_CANNOT_LEAVE',
-        data: {
-          eligibleMembers: wallet.members
-            .filter(m => m.userId.toString() !== userId.toString())
-            .map(m => ({ 
-              id: m.userId, 
-              permission: m.permission,
-              joinedAt: m.joinedAt 
-            }))
+      // If owner is the only member, leaving deletes (deactivates) the shared wallet.
+      if (isOwner && otherMembers.length === 0) {
+        wallet.status = 'inactive'
+        await wallet.save({ session })
+        return { deleted: true }
+      }
+
+      // Owner cannot leave without transferring ownership.
+      if (isOwner) {
+        const err = new Error('Please transfer ownership before leaving')
+        err.status = 400
+        err.code = 'OWNER_CANNOT_LEAVE'
+        err.data = {
+          eligibleMembers: otherMembers.map((m) => ({
+            id: m.userId?._id || m.userId,
+            name: m.userId?.name,
+            email: m.userId?.email,
+            permission: m.permission,
+            joinedAt: m.joinedAt,
+          })),
         }
-      })
-    }
+        throw err
+      }
 
-    // Remove member
-    await wallet.removeMember(userId, userId)
+      // Remove member (self)
+      wallet.members.splice(memberIndex, 1)
+      await wallet.save({ session })
+      return { deleted: false }
+    })
 
     res.json({
       success: true,
-      message: 'Successfully left the wallet'
+      message: result.deleted ? 'Wallet deleted successfully' : 'Successfully left the wallet',
     })
 
   } catch (error) {
     console.error('Leave wallet error:', error)
-    res.status(500).json({
+    res.status(error.status || 500).json({
       success: false,
-      error: error.message || 'Failed to leave wallet'
+      error: error.status ? error.message : error.message || 'Failed to leave wallet',
+      ...(error.code ? { code: error.code } : {}),
+      ...(error.data ? { data: error.data } : {}),
     })
   }
 }
@@ -748,34 +801,68 @@ export const transferOwnership = async (req, res) => {
       })
     }
 
-    const wallet = await Wallet.findOne({ 
-      _id: walletId, 
-      status: 'active' 
-    })
-
-    if (!wallet) {
-      return res.status(404).json({
-        success: false,
-        error: 'Wallet not found'
-      })
+    if (!mongoose.Types.ObjectId.isValid(walletId)) {
+      return res.status(400).json({ success: false, error: 'Invalid walletId' })
+    }
+    if (!mongoose.Types.ObjectId.isValid(newOwnerId)) {
+      return res.status(400).json({ success: false, error: 'Invalid newOwnerId' })
     }
 
-    await wallet.transferOwnership(currentOwnerId, newOwnerId)
+    const result = await withMongoSession(async (session) => {
+      const wallet = await Wallet.findOne({ _id: walletId, status: 'active' }).session(session)
+      if (!wallet) {
+        const err = new Error('Wallet not found')
+        err.status = 404
+        throw err
+      }
+
+      if (!wallet.ownerId || wallet.ownerId.toString() !== currentOwnerId.toString()) {
+        const err = new Error('Only current owner can transfer ownership')
+        err.status = 403
+        throw err
+      }
+
+      if (wallet.ownerId.toString() === newOwnerId.toString()) {
+        const err = new Error('New owner must be different')
+        err.status = 400
+        throw err
+      }
+
+      const newOwnerMember = wallet.members?.find((m) => m.userId?.toString() === newOwnerId.toString())
+      if (!newOwnerMember) {
+        const err = new Error('New owner must be a member of the wallet')
+        err.status = 400
+        throw err
+      }
+
+      const oldOwnerId = wallet.ownerId
+      wallet.ownerId = new mongoose.Types.ObjectId(newOwnerId)
+      wallet.isShared = true
+      newOwnerMember.permission = 'edit'
+
+      const oldOwnerMember = wallet.members?.find((m) => m.userId?.toString() === oldOwnerId.toString())
+      if (!oldOwnerMember) {
+        wallet.members.push({ userId: oldOwnerId, permission: 'view', joinedAt: new Date() })
+      }
+
+      await wallet.save({ session })
+      return wallet
+    })
 
     res.json({
       success: true,
       data: {
         newOwnerId,
-        walletId: wallet._id
+        walletId: result._id,
       },
-      message: 'Ownership transferred successfully'
+      message: 'Ownership transferred successfully',
     })
 
   } catch (error) {
     console.error('Transfer ownership error:', error)
-    res.status(500).json({
+    res.status(error.status || 500).json({
       success: false,
-      error: error.message || 'Failed to transfer ownership'
+      error: error.status ? error.message : error.message || 'Failed to transfer ownership',
     })
   }
 }
@@ -788,38 +875,49 @@ export const removeMemberFromWallet = async (req, res) => {
     const { id: walletId, memberId } = req.params
     const ownerId = req.user?.id
 
-    const wallet = await Wallet.findOne({ 
-      _id: walletId, 
-      status: 'active' 
-    })
-
-    if (!wallet) {
-      return res.status(404).json({
-        success: false,
-        error: 'Wallet not found'
-      })
+    if (!mongoose.Types.ObjectId.isValid(walletId) || !mongoose.Types.ObjectId.isValid(memberId)) {
+      return res.status(400).json({ success: false, error: 'Invalid id' })
     }
 
-    // Alternative Scenario 3a: Owner tries to remove themselves
-    if (memberId === ownerId) {
-      return res.status(400).json({
-        success: false,
-        error: 'Owner cannot be removed'
-      })
-    }
+    await withMongoSession(async (session) => {
+      const wallet = await Wallet.findOne({ _id: walletId, status: 'active' }).session(session)
+      if (!wallet) {
+        const err = new Error('Wallet not found')
+        err.status = 404
+        throw err
+      }
 
-    await wallet.removeMember(memberId, ownerId)
+      if (!wallet.ownerId || wallet.ownerId.toString() !== ownerId.toString()) {
+        const err = new Error('Only wallet owner can remove members')
+        err.status = 403
+        throw err
+      }
 
-    res.json({
-      success: true,
-      message: 'Member removed successfully'
+      // Owner cannot remove themselves
+      if (memberId === ownerId.toString()) {
+        const err = new Error('Owner cannot be removed')
+        err.status = 400
+        throw err
+      }
+
+      const idx = wallet.members.findIndex((m) => m.userId?.toString() === memberId.toString())
+      if (idx === -1) {
+        const err = new Error('User is not a member of this wallet')
+        err.status = 404
+        throw err
+      }
+
+      wallet.members.splice(idx, 1)
+      await wallet.save({ session })
     })
+
+    res.json({ success: true, message: 'Member removed successfully' })
 
   } catch (error) {
     console.error('Remove member error:', error)
-    res.status(500).json({
+    res.status(error.status || 500).json({
       success: false,
-      error: error.message || 'Failed to remove member'
+      error: error.status ? error.message : error.message || 'Failed to remove member',
     })
   }
 }
@@ -840,34 +938,53 @@ export const setMemberPermission = async (req, res) => {
       })
     }
 
-    const wallet = await Wallet.findOne({ 
-      _id: walletId, 
-      status: 'active' 
-    })
-
-    if (!wallet) {
-      return res.status(404).json({
-        success: false,
-        error: 'Wallet not found'
-      })
+    if (!mongoose.Types.ObjectId.isValid(walletId) || !mongoose.Types.ObjectId.isValid(memberId)) {
+      return res.status(400).json({ success: false, error: 'Invalid id' })
     }
 
-    const updatedMember = await wallet.setMemberPermission(ownerId, memberId, permission)
+    const updatedMember = await withMongoSession(async (session) => {
+      const wallet = await Wallet.findOne({ _id: walletId, status: 'active' }).session(session)
+      if (!wallet) {
+        const err = new Error('Wallet not found')
+        err.status = 404
+        throw err
+      }
+
+      if (!wallet.ownerId || wallet.ownerId.toString() !== ownerId.toString()) {
+        const err = new Error('Only wallet owner can change permissions')
+        err.status = 403
+        throw err
+      }
+
+      if (memberId.toString() === ownerId.toString()) {
+        const err = new Error('Owner cannot change their own permission')
+        err.status = 400
+        throw err
+      }
+
+      const member = wallet.members.find((m) => m.userId?.toString() === memberId.toString())
+      if (!member) {
+        const err = new Error('User is not a member of this wallet')
+        err.status = 404
+        throw err
+      }
+
+      member.permission = permission
+      await wallet.save({ session })
+      return member
+    })
 
     res.json({
       success: true,
-      data: {
-        memberId: updatedMember.userId,
-        permission: updatedMember.permission
-      },
-      message: 'Member permission updated successfully'
+      data: { memberId: updatedMember.userId, permission: updatedMember.permission },
+      message: 'Member permission updated successfully',
     })
 
   } catch (error) {
     console.error('Set member permission error:', error)
-    res.status(500).json({
+    res.status(error.status || 500).json({
       success: false,
-      error: error.message || 'Failed to update member permission'
+      error: error.status ? error.message : error.message || 'Failed to update member permission',
     })
   }
 }
@@ -880,9 +997,9 @@ export const getWalletMembers = async (req, res) => {
     const { id: walletId } = req.params
     const userId = req.user?.id
 
-    const wallet = await Wallet.findOne({ 
-      _id: walletId, 
-      status: 'active' 
+    const wallet = await Wallet.findOne({
+      _id: walletId,
+      status: 'active'
     }).populate('members.userId', 'name email')
       .populate('ownerId', 'name email')
 
@@ -894,7 +1011,7 @@ export const getWalletMembers = async (req, res) => {
     }
 
     // Check if user is member or owner
-    const isMember = wallet.members.some(member => 
+    const isMember = wallet.members.some(member =>
       member.userId._id.toString() === userId.toString()
     )
     const isOwner = wallet.ownerId && wallet.ownerId._id.toString() === userId.toString()

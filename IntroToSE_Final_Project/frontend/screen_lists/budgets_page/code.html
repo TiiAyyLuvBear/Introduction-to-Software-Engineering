@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Money Lover - Budgets</title>
+<!-- Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200..800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Theme Config -->
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#19e65e",
+                        "background-light": "#f6f8f6",
+                        "background-dark": "#112116",
+                        "surface-dark": "#1c2b21", // Slightly lighter than bg for cards
+                        "secondary-text": "#9db8a6",
+                    },
+                    fontFamily: {
+                        "display": ["Manrope", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem", 
+                        "2xl": "1rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+</head>
+<body class="font-display bg-background-light dark:bg-background-dark text-slate-900 dark:text-white antialiased overflow-hidden">
+<div class="flex h-screen w-full">
+<!-- Sidebar -->
+<aside class="hidden lg:flex flex-col w-72 h-full border-r border-[#29382e] bg-background-dark">
+<div class="p-6">
+<div class="flex items-center gap-3 mb-8">
+<div class="bg-center bg-no-repeat bg-cover rounded-full size-12 shadow-lg" data-alt="User profile picture showing a smiling person" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuBQN1V7afQFTkuU9ugimcMJAFaf35RfiGj6LRUW2ZJnf7coHhZuotnU62UHmgVYu7p8fBwhIJf1eS74eHNFKM_LpN0yWLks_E1GDFYgCM42PeR4ULFuX1piWXCyUl_zWTkRS69xsHl6qUn_XIfCmgkVhpdFPi__A44vUJJRR_FskxvJEF3LILInmV4zoVKee_bMYOgSJgkk0T-s4VSqDvxb48ba1ZVIat_U-cEvxJuCQ74RIoDEL2ZVQBjIk_a-4o551v69PYMjT4GN");'></div>
+<div class="flex flex-col">
+<h1 class="text-white text-base font-bold leading-tight">Alex Morgan</h1>
+<p class="text-secondary-text text-xs font-medium uppercase tracking-wider">Premium Plan</p>
+</div>
+</div>
+<nav class="flex flex-col gap-2">
+<a class="flex items-center gap-3 px-4 py-3 rounded-xl text-secondary-text hover:bg-[#1c2b21] hover:text-white transition-colors group" href="#">
+<span class="material-symbols-outlined group-hover:text-primary transition-colors">dashboard</span>
+<span class="text-sm font-semibold">Dashboard</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-xl text-secondary-text hover:bg-[#1c2b21] hover:text-white transition-colors group" href="#">
+<span class="material-symbols-outlined group-hover:text-primary transition-colors">receipt_long</span>
+<span class="text-sm font-semibold">Transactions</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-xl bg-primary/10 text-primary" href="#">
+<span class="material-symbols-outlined fill-1">savings</span>
+<span class="text-sm font-bold">Budgets</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-xl text-secondary-text hover:bg-[#1c2b21] hover:text-white transition-colors group" href="#">
+<span class="material-symbols-outlined group-hover:text-primary transition-colors">pie_chart</span>
+<span class="text-sm font-semibold">Reports</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-xl text-secondary-text hover:bg-[#1c2b21] hover:text-white transition-colors group" href="#">
+<span class="material-symbols-outlined group-hover:text-primary transition-colors">settings</span>
+<span class="text-sm font-semibold">Settings</span>
+</a>
+</nav>
+</div>
+<div class="mt-auto p-6 border-t border-[#29382e]">
+<button class="flex items-center gap-3 text-secondary-text hover:text-white transition-colors">
+<span class="material-symbols-outlined">logout</span>
+<span class="text-sm font-medium">Sign Out</span>
+</button>
+</div>
+</aside>
+<!-- Main Content -->
+<main class="flex-1 h-full overflow-y-auto bg-background-light dark:bg-background-dark relative">
+<div class="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col gap-8">
+<!-- Header Section -->
+<div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+<div>
+<h2 class="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">My Budgets</h2>
+<p class="text-slate-500 dark:text-secondary-text mt-1 text-sm font-medium">Manage your spending limits and savings goals.</p>
+</div>
+<div class="flex items-center gap-3">
+<div class="relative">
+<button class="flex items-center gap-2 px-4 py-2.5 bg-[#1c2b21] text-white rounded-lg border border-[#29382e] hover:bg-[#25362b] transition-colors text-sm font-medium">
+<span>September 2023</span>
+<span class="material-symbols-outlined text-[18px]">calendar_month</span>
+</button>
+</div>
+<button class="flex items-center gap-2 px-5 py-2.5 bg-primary hover:bg-[#15cf53] text-black rounded-lg shadow-[0_0_15px_rgba(25,230,94,0.3)] transition-all transform active:scale-95 font-bold text-sm">
+<span class="material-symbols-outlined text-[20px]">add</span>
+<span>Create Budget</span>
+</button>
+</div>
+</div>
+<!-- Stats Summary -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+<div class="flex flex-col gap-2 rounded-2xl p-6 bg-white dark:bg-[#1c2b21] border border-slate-200 dark:border-[#29382e] shadow-sm">
+<div class="flex items-center gap-2">
+<div class="p-2 rounded-full bg-blue-500/10 text-blue-500">
+<span class="material-symbols-outlined text-[20px]">account_balance_wallet</span>
+</div>
+<p class="text-slate-500 dark:text-secondary-text text-sm font-semibold uppercase tracking-wider">Total Budgeted</p>
+</div>
+<div class="mt-2">
+<p class="text-slate-900 dark:text-white text-3xl font-bold tracking-tight">$2,500.00</p>
+<p class="text-slate-400 dark:text-secondary-text text-sm mt-1">For 8 categories</p>
+</div>
+</div>
+<div class="flex flex-col gap-2 rounded-2xl p-6 bg-white dark:bg-[#1c2b21] border border-slate-200 dark:border-[#29382e] shadow-sm">
+<div class="flex items-center gap-2">
+<div class="p-2 rounded-full bg-red-500/10 text-red-500">
+<span class="material-symbols-outlined text-[20px]">shopping_cart</span>
+</div>
+<p class="text-slate-500 dark:text-secondary-text text-sm font-semibold uppercase tracking-wider">Total Spent</p>
+</div>
+<div class="mt-2">
+<p class="text-slate-900 dark:text-white text-3xl font-bold tracking-tight">$1,300.00</p>
+<p class="text-primary text-sm font-medium mt-1">+5.2% vs last month</p>
+</div>
+</div>
+<div class="flex flex-col gap-2 rounded-2xl p-6 bg-white dark:bg-[#1c2b21] border border-slate-200 dark:border-[#29382e] shadow-sm relative overflow-hidden group">
+<div class="absolute right-0 top-0 h-full w-24 bg-gradient-to-l from-primary/10 to-transparent"></div>
+<div class="flex items-center gap-2 relative z-10">
+<div class="p-2 rounded-full bg-primary/10 text-primary">
+<span class="material-symbols-outlined text-[20px]">savings</span>
+</div>
+<p class="text-slate-500 dark:text-secondary-text text-sm font-semibold uppercase tracking-wider">Remaining</p>
+</div>
+<div class="mt-2 relative z-10">
+<p class="text-slate-900 dark:text-white text-3xl font-bold tracking-tight">$1,200.00</p>
+<p class="text-secondary-text text-sm mt-1">48% of budget left</p>
+</div>
+</div>
+</div>
+<!-- Filters -->
+<div class="border-b border-slate-200 dark:border-[#29382e]">
+<div class="flex gap-8">
+<a class="flex items-center gap-2 border-b-2 border-primary pb-3 px-1 text-primary cursor-pointer">
+<span class="text-sm font-bold tracking-wide">Active</span>
+<span class="bg-primary/20 text-primary text-[10px] font-bold px-2 py-0.5 rounded-full">6</span>
+</a>
+<a class="flex items-center gap-2 border-b-2 border-transparent pb-3 px-1 text-slate-500 dark:text-secondary-text hover:text-slate-700 dark:hover:text-white transition-colors cursor-pointer">
+<span class="text-sm font-bold tracking-wide">Completed</span>
+</a>
+<a class="flex items-center gap-2 border-b-2 border-transparent pb-3 px-1 text-slate-500 dark:text-secondary-text hover:text-slate-700 dark:hover:text-white transition-colors cursor-pointer">
+<span class="text-sm font-bold tracking-wide">Future</span>
+</a>
+</div>
+</div>
+<!-- Budget Grid -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+<!-- Card 1: Healthy -->
+<div class="group bg-white dark:bg-[#1c2b21] rounded-2xl p-6 border border-slate-200 dark:border-[#29382e] hover:border-primary/50 transition-all shadow-sm hover:shadow-md">
+<div class="flex justify-between items-start mb-4">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-orange-100 dark:bg-orange-500/20 flex items-center justify-center text-orange-600 dark:text-orange-400">
+<span class="material-symbols-outlined">restaurant</span>
+</div>
+<div>
+<h3 class="text-slate-900 dark:text-white font-bold text-lg">Food &amp; Dining</h3>
+<p class="text-slate-500 dark:text-secondary-text text-xs">Reset in 12 days</p>
+</div>
+</div>
+<button class="text-slate-400 hover:text-white"><span class="material-symbols-outlined">more_horiz</span></button>
+</div>
+<div class="mb-2 flex justify-between items-end">
+<span class="text-2xl font-bold text-slate-900 dark:text-white">$450.00</span>
+<span class="text-sm font-medium text-slate-500 dark:text-secondary-text">of $800.00</span>
+</div>
+<div class="w-full bg-slate-100 dark:bg-[#111813] rounded-full h-2.5 mb-4">
+<div class="bg-primary h-2.5 rounded-full transition-all duration-500" style="width: 56%"></div>
+</div>
+<div class="flex justify-between text-xs font-medium">
+<span class="text-primary">56% Used</span>
+<span class="text-slate-500 dark:text-secondary-text">$350.00 Left</span>
+</div>
+</div>
+<!-- Card 2: Warning -->
+<div class="group bg-white dark:bg-[#1c2b21] rounded-2xl p-6 border border-slate-200 dark:border-[#29382e] hover:border-yellow-500/50 transition-all shadow-sm hover:shadow-md">
+<div class="flex justify-between items-start mb-4">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-purple-100 dark:bg-purple-500/20 flex items-center justify-center text-purple-600 dark:text-purple-400">
+<span class="material-symbols-outlined">directions_car</span>
+</div>
+<div>
+<h3 class="text-slate-900 dark:text-white font-bold text-lg">Transportation</h3>
+<p class="text-slate-500 dark:text-secondary-text text-xs">Reset in 5 days</p>
+</div>
+</div>
+<button class="text-slate-400 hover:text-white"><span class="material-symbols-outlined">more_horiz</span></button>
+</div>
+<div class="mb-2 flex justify-between items-end">
+<span class="text-2xl font-bold text-slate-900 dark:text-white">$280.00</span>
+<span class="text-sm font-medium text-slate-500 dark:text-secondary-text">of $300.00</span>
+</div>
+<div class="w-full bg-slate-100 dark:bg-[#111813] rounded-full h-2.5 mb-4">
+<div class="bg-yellow-500 h-2.5 rounded-full transition-all duration-500" style="width: 93%"></div>
+</div>
+<div class="flex justify-between text-xs font-medium">
+<span class="text-yellow-500">93% Used</span>
+<span class="text-slate-500 dark:text-secondary-text">$20.00 Left</span>
+</div>
+</div>
+<!-- Card 3: Good -->
+<div class="group bg-white dark:bg-[#1c2b21] rounded-2xl p-6 border border-slate-200 dark:border-[#29382e] hover:border-primary/50 transition-all shadow-sm hover:shadow-md">
+<div class="flex justify-between items-start mb-4">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-500/20 flex items-center justify-center text-blue-600 dark:text-blue-400">
+<span class="material-symbols-outlined">shopping_bag</span>
+</div>
+<div>
+<h3 class="text-slate-900 dark:text-white font-bold text-lg">Shopping</h3>
+<p class="text-slate-500 dark:text-secondary-text text-xs">Reset in 20 days</p>
+</div>
+</div>
+<button class="text-slate-400 hover:text-white"><span class="material-symbols-outlined">more_horiz</span></button>
+</div>
+<div class="mb-2 flex justify-between items-end">
+<span class="text-2xl font-bold text-slate-900 dark:text-white">$120.00</span>
+<span class="text-sm font-medium text-slate-500 dark:text-secondary-text">of $500.00</span>
+</div>
+<div class="w-full bg-slate-100 dark:bg-[#111813] rounded-full h-2.5 mb-4">
+<div class="bg-primary h-2.5 rounded-full transition-all duration-500" style="width: 24%"></div>
+</div>
+<div class="flex justify-between text-xs font-medium">
+<span class="text-primary">24% Used</span>
+<span class="text-slate-500 dark:text-secondary-text">$380.00 Left</span>
+</div>
+</div>
+<!-- Card 4: Critical -->
+<div class="group bg-white dark:bg-[#1c2b21] rounded-2xl p-6 border border-slate-200 dark:border-[#29382e] hover:border-red-500/50 transition-all shadow-sm hover:shadow-md">
+<div class="flex justify-between items-start mb-4">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-red-100 dark:bg-red-500/20 flex items-center justify-center text-red-600 dark:text-red-400">
+<span class="material-symbols-outlined">movie</span>
+</div>
+<div>
+<h3 class="text-slate-900 dark:text-white font-bold text-lg">Entertainment</h3>
+<p class="text-slate-500 dark:text-secondary-text text-xs">Reset in 8 days</p>
+</div>
+</div>
+<button class="text-slate-400 hover:text-white"><span class="material-symbols-outlined">more_horiz</span></button>
+</div>
+<div class="mb-2 flex justify-between items-end">
+<span class="text-2xl font-bold text-slate-900 dark:text-white">$210.00</span>
+<span class="text-sm font-medium text-slate-500 dark:text-secondary-text">of $200.00</span>
+</div>
+<div class="w-full bg-slate-100 dark:bg-[#111813] rounded-full h-2.5 mb-4">
+<div class="bg-red-500 h-2.5 rounded-full transition-all duration-500" style="width: 100%"></div>
+</div>
+<div class="flex justify-between text-xs font-medium">
+<span class="text-red-500">105% Used</span>
+<span class="text-red-500">-$10.00 Over</span>
+</div>
+</div>
+<!-- Card 5: Safe -->
+<div class="group bg-white dark:bg-[#1c2b21] rounded-2xl p-6 border border-slate-200 dark:border-[#29382e] hover:border-primary/50 transition-all shadow-sm hover:shadow-md">
+<div class="flex justify-between items-start mb-4">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-teal-100 dark:bg-teal-500/20 flex items-center justify-center text-teal-600 dark:text-teal-400">
+<span class="material-symbols-outlined">home</span>
+</div>
+<div>
+<h3 class="text-slate-900 dark:text-white font-bold text-lg">Rent &amp; Utilities</h3>
+<p class="text-slate-500 dark:text-secondary-text text-xs">Reset in 25 days</p>
+</div>
+</div>
+<button class="text-slate-400 hover:text-white"><span class="material-symbols-outlined">more_horiz</span></button>
+</div>
+<div class="mb-2 flex justify-between items-end">
+<span class="text-2xl font-bold text-slate-900 dark:text-white">$1,200.00</span>
+<span class="text-sm font-medium text-slate-500 dark:text-secondary-text">of $1,200.00</span>
+</div>
+<div class="w-full bg-slate-100 dark:bg-[#111813] rounded-full h-2.5 mb-4">
+<div class="bg-primary h-2.5 rounded-full transition-all duration-500" style="width: 100%"></div>
+</div>
+<div class="flex justify-between text-xs font-medium">
+<span class="text-primary">100% Used</span>
+<span class="text-slate-500 dark:text-secondary-text">Complete</span>
+</div>
+</div>
+<!-- New Budget Placeholder -->
+<div class="group flex flex-col items-center justify-center rounded-2xl p-6 border-2 border-dashed border-[#29382e] hover:border-primary hover:bg-[#1c2b21]/50 transition-all cursor-pointer h-full min-h-[220px]">
+<div class="size-14 rounded-full bg-[#1c2b21] group-hover:bg-primary/20 flex items-center justify-center mb-4 transition-colors">
+<span class="material-symbols-outlined text-slate-400 group-hover:text-primary text-[28px] transition-colors">add</span>
+</div>
+<h3 class="text-slate-900 dark:text-white font-bold text-lg mb-1">Create New Budget</h3>
+<p class="text-slate-500 dark:text-secondary-text text-sm text-center">Set a limit for a new category</p>
+</div>
+</div>
+<!-- Recent Activity Section -->
+<div class="mt-4">
+<div class="flex items-center justify-between mb-4">
+<h3 class="text-xl font-bold text-slate-900 dark:text-white">Recent Budget Activity</h3>
+<a class="text-primary text-sm font-semibold hover:underline" href="#">View All</a>
+</div>
+<div class="bg-white dark:bg-[#1c2b21] rounded-2xl border border-slate-200 dark:border-[#29382e] overflow-hidden">
+<div class="grid grid-cols-[auto_1fr_auto] gap-4 p-4 border-b border-slate-100 dark:border-[#29382e] items-center hover:bg-slate-50 dark:hover:bg-[#25362b] transition-colors cursor-pointer">
+<div class="size-10 rounded-full bg-orange-100 dark:bg-orange-500/10 flex items-center justify-center text-orange-600 dark:text-orange-400">
+<span class="material-symbols-outlined text-[20px]">restaurant</span>
+</div>
+<div class="flex flex-col">
+<span class="text-slate-900 dark:text-white font-bold text-sm">Whole Foods Market</span>
+<span class="text-slate-500 dark:text-secondary-text text-xs">Food &amp; Dining • Today, 10:42 AM</span>
+</div>
+<span class="text-slate-900 dark:text-white font-bold text-sm">-$84.30</span>
+</div>
+<div class="grid grid-cols-[auto_1fr_auto] gap-4 p-4 border-b border-slate-100 dark:border-[#29382e] items-center hover:bg-slate-50 dark:hover:bg-[#25362b] transition-colors cursor-pointer">
+<div class="size-10 rounded-full bg-purple-100 dark:bg-purple-500/10 flex items-center justify-center text-purple-600 dark:text-purple-400">
+<span class="material-symbols-outlined text-[20px]">local_gas_station</span>
+</div>
+<div class="flex flex-col">
+<span class="text-slate-900 dark:text-white font-bold text-sm">Shell Station</span>
+<span class="text-slate-500 dark:text-secondary-text text-xs">Transportation • Yesterday</span>
+</div>
+<span class="text-slate-900 dark:text-white font-bold text-sm">-$45.00</span>
+</div>
+<div class="grid grid-cols-[auto_1fr_auto] gap-4 p-4 items-center hover:bg-slate-50 dark:hover:bg-[#25362b] transition-colors cursor-pointer">
+<div class="size-10 rounded-full bg-red-100 dark:bg-red-500/10 flex items-center justify-center text-red-600 dark:text-red-400">
+<span class="material-symbols-outlined text-[20px]">movie</span>
+</div>
+<div class="flex flex-col">
+<span class="text-slate-900 dark:text-white font-bold text-sm">Netflix Subscription</span>
+<span class="text-slate-500 dark:text-secondary-text text-xs">Entertainment • Sep 12, 2023</span>
+</div>
+<span class="text-slate-900 dark:text-white font-bold text-sm">-$15.99</span>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+</body></html>

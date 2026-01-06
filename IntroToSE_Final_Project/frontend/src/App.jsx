@@ -1,115 +1,130 @@
-/**
- * App.jsx - Root component của React app
- *
- * Chức năng:
- * - Quản lý navigation giữa các trang bằng React Router
- * - Wrap app với AuthProvider để quản lý authentication state
- * - Protected routes: chỉ cho phép access khi đã login
- */
-import { useState } from 'react'
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
-import { AuthProvider, useAuth } from './context/AuthContext'
-import Authentication from './pages/Authenication'
-import Sidebar from './components/layout/Sidebar'
-import Dashboard from './pages/Dashboard'
-import Transactions from './pages/Transactions'
-import Categories from './pages/Categories'
-import Accounts from './pages/Accounts'
-import Abouts from './pages/Abouts'
-import Wallets from './pages/Wallets'
-import SavingGoals from './pages/SavingGoals'
-import Budget from './pages/Budget'
-import Reports from './pages/Reports'
-import './App.css'
+import React from 'react'
+import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom'
 
-// Protected Route Component
-function ProtectedRoute({ children }) {
-  const { currentUser, loading } = useAuth()
-  
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading...</p>
-        </div>
-      </div>
-    )
+import Login from './pages/Login.jsx'
+import Register from './pages/Register.jsx'
+import ForgotPassword from './pages/ForgotPassword.jsx'
+import ResetPassword from './pages/ResetPassword.jsx'
+import Profile from './pages/Profile.jsx'
+import Dashboard from './pages/Dashboard.jsx'
+import Transactions from './pages/Transactions.jsx'
+import Categories from './pages/Categories.jsx'
+import Wallets from './pages/Wallets.jsx'
+import Accounts from './pages/Accounts.jsx'
+import Savings from './pages/Savings.jsx'
+import Budgets from './pages/Budgets.jsx'
+import Reports from './pages/Reports.jsx'
+import ReportByCategory from './pages/ReportByCategory.jsx'
+import ReportByWallet from './pages/ReportByWallet.jsx'
+import About from './pages/About.jsx'
+
+import AddTransaction from './pages/AddTransaction.jsx'
+import EditTransaction from './pages/EditTransaction.jsx'
+import TransferMoney from './pages/TransferMoney.jsx'
+import AddCategory from './pages/AddCategory.jsx'
+import CreateWallet from './pages/CreateWallet.jsx'
+import CreateGoal from './pages/CreateGoal.jsx'
+import CreateBudget from './pages/CreateBudget.jsx'
+
+import Sidebar from './components/Sidebar.jsx'
+
+import tokenResolver from './services/tokenResolver.js'
+
+function getUser() {
+  // Get user from localStorage
+  try {
+    const userStr = localStorage.getItem('ml_user')
+    return userStr ? JSON.parse(userStr) : null
+  } catch {
+    return null
   }
-  
-  if (!currentUser) {
-    return <Navigate to="/auth" replace />
-  }
-  
-  return children
 }
 
-// Main App Layout
-function AppLayout() {
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
-  const { currentUser } = useAuth()
-  
+function AppContent() {
+  const location = useLocation()
+  const navigate = useNavigate()
+  const [user, setUser] = React.useState(getUser)
+
+  const isAuthRoute =
+    location.pathname === '/login' ||
+    location.pathname === '/register' ||
+    location.pathname === '/forgot-password' ||
+    location.pathname === '/reset-password'
+
+  React.useEffect(() => {
+    if (!user && !isAuthRoute) navigate('/login', { replace: true })
+    if (user && isAuthRoute) navigate('/', { replace: true })
+  }, [user, isAuthRoute, navigate])
+
+  const onLogin = (u) => {
+    // Accept either (a) just a user object, or (b) { user, accessToken, refreshToken }
+    if (u && u.user && (u.accessToken || u.refreshToken)) {
+      // Save tokens using tokenResolver
+      tokenResolver.setTokens(u.accessToken, u.refreshToken)
+      // Save user to localStorage
+      localStorage.setItem('ml_user', JSON.stringify(u.user))
+      setUser(u.user)
+      return
+    }
+    // Fallback: just save user
+    localStorage.setItem('ml_user', JSON.stringify(u))
+    setUser(u)
+  }
+
+  const onLogout = () => {
+    // Clear tokens using tokenResolver
+    tokenResolver.removeTokens()
+    // Clear user from localStorage
+    localStorage.removeItem('ml_user')
+    setUser(null)
+    navigate('/login', { replace: true })
+  }
+
+  if (!user && !isAuthRoute) return null
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Sidebar - Chỉ hiện khi authenticated */}
-      {currentUser && <Sidebar isOpen={isMobileMenuOpen} setIsOpen={setIsMobileMenuOpen} />}
-      
-      {/* Main content area */}
-      <main className={currentUser ? "pt-20 px-4 sm:px-6 lg:px-8 pb-8 max-w-screen-2xl mx-auto" : ""}>
+    <div className="min-h-screen bg-background-dark text-white font-display">
+      {user && <Sidebar onLogout={onLogout} />}
+
+      <div className={user ? 'md:pl-72' : ''}>
         <Routes>
-          {/* Public routes */}
-          <Route path="/auth" element={<Authentication />} />
-          
-          {/* Backward compatibility redirects */}
-          <Route path="/login" element={<Navigate to="/auth" replace />} />
-          <Route path="/register" element={<Navigate to="/auth" replace />} />
-          
-          {/* Redirect root "/" */}
-          <Route path="/" element={
-            currentUser ? <Navigate to="/dashboard" replace /> : <Navigate to="/auth" replace />
-          } />
-          
-          {/* Protected Routes */}
-          <Route path="/dashboard" element={
-            <ProtectedRoute><Dashboard /></ProtectedRoute>
-          } />
-          <Route path="/transactions" element={
-            <ProtectedRoute><Transactions /></ProtectedRoute>
-          } />
-          <Route path="/categories" element={
-            <ProtectedRoute><Categories /></ProtectedRoute>
-          } />
-          <Route path="/wallets" element={
-            <ProtectedRoute><Wallets /></ProtectedRoute>
-          } />
-          <Route path="/accounts" element={
-            <ProtectedRoute><Accounts /></ProtectedRoute>
-          } />
-          <Route path="/abouts" element={
-            <ProtectedRoute><Abouts /></ProtectedRoute>
-          } />
-          <Route path="/savings" element={
-            <ProtectedRoute><SavingGoals /></ProtectedRoute>
-          } />
-          <Route path="/budgets" element={
-            <ProtectedRoute><Budget /></ProtectedRoute>
-          } />
-          <Route path="/reports" element={
-            <ProtectedRoute><Reports /></ProtectedRoute>
-          } />
+          <Route path="/login" element={<Login onLogin={onLogin} />} />
+          <Route path="/register" element={<Register onLogin={onLogin} />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
+
+          <Route path="/" element={<Dashboard />} />
+          <Route path="/transactions" element={<Transactions />} />
+          <Route path="/categories" element={<Categories />} />
+          <Route path="/wallets" element={<Wallets />} />
+          <Route path="/accounts" element={<Accounts />} />
+          <Route path="/savings" element={<Savings />} />
+          <Route path="/budgets" element={<Budgets />} />
+          <Route path="/reports" element={<Reports />} />
+          <Route path="/reports/category" element={<ReportByCategory />} />
+          <Route path="/reports/wallet" element={<ReportByWallet />} />
+          <Route path="/profile" element={<Profile />} />
+          <Route path="/about" element={<About />} />
+
+          <Route path="/transactions/add" element={<AddTransaction />} />
+          <Route path="/transactions/:id/edit" element={<EditTransaction />} />
+          <Route path="/transactions/transfer" element={<TransferMoney />} />
+          <Route path="/categories/new" element={<AddCategory />} />
+          <Route path="/wallets/new" element={<CreateWallet />} />
+          <Route path="/savings/new" element={<CreateGoal />} />
+          <Route path="/budgets/new" element={<CreateBudget />} />
+
+          <Route path="*" element={<Navigate to={user ? '/' : '/login'} replace />} />
         </Routes>
-      </main>
+      </div>
     </div>
   )
 }
 
-// Root App Component
 export default function App() {
   return (
-    <Router>
-      <AuthProvider>
-        <AppLayout />
-      </AuthProvider>
-    </Router>
+    <BrowserRouter>
+      <AppContent />
+    </BrowserRouter>
   )
 }

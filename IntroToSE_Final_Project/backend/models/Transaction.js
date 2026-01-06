@@ -15,28 +15,61 @@ import mongoose from 'mongoose'
 const TransactionSchema = new mongoose.Schema({
   // ID của user sở hữu transaction này
   // Dùng để filter: mỗi user chỉ thấy transactions của mình
-  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: false },
-  
+  userId: {
+    type: String,
+    ref: 'User',
+    required: true,
+    index: true
+  },
+
+  // Ví thực hiện giao dịch
+  walletId: {
+    type: String,
+    ref: 'Wallet',
+    required: true,
+    index: true
+  },
+
+  // Danh mục (reference)
+  categoryId: {
+    type: String,
+    ref: 'Category',
+    required: false,
+    index: true
+  },
+
+  // Saving Goal (nếu transaction liên kết với mục tiêu tiết kiệm)
+  goalId: {
+    type: String,
+    ref: 'SavingGoal',
+    required: false,
+    index: true
+  },
+
   // Số tiền giao dịch (luôn là số dương, type quyết định +/-)
   amount: { type: Number, required: true },
-  
+
   // Loại giao dịch: 'income' (tiền vào) hoặc 'expense' (tiền ra)
-  type: { type: String, enum: ['income','expense'], required: true },
-  
+  type: { type: String, enum: ['income', 'expense'], required: true },
+
   // Danh mục phân loại (VD: "Food", "Salary", "Transportation")
   // Hiện tại lưu string, có thể nâng cấp thành ObjectId reference
   category: { type: String },
-  
+
   // Tài khoản thực hiện giao dịch (VD: "Cash", "Bank Account")
   account: { type: String },
-  
+
   // Ngày thực hiện giao dịch
   // default: Date.now tự động lấy thời gian hiện tại nếu không truyền
   date: { type: Date, default: Date.now },
-  
+
   // Ghi chú thêm về giao dịch (tùy chọn)
   note: { type: String }
-}, { timestamps: true })
+
+}, { timestamps: true, collection: 'transactions' })
+
+TransactionSchema.index({ userId: 1, walletId: 1, date: -1 })
+TransactionSchema.index({ userId: 1, categoryId: 1, date: -1 })
 
 /**
  * Export model Transaction

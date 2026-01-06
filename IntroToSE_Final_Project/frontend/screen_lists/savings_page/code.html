@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Money Lover - Savings</title>
+<!-- Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200..800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Tailwind Configuration -->
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "primary": "#19e65e",
+              "background-light": "#f6f8f6",
+              "background-dark": "#112116",
+              "card-dark": "#1c261f",
+              "card-hover": "#253028",
+            },
+            fontFamily: {
+              "display": ["Manrope", "sans-serif"]
+            },
+            borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "2xl": "1rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-gray-900 dark:text-white font-display min-h-screen flex flex-col overflow-x-hidden transition-colors duration-200">
+<!-- Top Navigation Bar -->
+<nav class="sticky top-0 z-50 border-b border-[#29382e] bg-[#111813]/90 backdrop-blur-md px-4 md:px-10 py-3">
+<div class="max-w-[1400px] mx-auto flex items-center justify-between">
+<!-- Logo -->
+<div class="flex items-center gap-4 text-white">
+<div class="text-primary">
+<span class="material-symbols-outlined text-3xl">account_balance_wallet</span>
+</div>
+<h2 class="text-white text-lg font-bold leading-tight tracking-[-0.015em]">Money Lover</h2>
+</div>
+<!-- Nav Links (Desktop) -->
+<div class="hidden md:flex items-center gap-8">
+<a class="text-gray-400 hover:text-white text-sm font-medium leading-normal transition-colors flex items-center gap-2" href="#">
+<span class="material-symbols-outlined text-[20px]">dashboard</span> Dashboard
+                </a>
+<a class="text-gray-400 hover:text-white text-sm font-medium leading-normal transition-colors flex items-center gap-2" href="#">
+<span class="material-symbols-outlined text-[20px]">receipt_long</span> Transactions
+                </a>
+<a class="text-white text-sm font-bold leading-normal flex items-center gap-2" href="#">
+<span class="material-symbols-outlined text-[20px] text-primary">savings</span> Savings
+                </a>
+<a class="text-gray-400 hover:text-white text-sm font-medium leading-normal transition-colors flex items-center gap-2" href="#">
+<span class="material-symbols-outlined text-[20px]">pie_chart</span> Budget
+                </a>
+</div>
+<!-- Profile -->
+<div class="flex items-center gap-4">
+<button class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10 ring-2 ring-transparent hover:ring-primary transition-all" data-alt="User profile picture showing a smiling person" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuAHvfBiLDv5D617E9vYY_GNfwfwHtvvsYw75H1pqhL_TrHxdFXhJ0iQ8Hc3BVlnACFs8rVi0bakebckKob0lJrEaPzAJocpGwr0L1ly_KgX1gPw_i3T7-f1QjgFu6LBgVHMNKEcwkDDRoPX-zFeN6u4r4dltLb9EywxbPC4QzTKfZlffrf054yd5IzC3AdOstOCnBLVcNa5nUkui_ScituTMTKJnbKS54z6FHwV3ACxO57Bg4DmmXSSJbAeUdo1q89k-kPlx_EBwEg-");'>
+</button>
+</div>
+</div>
+</nav>
+<!-- Main Content Layout -->
+<div class="flex-1 w-full max-w-[1400px] mx-auto px-4 md:px-10 py-8">
+<!-- Header & Primary Action -->
+<header class="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10">
+<div class="flex flex-col gap-2">
+<h1 class="text-white text-4xl font-black leading-tight tracking-[-0.033em]">Savings Goals</h1>
+<p class="text-[#9db8a6] text-base font-normal">Track your progress and reach your financial targets.</p>
+</div>
+<button class="flex items-center justify-center gap-2 bg-primary hover:bg-green-400 text-[#111813] font-bold py-3 px-6 rounded-xl transition-all shadow-lg hover:shadow-green-500/20 active:scale-95 group">
+<span class="material-symbols-outlined group-hover:rotate-90 transition-transform">add</span>
+<span>Create New Goal</span>
+</button>
+</header>
+<!-- Stats Overview -->
+<section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
+<!-- Stat Card 1 -->
+<div class="flex flex-col gap-2 rounded-xl p-6 bg-[#29382e] border border-white/5 shadow-md">
+<div class="flex items-center justify-between">
+<p class="text-[#9db8a6] text-sm font-medium uppercase tracking-wider">Total Balance</p>
+<span class="material-symbols-outlined text-[#9db8a6]">account_balance</span>
+</div>
+<p class="text-white text-3xl font-bold tracking-tight">$12,450</p>
+<div class="flex items-center gap-1 text-primary text-sm font-medium bg-primary/10 w-fit px-2 py-1 rounded">
+<span class="material-symbols-outlined text-sm">trending_up</span>
+<span>+5.2% this month</span>
+</div>
+</div>
+<!-- Stat Card 2 -->
+<div class="flex flex-col gap-2 rounded-xl p-6 bg-[#29382e] border border-white/5 shadow-md">
+<div class="flex items-center justify-between">
+<p class="text-[#9db8a6] text-sm font-medium uppercase tracking-wider">Monthly Rate</p>
+<span class="material-symbols-outlined text-[#9db8a6]">speed</span>
+</div>
+<p class="text-white text-3xl font-bold tracking-tight">15%</p>
+<div class="flex items-center gap-1 text-primary text-sm font-medium bg-primary/10 w-fit px-2 py-1 rounded">
+<span class="material-symbols-outlined text-sm">arrow_upward</span>
+<span>+2.1% vs last month</span>
+</div>
+</div>
+<!-- Stat Card 3 -->
+<div class="flex flex-col gap-2 rounded-xl p-6 bg-[#29382e] border border-white/5 shadow-md">
+<div class="flex items-center justify-between">
+<p class="text-[#9db8a6] text-sm font-medium uppercase tracking-wider">Goals Active</p>
+<span class="material-symbols-outlined text-[#9db8a6]">flag</span>
+</div>
+<p class="text-white text-3xl font-bold tracking-tight">4</p>
+<div class="flex items-center gap-1 text-white/60 text-sm font-medium w-fit px-1 py-1 rounded">
+<span>1 Completed recently</span>
+</div>
+</div>
+</section>
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+<!-- Left Column: Goal Cards Grid -->
+<div class="lg:col-span-8 grid grid-cols-1 md:grid-cols-2 gap-6">
+<!-- Card 1: Emergency Fund -->
+<div class="bg-card-dark rounded-2xl overflow-hidden border border-white/5 shadow-lg group hover:border-primary/50 transition-colors">
+<div class="relative h-48 w-full bg-cover bg-center" data-alt="Abstract visualization of safety and security with a shield pattern" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuDcbbf5_6EBQBn0E5fAWy3uT_HGDPjM0GXYkoKAeC1uRYPn9fNv1C8ydpPyEzxwos_alfdr9-qWKGcyNj2xmpW7ms6YWzlXj1PFWxVxpCXJkIpxQ4i6eVVYPZohU3VY9wJcx36PoBRp7uSubNSEQFCebdGrQJNs9Dgs9YwWt3y1mQ1Wx7RZYheSi6eqD1cwEkytAoNjoTJOHgu6rXE9bE5exYmjOIVEpMBAdiaxCPMyooLOqGU_9cFojspkDIgwgbEq6SiA_cjZsXjO");'>
+<div class="absolute inset-0 bg-gradient-to-t from-card-dark to-transparent opacity-90"></div>
+<div class="absolute bottom-4 left-4">
+<span class="bg-primary text-[#111813] text-xs font-bold px-2 py-1 rounded uppercase">High Priority</span>
+</div>
+</div>
+<div class="p-5 flex flex-col gap-4">
+<div class="flex justify-between items-start">
+<div>
+<h3 class="text-white text-xl font-bold">Emergency Fund</h3>
+<p class="text-[#9db8a6] text-sm">Target: Dec 2024</p>
+</div>
+<div class="bg-white/10 p-2 rounded-full text-white">
+<span class="material-symbols-outlined">health_and_safety</span>
+</div>
+</div>
+<!-- Progress Section -->
+<div class="space-y-2">
+<div class="flex justify-between text-sm font-medium">
+<span class="text-white">$7,500</span>
+<span class="text-[#9db8a6]">$10,000</span>
+</div>
+<div class="w-full bg-[#111813] rounded-full h-3 overflow-hidden">
+<div class="bg-primary h-3 rounded-full transition-all duration-500" style="width: 75%"></div>
+</div>
+<div class="text-right text-xs text-primary font-bold">75%</div>
+</div>
+<div class="pt-2 border-t border-white/5 flex gap-3">
+<button class="flex-1 bg-[#29382e] hover:bg-[#34463a] text-white py-2 rounded-lg text-sm font-medium transition-colors">Details</button>
+<button class="flex-1 bg-primary hover:bg-green-400 text-[#111813] py-2 rounded-lg text-sm font-bold transition-colors">Add Money</button>
+</div>
+</div>
+</div>
+<!-- Card 2: New Macbook (Completed) -->
+<div class="bg-card-dark rounded-2xl overflow-hidden border border-primary/30 shadow-[0_0_15px_rgba(25,230,94,0.1)] group">
+<div class="relative h-48 w-full bg-cover bg-center" data-alt="Modern workspace with laptop on a desk" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuAkNgcD8uRzp5BbvudR1Zenlv6i5W5YYZQqD3IB_RLj6NmZBstBD0YtxT_5d9sRp6dr8V6PpNhTmHgcV_goXWkQpARUqdqljfVLXcg1VKmS-99BBu-lT4KArhiIQOs_fCY5cm4QkJIaIE8WkrEMJr090yda_zvKDtooO5QrO0yySuY4um2vFkGo2tt_u98bWwIoksYsgtVh6kMoxJRpx03IjuyE05o6nZ3vJPd7daFOv7lOtvTjR3VqSmrM0DqtkxEp858nXZFhPAnd");'>
+<div class="absolute inset-0 bg-black/60 flex items-center justify-center backdrop-blur-[1px]">
+<div class="bg-primary text-[#111813] px-4 py-2 rounded-full font-bold flex items-center gap-2 shadow-lg scale-110">
+<span class="material-symbols-outlined">check_circle</span>
+                                 Goal Reached!
+                             </div>
+</div>
+</div>
+<div class="p-5 flex flex-col gap-4">
+<div class="flex justify-between items-start">
+<div>
+<h3 class="text-white text-xl font-bold">MacBook Pro M3</h3>
+<p class="text-[#9db8a6] text-sm">Completed: Oct 2023</p>
+</div>
+<div class="bg-primary p-2 rounded-full text-[#111813]">
+<span class="material-symbols-outlined">laptop_mac</span>
+</div>
+</div>
+<!-- Progress Section -->
+<div class="space-y-2 opacity-50">
+<div class="flex justify-between text-sm font-medium">
+<span class="text-white">$2,500</span>
+<span class="text-[#9db8a6]">$2,500</span>
+</div>
+<div class="w-full bg-[#111813] rounded-full h-3 overflow-hidden">
+<div class="bg-primary h-3 rounded-full w-full"></div>
+</div>
+<div class="text-right text-xs text-primary font-bold">100%</div>
+</div>
+<div class="pt-2 border-t border-white/5 flex gap-3">
+<button class="w-full bg-white/10 hover:bg-white/20 text-white py-2 rounded-lg text-sm font-medium transition-colors">Withdraw Funds</button>
+</div>
+</div>
+</div>
+<!-- Card 3: Summer Vacation -->
+<div class="bg-card-dark rounded-2xl overflow-hidden border border-white/5 shadow-lg group hover:border-primary/50 transition-colors">
+<div class="relative h-48 w-full bg-cover bg-center" data-alt="Tropical beach with palm trees and blue ocean" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuAc1HTXZncT5Jh58HOLh1i_EaX6NHDHCvOBFO03ZOzoL-VYQ1ckrhhveV8JqUM-FUfa6RJ2mlxfSXXGQHCfCuQYQo9UyWU3NxYQ_Hu21oFZdzoOn_OasNq0XLEwFziguWosG3riVdsA1WTiBxyW65kv15-a-y0P7_bwrtms4nV6Kt-6L_TZd39BFpZRjd2ne1HlewEv71DFJUnGv1bwVX51UDAF4oaHLkiC3wss8I3loHUzq-1Gyv1GTu5Av-j5Mf4D-QXabkWGIqFX");'>
+<div class="absolute inset-0 bg-gradient-to-t from-card-dark to-transparent opacity-80"></div>
+</div>
+<div class="p-5 flex flex-col gap-4">
+<div class="flex justify-between items-start">
+<div>
+<h3 class="text-white text-xl font-bold">Japan Trip 2024</h3>
+<p class="text-[#9db8a6] text-sm">Target: July 2024</p>
+</div>
+<div class="bg-white/10 p-2 rounded-full text-white">
+<span class="material-symbols-outlined">flight</span>
+</div>
+</div>
+<!-- Progress Section -->
+<div class="space-y-2">
+<div class="flex justify-between text-sm font-medium">
+<span class="text-white">$400</span>
+<span class="text-[#9db8a6]">$2,000</span>
+</div>
+<div class="w-full bg-[#111813] rounded-full h-3 overflow-hidden">
+<div class="bg-primary h-3 rounded-full transition-all duration-500" style="width: 20%"></div>
+</div>
+<div class="text-right text-xs text-primary font-bold">20%</div>
+</div>
+<div class="pt-2 border-t border-white/5 flex gap-3">
+<button class="flex-1 bg-[#29382e] hover:bg-[#34463a] text-white py-2 rounded-lg text-sm font-medium transition-colors">Details</button>
+<button class="flex-1 bg-primary hover:bg-green-400 text-[#111813] py-2 rounded-lg text-sm font-bold transition-colors">Add Money</button>
+</div>
+</div>
+</div>
+<!-- Card 4: Add New (Empty State) -->
+<button class="bg-[#111813] rounded-2xl border-2 border-dashed border-[#29382e] flex flex-col items-center justify-center gap-4 min-h-[300px] hover:border-primary/50 hover:bg-[#1c261f] transition-all group cursor-pointer">
+<div class="size-16 rounded-full bg-[#29382e] group-hover:bg-primary flex items-center justify-center transition-colors">
+<span class="material-symbols-outlined text-white group-hover:text-[#111813] text-3xl">add</span>
+</div>
+<div class="text-center">
+<h3 class="text-white text-lg font-bold">Create New Goal</h3>
+<p class="text-[#9db8a6] text-sm">Start saving for something new</p>
+</div>
+</button>
+</div>
+<!-- Right Column: Recent Activity Sidebar -->
+<div class="lg:col-span-4 flex flex-col gap-6">
+<!-- Activity Widget -->
+<div class="bg-card-dark rounded-xl p-6 border border-white/5">
+<div class="flex items-center justify-between mb-6">
+<h3 class="text-white font-bold text-lg">Recent Contributions</h3>
+<a class="text-primary text-sm font-medium hover:underline" href="#">View All</a>
+</div>
+<div class="flex flex-col gap-4">
+<!-- Activity Item -->
+<div class="flex items-center gap-3 pb-3 border-b border-white/5">
+<div class="bg-[#29382e] p-2 rounded-lg text-primary">
+<span class="material-symbols-outlined text-[20px]">savings</span>
+</div>
+<div class="flex-1">
+<p class="text-white text-sm font-bold">Auto-save Deposit</p>
+<p class="text-gray-400 text-xs">Today, 9:00 AM</p>
+</div>
+<span class="text-primary font-bold text-sm">+$50.00</span>
+</div>
+<!-- Activity Item -->
+<div class="flex items-center gap-3 pb-3 border-b border-white/5">
+<div class="bg-[#29382e] p-2 rounded-lg text-primary">
+<span class="material-symbols-outlined text-[20px]">flight</span>
+</div>
+<div class="flex-1">
+<p class="text-white text-sm font-bold">Japan Trip</p>
+<p class="text-gray-400 text-xs">Yesterday</p>
+</div>
+<span class="text-primary font-bold text-sm">+$120.00</span>
+</div>
+<!-- Activity Item -->
+<div class="flex items-center gap-3 pb-3 border-b border-white/5">
+<div class="bg-[#29382e] p-2 rounded-lg text-primary">
+<span class="material-symbols-outlined text-[20px]">health_and_safety</span>
+</div>
+<div class="flex-1">
+<p class="text-white text-sm font-bold">Emergency Fund</p>
+<p class="text-gray-400 text-xs">Oct 24, 2023</p>
+</div>
+<span class="text-primary font-bold text-sm">+$500.00</span>
+</div>
+</div>
+</div>
+<!-- Tips Widget -->
+<div class="bg-gradient-to-br from-[#29382e] to-[#1c261f] rounded-xl p-6 border border-white/5 relative overflow-hidden">
+<div class="absolute top-0 right-0 p-4 opacity-10">
+<span class="material-symbols-outlined text-9xl text-white">lightbulb</span>
+</div>
+<div class="relative z-10">
+<div class="bg-primary/20 w-fit p-2 rounded-lg mb-4">
+<span class="material-symbols-outlined text-primary">tips_and_updates</span>
+</div>
+<h3 class="text-white font-bold text-lg mb-2">Did you know?</h3>
+<p class="text-gray-300 text-sm leading-relaxed mb-4">
+                            Setting up automatic transfers on payday increases your chance of hitting savings goals by 40%.
+                        </p>
+<button class="text-white text-sm font-bold underline decoration-primary underline-offset-4 hover:text-primary transition-colors">
+                            Set up Auto-Save
+                        </button>
+</div>
+</div>
+</div>
+</div>
+</div>
+</body></html>
