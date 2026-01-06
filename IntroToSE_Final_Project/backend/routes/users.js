@@ -15,7 +15,7 @@
  */
 
 import express from 'express'
-import { authenticate } from '../middleware/auth.js'
+import authenticate from '../middleware/auth.js'
 import { sendSuccess } from '../utils/response.js'
 
 const router = express.Router()

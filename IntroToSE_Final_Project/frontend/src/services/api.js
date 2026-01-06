@@ -6,7 +6,7 @@ import tokenResolver from './tokenResolver';
 // Note: Vite tự động load env variables từ .env file
 // Không cần import dotenv trong frontend!
 const api = axios.create({
-    baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000', // Thay bằng URL Backend của bạn
+    baseURL: import.meta.env.VITE_API_URL || 'http://localhost:4000/api', // Thay bằng URL Backend của bạn
     headers: {
         'Content-Type': 'application/json',
     },

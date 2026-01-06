@@ -22,6 +22,9 @@ const UserSchema = new mongoose.Schema({
   // Khớp chính xác tên biến có chữ W viết hoa
   passWordHash: { type: String, default: null },
 
+  // Firebase UID (optional)
+  firebaseUid: { type: String, default: null },
+
   roles: { type: [String], default: ["user"] }
 }, {
   // timestamps: true sẽ tự động quản lý createdAt/updatedAt 

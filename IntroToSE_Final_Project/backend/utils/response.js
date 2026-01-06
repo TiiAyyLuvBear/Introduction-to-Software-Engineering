@@ -29,8 +29,10 @@ export const sendSuccess = (res, data = {}, message = 'Success', statusCode = 20
  */
 export const sendError = (res, error = 'An error occurred', code = 'UNKNOWN_ERROR', statusCode = 400) => {
   return res.status(statusCode).json({
-    success: true,
-    message
+    success: false,
+    error,
+    code,
+    message: error
   });
 };
 
@@ -42,7 +44,8 @@ export const sendError = (res, error = 'An error occurred', code = 'UNKNOWN_ERRO
 export const sendValidationError = (res, errors) => {
   return res.status(400).json({
     success: false,
-    message
+    errors,
+    message: 'Validation error'
   });
 };
 
@@ -78,7 +81,7 @@ export const sendForbidden = (res, message = 'Permission denied') => {
 export const sendNotFound = (res, resource = 'Resource') => {
   return res.status(404).json({
     success: false,
-    message
+    message: `${resource} not found`
   });
 };
 
@@ -94,6 +97,40 @@ export const sendServerError = (res, message = 'Internal server error') => {
   });
 };
 
+/**
+ * Format bad request error response
+ * @param {Object} res - Express response object
+ * @param {String} message - Thông báo lỗi bad request
+ */
+export const sendBadRequest = (res, message = 'Bad request') => {
+  return res.status(400).json({
+    success: false,
+    message
+  });
+};
+
+/**
+ * Format created response
+ * @param {Object} res - Express response object
+ * @param {Object} data - Dữ liệu tài nguyên mới tạo
+ * @param {String} message - Thông báo thành công
+ */
+export const sendCreated = (res, data = {}, message = 'Created successfully') => {
+  return res.status(201).json({
+    success: true,
+    data,
+    message
+  });
+};
+
+/**
+ * Format no content response
+ * @param {Object} res - Express response object
+ */
+export const sendNoContent = (res) => {
+  return res.status(204).send();
+};
+
 export default {
   sendSuccess,
   sendError,
@@ -102,4 +139,7 @@ export default {
   sendForbidden,
   sendNotFound,
   sendServerError,
-}
+  sendBadRequest,
+  sendCreated,
+  sendNoContent
+};

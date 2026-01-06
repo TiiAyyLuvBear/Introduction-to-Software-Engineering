@@ -10,6 +10,15 @@ import connectDB from './config/database.js';
 // Import routes
 import authRoutes from './routes/auth.js';
 import userRoutes from './routes/users.js';
+import walletRoutes from './routes/wallets.js';
+import accountRoutes from './routes/accounts.js';
+import transactionRoutes from './routes/transactions.js';
+import categoryRoutes from './routes/categories.js';
+import budgetRoutes from './routes/budgets.js';
+import goalRoutes from './routes/goals.js';
+import reportRoutes from './routes/reports.js';
+import balanceRoutes from './routes/balance.js';
+import invitationRoutes from './routes/invitations.js';
 
 // Load environment variables
 dotenv.config();
@@ -58,6 +67,15 @@ app.get('/health', (req, res) => {
 // API routes
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/wallets', walletRoutes);
+app.use('/api/accounts', accountRoutes);
+app.use('/api/transactions', transactionRoutes);
+app.use('/api/categories', categoryRoutes);
+app.use('/api/budgets', budgetRoutes);
+app.use('/api/goals', goalRoutes);
+app.use('/api/reports', reportRoutes);
+app.use('/api/balance', balanceRoutes);
+app.use('/api/invitations', invitationRoutes);
 
 // 404 handler
 app.use('*', (req, res) => {
