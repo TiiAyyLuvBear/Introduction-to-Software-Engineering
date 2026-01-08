@@ -1,7 +1,12 @@
 import { spawn } from 'node:child_process'
+import 'dotenv/config'
+import mongoose from 'mongoose'
+import jwt from 'jsonwebtoken'
+import User from '../models/User.js'
 
 const API_BASE = process.env.SMOKE_API_BASE || 'http://localhost:4000/api'
 const BACKEND_CWD = process.env.SMOKE_BACKEND_CWD || process.cwd()
+const AUTH_MODE = (process.env.SMOKE_AUTH_MODE || 'local-jwt').toLowerCase()
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms))
@@ -34,6 +39,24 @@ async function jsonFetch(path, { method = 'GET', token, body } = {}) {
   }
 
   return data
+}
+
+async function textFetch(path, { method = 'GET', token } = {}) {
+  const res = await fetch(`${API_BASE}${path}`, {
+    method,
+    headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+  })
+
+  const text = await res.text()
+  if (!res.ok) {
+    const err = new Error(`HTTP ${res.status}: ${res.statusText || 'Request failed'}`)
+    err.status = res.status
+    err.data = { raw: text }
+    throw err
+  }
+  return text
 }
 
 const logs = { out: '', err: '' }
@@ -71,21 +94,55 @@ async function main() {
     }
     if (!ready) throw new Error('Backend did not start in time')
 
-    const email = `smoketest_${Date.now()}@example.com`
-    const password = 'TestPass123!'
+    let token
+    let createdUserId
 
-    await jsonFetch('/auth/register', {
-      method: 'POST',
-      body: { name: 'Smoke Test', email, password },
-    }).catch(() => {})
+    if (AUTH_MODE === 'firebase') {
+      const firebaseToken = process.env.SMOKE_FIREBASE_TOKEN
+      if (!firebaseToken) throw new Error('Missing SMOKE_FIREBASE_TOKEN for firebase auth mode')
+      const email = process.env.SMOKE_EMAIL || `smoketest_${Date.now()}@example.com`
+      const password = process.env.SMOKE_PASSWORD || 'firebase-auth'
 
-    const login = await jsonFetch('/auth/login', {
-      method: 'POST',
-      body: { email, password },
-    })
+      const login = await jsonFetch('/auth/login', {
+        method: 'POST',
+        body: { token: firebaseToken, email, password },
+      })
+      token = login?.data?.accessToken || login?.accessToken || login?.token
+      if (!token) throw new Error('No access token returned from login')
+    } else {
+      // local-jwt mode: bypass Firebase completely.
+      const mongoUri = process.env.MONGODB_URI
+      const jwtSecret = process.env.JWT_SECRET
+      if (!mongoUri) throw new Error('Missing MONGODB_URI in env')
+      if (!jwtSecret) throw new Error('Missing JWT_SECRET in env')
 
-    const token = login?.data?.accessToken || login?.accessToken || login?.token
-    if (!token) throw new Error('No access token returned from login')
+      // Must match backend/config/database.js (dbName: '4money')
+      const dbName = process.env.SMOKE_DB_NAME || '4money'
+
+      createdUserId = `smoke_${Date.now()}`
+      const email = `smoketest_${Date.now()}@example.com`
+
+      await mongoose.connect(mongoUri, {
+        dbName,
+        serverSelectionTimeoutMS: 5000,
+      })
+      await User.updateOne(
+        { _id: createdUserId },
+        {
+          $setOnInsert: {
+            _id: createdUserId,
+            email,
+            name: 'Smoke Test',
+            fullName: 'Smoke Test',
+            passWordHash: 'smoke',
+            roles: ['user'],
+          },
+        },
+        { upsert: true }
+      )
+
+      token = jwt.sign({ id: createdUserId, type: 'access' }, jwtSecret, { expiresIn: '1h' })
+    }
 
     const wallet = await jsonFetch('/wallets', {
       method: 'POST',
@@ -118,10 +175,30 @@ async function main() {
     const txId = tx?.transaction?._id || tx?.transaction?.id || tx?.data?._id || tx?.data?.id || tx?._id || tx?.id
     if (!txId) throw new Error('No transaction id returned')
 
+    // Reports (M4-05/M4-06) + export (M4-07)
+    const now = new Date()
+    const startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString()
+    const endDate = now.toISOString()
+
+    const pie = await jsonFetch(`/report/pie-chart?startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}&walletId=${encodeURIComponent(walletId)}&type=expense`, {
+      token,
+    })
+    if (pie?.success !== true) throw new Error('Pie chart report failed')
+
+    const bar = await jsonFetch(`/report/bar-chart?startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}&walletId=${encodeURIComponent(walletId)}&interval=day`, {
+      token,
+    })
+    if (bar?.success !== true) throw new Error('Bar chart report failed')
+
+    const csv = await textFetch(`/reports/export-transactions?startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}&walletId=${encodeURIComponent(walletId)}`, {
+      token,
+    })
+    if (!csv || !csv.startsWith('id,date,type,amount')) throw new Error('CSV export did not return expected header')
+
     const goal = await jsonFetch('/goals', {
       method: 'POST',
       token,
-      body: { name: 'Smoke Goal', targetAmount: 50, deadline: '2030-01-01', priority: 'medium' },
+      body: { name: 'Smoke Goal', targetAmount: 50, deadline: '2030-01-01', priority: 'medium', walletId },
     })
     const goalId = goal?.data?.id || goal?.data?._id || goal?._id || goal?.id
     if (!goalId) throw new Error('No goal id returned')
@@ -137,6 +214,10 @@ async function main() {
     await jsonFetch(`/categories/${encodeURIComponent(categoryId)}`, { method: 'DELETE', token }).catch(() => {})
     await jsonFetch(`/wallets/${encodeURIComponent(walletId)}`, { method: 'DELETE', token }).catch(() => {})
 
+    if (createdUserId) {
+      await User.deleteOne({ _id: createdUserId }).catch(() => {})
+    }
+
     console.log('SMOKE_TEST_OK')
   } catch (err) {
     console.error('SMOKE_TEST_FAILED:', err?.message || err)
@@ -150,6 +231,10 @@ async function main() {
     child.kill('SIGTERM')
     await sleep(200)
     child.kill('SIGKILL')
+
+    if (mongoose.connection?.readyState === 1) {
+      await mongoose.disconnect().catch(() => {})
+    }
   }
 }
 

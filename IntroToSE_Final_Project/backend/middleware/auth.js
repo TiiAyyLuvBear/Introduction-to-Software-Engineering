@@ -14,7 +14,7 @@
  * NOTE: Firebase CHỈ dùng cho login/register, KHÔNG dùng cho API authorization
  */
 
-import { sendUnauthorized } from '../utils/response.js'
+import { sendUnauthorized, sendServerError } from '../utils/errorResponse.js'
 import jwt from 'jsonwebtoken'
 import User from '../models/User.js'
 import dotenv from 'dotenv'

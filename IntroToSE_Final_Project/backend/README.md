@@ -30,6 +30,18 @@ Core
 - Goals: `/api/goals/*`
 - Reports: `/api/reports/summary`, `/api/reports/by-category`, `/api/reports/by-wallet`
 
+Smoke test
+
+- Run: `node scripts/smokeTest.mjs` (it will start `server.js`, call APIs, then cleanup).
+- Needs: `MONGODB_URI` + `JWT_SECRET` in `.env`.
+- Auth mode:
+   - Default: `SMOKE_AUTH_MODE=local-jwt` (creates a temporary DB user + signs a JWT locally).
+   - Optional: `SMOKE_AUTH_MODE=firebase` (requires `SMOKE_FIREBASE_TOKEN` + `SMOKE_EMAIL`).
+- Optional env:
+   - `SMOKE_API_BASE` (default `http://localhost:4000/api`)
+   - `SMOKE_BACKEND_CWD` (default current directory)
+   - `SMOKE_DB_NAME` (default `4money`)
+
 Secrets / Hidden keys (how to get them)
 
 MongoDB (`MONGODB_URI`)

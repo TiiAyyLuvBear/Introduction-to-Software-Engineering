@@ -92,7 +92,8 @@ export async function createCategory(req, res){
     const userId = req.user?.id
     if(!userId) return res.status(401).json({ error: 'Unauthorized' })
 
-    const { name, type, color, icon } = req.body
+    const { name, color, icon } = req.body
+    const type = req.body?.type ? String(req.body.type).toLowerCase() : undefined
     
     // Validate required fields
     if(!name || !type) return res.status(400).json({ error: 'Missing fields' })
@@ -132,8 +133,11 @@ export async function updateCategory(req, res){
     if(existing.userId?.toString() !== userId.toString()) return res.status(403).json({ error: 'Forbidden' })
 
     const updates = {}
-    for(const key of ['name','type','color','icon']){
+    for(const key of ['name','color','icon']){
       if(req.body[key] !== undefined) updates[key] = req.body[key]
+    }
+    if(req.body.type !== undefined) {
+      updates.type = req.body.type ? String(req.body.type).toLowerCase() : req.body.type
     }
     if(updates.type && !['income','expense'].includes(updates.type)){
       return res.status(400).json({ error: 'Invalid type' })

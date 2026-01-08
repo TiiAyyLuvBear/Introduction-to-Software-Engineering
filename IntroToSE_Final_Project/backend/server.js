@@ -26,6 +26,7 @@ import goalRoutes from './routes/goals.js';
 import reportRoutes from './routes/reports.js';
 import balanceRoutes from './routes/balance.js';
 import invitationRoutes from './routes/invitations.js';
+import { seedDefaultCategories } from './utils/seedDefaultCategories.js';
 
 // Load environment variables
 dotenv.config();
@@ -87,6 +88,8 @@ app.use('/api/categories', categoryRoutes);
 app.use('/api/budgets', budgetRoutes);
 app.use('/api/goals', goalRoutes);
 app.use('/api/reports', reportRoutes);
+// Alias for spec naming: /api/report/*
+app.use('/api/report', reportRoutes);
 app.use('/api/balance', balanceRoutes);
 app.use('/api/invitations', invitationRoutes);
 
@@ -120,6 +123,13 @@ const startServer = async () => {
   try {
     // Connect to MongoDB
     await connectDB();
+
+    // Seed default categories (idempotent) on startup
+    try {
+      await seedDefaultCategories();
+    } catch (seedErr) {
+      console.error('Default category seed failed:', seedErr);
+    }
 
     // Start Express server
     app.listen(PORT, () => {

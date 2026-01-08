@@ -115,6 +115,7 @@ export const createGoal = async (req, res) => {
     if (dup) return res.status(409).json({ error: 'Goal name already exists in this wallet' })
 
     const created = await SavingGoal.createGoal({
+      userId,
       name: name.trim(),
       targetAmount,
       currentAmount: currentAmount || 0,

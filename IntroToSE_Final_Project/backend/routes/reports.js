@@ -6,6 +6,7 @@ import {
   getByWallet,
   getPieChart,
   getBarChart,
+  exportTransactions,
 } from '../controllers/reportsController.js'
 
 const router = express.Router()
@@ -15,5 +16,6 @@ router.get('/by-category', authenticate, getByCategory)
 router.get('/by-wallet', authenticate, getByWallet)
 router.get('/pie-chart', authenticate, getPieChart)
 router.get('/bar-chart', authenticate, getBarChart)
+router.get('/export-transactions', authenticate, exportTransactions)
 
 export default router

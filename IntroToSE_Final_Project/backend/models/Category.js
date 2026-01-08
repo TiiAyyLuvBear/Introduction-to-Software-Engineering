@@ -29,7 +29,7 @@ const CategorySchema = new mongoose.Schema({
   // ID của user sở hữu danh mục này
   // ref: 'User' cho phép populate() để lấy thông tin user
   // required: false nghĩa là có thể có danh mục chung (không thuộc user nào)
-  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: false }
+  userId: { type: String, ref: 'User', required: false }
 }, { timestamps: true })
 
 CategorySchema.index({ userId: 1, type: 1 })

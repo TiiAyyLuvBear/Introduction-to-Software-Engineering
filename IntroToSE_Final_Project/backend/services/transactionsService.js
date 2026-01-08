@@ -16,6 +16,13 @@ import { buildTransactionQuery } from '../utils/transactionFilter.js'
 import { updateBalanceOnTransaction, rollbackBalanceOnTransaction } from './balanceService.js'
 import { getOrCreateDefaultWallet } from './walletService.js'
 
+function httpError(status, message, data) {
+    const err = new Error(message)
+    err.status = status
+    if (data !== undefined) err.data = data
+    return err
+}
+
 /**
  * Helper: Tính số tiền có dấu (signed amount)
  * @param {String} type - 'income' hoặc 'expense'
@@ -84,10 +91,7 @@ export const createTransactionService = async (userId, transactionData) => {
             // Tìm wallet và kiểm tra quyền truy cập
             wallet = await Wallet.findById(walletId).session(session)
             if (!wallet || !canAccessWallet(wallet, userId)) {
-                throw res.json({
-                    status: 404,
-                    message: 'Wallet not found or access denied'
-                })
+                throw httpError(404, 'Wallet not found or access denied')
             }
         }
 
@@ -141,10 +145,7 @@ export const updateTransactionService = async (userId, transactionId, updates) =
         // Tìm transaction
         const tx = await Transaction.findOne({ _id: transactionId, userId }).session(session)
         if (!tx) {
-            return json({
-                status: 404,
-                message: 'Transaction not found'
-            })
+            throw httpError(404, 'Transaction not found')
         }
 
         // Lưu lại transaction cũ để rollback
@@ -163,16 +164,10 @@ export const updateTransactionService = async (userId, transactionId, updates) =
             const newWalletDoc = await Wallet.findById(newWalletId).session(session)
 
             if (!oldWallet || !canAccessWallet(oldWallet, userId)) {
-                return json({
-                    status: 404,
-                    message: 'Old wallet not found or access denied'
-                })
+                throw httpError(404, 'Old wallet not found or access denied')
             }
             if (!newWalletDoc || !canAccessWallet(newWalletDoc, userId)) {
-                return json({
-                    status: 404,
-                    message: 'New wallet not found or access denied'
-                })
+                throw httpError(404, 'New wallet not found or access denied')
             }
 
             // Rollback balance từ wallet cũ
@@ -186,10 +181,7 @@ export const updateTransactionService = async (userId, transactionId, updates) =
             // Case 2: Cùng wallet (M1-07: Rollback và apply trong cùng 1 wallet)
             const wallet = await Wallet.findById(newWalletId).session(session)
             if (!wallet || !canAccessWallet(wallet, userId)) {
-                return json({
-                    status: 404,
-                    message: 'Wallet not found or access denied'
-                })
+                throw httpError(404, 'Wallet not found or access denied')
             }
 
             // Rollback balance cũ và apply balance mới
@@ -243,10 +235,7 @@ export const deleteTransactionService = async (userId, transactionId) => {
         // Tìm transaction
         const tx = await Transaction.findOne({ _id: transactionId, userId }).session(session)
         if (!tx) {
-            return json({
-                status: 404,
-                message: 'Transaction not found'
-            })
+            throw httpError(404, 'Transaction not found')
         }
 
         // Lưu lại transaction để rollback
@@ -255,10 +244,7 @@ export const deleteTransactionService = async (userId, transactionId) => {
         // Tìm wallet
         const wallet = await Wallet.findById(tx.walletId).session(session)
         if (!wallet || !canAccessWallet(wallet, userId)) {
-            return json({
-                status: 404,
-                message: 'Wallet not found or access denied'
-            })
+            throw httpError(404, 'Wallet not found or access denied')
         }
 
         // Rollback Wallet balance (M1-07)
@@ -295,28 +281,16 @@ export const transferMoneyService = async (userId, transferData) => {
     // Service chỉ xử lý business logic
 
     if (!fromWalletId || !mongoose.Types.ObjectId.isValid(fromWalletId)) {
-        return json({
-            status: 400,
-            message: 'Invalid fromWalletId'
-        })
+        throw httpError(400, 'Invalid fromWalletId')
     }
     if (!toWalletId || !mongoose.Types.ObjectId.isValid(toWalletId)) {
-        return json({
-            status: 400,
-            message: 'Invalid toWalletId'
-        })
+        throw httpError(400, 'Invalid toWalletId')
     }
     if (fromWalletId === toWalletId) {
-        return json({
-            status: 400,
-            message: 'Wallets must be different'
-        })
+        throw httpError(400, 'Wallets must be different')
     }
     if (typeof amount !== 'number' || amount <= 0) {
-        return json({
-            status: 400,
-            message: 'Invalid amount'
-        })
+        throw httpError(400, 'Invalid amount')
     }
 
     const result = await withMongoSession(async (session) => {
@@ -327,16 +301,10 @@ export const transferMoneyService = async (userId, transferData) => {
         ])
 
         if (!fromWallet || !canAccessWallet(fromWallet, userId)) {
-            return json({
-                status: 404,
-                message: 'From wallet not found or access denied'
-            })
+            throw httpError(404, 'From wallet not found or access denied')
         }
         if (!toWallet || !canAccessWallet(toWallet, userId)) {
-            return json({
-                status: 404,
-                message: 'To wallet not found or access denied'
-            })
+            throw httpError(404, 'To wallet not found or access denied')
         }
 
         const when = date ? new Date(date) : new Date()

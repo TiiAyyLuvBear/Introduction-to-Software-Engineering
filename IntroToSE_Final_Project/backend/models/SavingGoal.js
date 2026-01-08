@@ -11,7 +11,7 @@ import mongoose from 'mongoose'
 const SavingGoalSchema = new mongoose.Schema({
   // User sở hữu saving goal này
   userId: { 
-    type: mongoose.Schema.Types.ObjectId, 
+    type: String,
     ref: 'User', 
     required: true 
   },

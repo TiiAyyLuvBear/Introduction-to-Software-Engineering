@@ -14,16 +14,17 @@ async function getAccessibleWalletIds(userId) {
     $or: [{ userId }, { ownerId: userId }, { 'members.userId': userId }],
   }).select('_id')
 
-  return wallets.map((w) => w._id)
+  // Transaction.walletId is stored as String, so use string ids here.
+  return wallets.map((w) => w._id.toString())
 }
 
 function buildMatch(walletIds, startDate, endDate, walletId) {
   const match = {}
 
   if (walletId) {
-    match.walletId = new mongoose.Types.ObjectId(walletId)
+    match.walletId = walletId
   } else {
-    match.walletId = { $in: walletIds.map((id) => new mongoose.Types.ObjectId(id)) }
+    match.walletId = { $in: walletIds }
   }
 
   if (startDate || endDate) {
@@ -32,6 +33,13 @@ function buildMatch(walletIds, startDate, endDate, walletId) {
     if (endDate) match.date.$lte = endDate
   }
   return match
+}
+
+function escapeCsv(value) {
+  if (value === null || value === undefined) return ''
+  const s = String(value)
+  if (/[",\n\r]/.test(s)) return `"${s.replace(/"/g, '""')}"`
+  return s
 }
 
 export const getSummary = async (req, res) => {
@@ -249,6 +257,71 @@ export const getBarChart = async (req, res) => {
     })
   } catch (err) {
     console.error('Report bar-chart error:', err)
+    res.status(500).json({ success: false, error: 'Server error' })
+  }
+}
+
+// M4-07 (Optional): export transactions to CSV
+// GET /api/reports/export-transactions?startDate&endDate&walletId&type&q
+export const exportTransactions = async (req, res) => {
+  try {
+    const userId = req.user?.id
+    if (!userId) return res.status(401).json({ error: 'Unauthorized' })
+
+    const startDate = parseDateMaybe(req.query.startDate)
+    const endDate = parseDateMaybe(req.query.endDate)
+    const walletId = req.query.walletId
+    const type = req.query.type
+    const q = (req.query.q || req.query.search || '').toString().trim()
+
+    if (walletId && !mongoose.Types.ObjectId.isValid(walletId)) {
+      return res.status(400).json({ error: 'Invalid walletId' })
+    }
+    if (type && !['income', 'expense'].includes(type)) {
+      return res.status(400).json({ error: 'Invalid type' })
+    }
+
+    const walletIds = await getAccessibleWalletIds(userId)
+    if (walletId) {
+      const allowed = walletIds.some((id) => id.toString() === walletId)
+      if (!allowed) return res.status(404).json({ error: 'Wallet not found' })
+    }
+
+    const match = buildMatch(walletIds, startDate, endDate, walletId)
+    if (type) match.type = type
+    if (q) {
+      match.note = { $regex: q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), $options: 'i' }
+    }
+
+    const rows = await Transaction.find(match)
+      .sort({ date: -1 })
+      .select('_id date type amount walletId categoryId category note')
+      .lean()
+
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8')
+    res.setHeader('Content-Disposition', 'attachment; filename="transactions.csv"')
+
+    const header = ['id', 'date', 'type', 'amount', 'walletId', 'categoryId', 'category', 'note']
+    const lines = [header.join(',')]
+
+    for (const r of rows) {
+      lines.push(
+        [
+          escapeCsv(r._id),
+          escapeCsv(r.date ? new Date(r.date).toISOString() : ''),
+          escapeCsv(r.type),
+          escapeCsv(r.amount),
+          escapeCsv(r.walletId),
+          escapeCsv(r.categoryId),
+          escapeCsv(r.category),
+          escapeCsv(r.note),
+        ].join(',')
+      )
+    }
+
+    res.send(lines.join('\n'))
+  } catch (err) {
+    console.error('Export transactions error:', err)
     res.status(500).json({ success: false, error: 'Server error' })
   }
 }
