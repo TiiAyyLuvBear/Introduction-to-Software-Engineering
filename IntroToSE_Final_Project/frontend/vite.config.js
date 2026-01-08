@@ -6,5 +6,9 @@ export default defineConfig({
   server: {
     port: 5173,
     strictPort: false,
+    headers: {
+      // Fix Firebase popup login COOP error
+      'Cross-Origin-Opener-Policy': 'same-origin-allow-popups'
+    }
   },
 })

@@ -2,9 +2,11 @@ import React from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 
 import authService from '../services/authService.js';
+import { useToast } from '../components/Toast.jsx';
 
 export default function Login({ onLogin }) {
   const navigate = useNavigate()
+  const toast = useToast()
   const [email, setEmail] = React.useState('')
   const [password, setPassword] = React.useState('')
   const [showPassword, setShowPassword] = React.useState(false)
@@ -26,9 +28,10 @@ export default function Login({ onLogin }) {
       // Call onLogin to update App state
       const { user, accessToken, refreshToken } = result.data;
       onLogin({ user, accessToken, refreshToken })
+      toast.success('Login successful!')
       navigate('/dashboard');
     } catch (err) {
-      alert(err?.message || 'Login failed')
+      toast.error(err?.message || 'Login failed')
     } finally {
       setBusy(false)
     }
@@ -49,9 +52,10 @@ export default function Login({ onLogin }) {
       // Call onLogin to update App state
       const { user, accessToken, refreshToken } = result.data;
       onLogin({ user, accessToken, refreshToken })
+      toast.success('Login successful!')
       navigate('/dashboard');
     } catch (err) {
-      alert(err?.message || 'Google login failed')
+      toast.error(err?.message || 'Google login failed')
     } finally {
       setBusy(false)
     }

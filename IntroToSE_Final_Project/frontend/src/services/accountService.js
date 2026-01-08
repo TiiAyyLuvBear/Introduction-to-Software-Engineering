@@ -36,11 +36,15 @@ const accountService = {
     updateProfile: async (updates) => {
         try {
             const user = auth.currentUser;
+            console.log('[accountService] Current Firebase user:', user ? user.uid : 'null');
+
             if (!user) {
                 throw new Error('User not logged in');
             }
 
+            console.log('[accountService] Getting Firebase token...');
             const token = await user.getIdToken();
+            console.log('[accountService] Token obtained, length:', token.length);
 
             // Remove email from updates if present (không cho phép thay đổi email)
             const { email, ...allowedUpdates } = updates;
@@ -50,14 +54,21 @@ const accountService = {
                 ...allowedUpdates
             };
 
+            console.log('[accountService] Calling PUT /accounts/update-profile with payload:', payload);
+            console.log('[accountService] avatarURL in payload:', payload.avatarURL ? `${payload.avatarURL.substring(0, 50)}...` : 'null');
             const response = await api.put('/accounts/update-profile', payload);
+            console.log('[accountService] API response:', response.data);
 
-            // Update localStorage with new user data
+            // Update localStorage with new user data from backend response
             if (response.data.user) {
                 const storedUser = JSON.parse(localStorage.getItem('ml_user') || '{}');
                 const updatedUser = {
                     ...storedUser,
-                    ...response.data.user
+                    name: response.data.user.name,
+                    email: response.data.user.email,
+                    avatarURL: response.data.user.avatarURL,
+                    phoneNumber: response.data.user.phoneNumber,
+                    id: response.data.user.id || response.data.user._id
                 };
                 localStorage.setItem('ml_user', JSON.stringify(updatedUser));
             }

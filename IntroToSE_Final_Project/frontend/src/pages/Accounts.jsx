@@ -1,8 +1,10 @@
 import React from 'react'
 import accountService from '../services/accountService'
-import uploadService from '../services/uploadService'
+import userService from '../services/userService'
+import { useToast } from '../components/Toast.jsx'
 
 export default function Accounts() {
+  const toast = useToast()
   const [user, setUser] = React.useState(null)
   const [isEditing, setIsEditing] = React.useState(false)
   const [isSyncing, setIsSyncing] = React.useState(false)
@@ -16,28 +18,68 @@ export default function Accounts() {
   })
   const fileInputRef = React.useRef(null)
 
+  // Fetch user profile from MongoDB on mount
   React.useEffect(() => {
-    // Load user from localStorage
-    const storedUser = localStorage.getItem('ml_user')
-    if (storedUser) {
-      const userData = JSON.parse(storedUser)
-      setUser(userData)
-      setFormData({
-        name: userData.name || '',
-        email: userData.email || '',
-        phoneNumber: userData.phoneNumber || '',
-        avatarURL: userData.avatarURL || ''
-      })
+    const fetchUser = async () => {
+      try {
+        const response = await userService.getCurrentUser()
+        if (response.data && response.data.user) {
+          const userData = response.data.user
+          console.log('[Accounts] Fetched user from MongoDB:', userData)
+
+          setUser(userData)
+          setFormData({
+            name: userData.name || '',
+            email: userData.email || '',
+            phoneNumber: userData.phoneNumber || '',
+            avatarURL: userData.avatarURL || ''
+          })
+
+          // Optionally update localStorage for other components that might rely on it
+          // but we prioritize the fresh data from API
+          localStorage.setItem('ml_user', JSON.stringify(userData))
+        }
+      } catch (error) {
+        console.error('[Accounts] Failed to fetch user profile:', error)
+        // If fetch fails, we might still have localStorage fallback, 
+        // but user asked to use API primarily. 
+        const storedUser = localStorage.getItem('ml_user')
+        if (storedUser) {
+          const userData = JSON.parse(storedUser)
+          setUser(userData)
+          setFormData({
+            name: userData.name || '',
+            email: userData.email || '',
+            phoneNumber: userData.phoneNumber || '',
+            avatarURL: userData.avatarURL || ''
+          })
+        }
+      }
     }
-  }, []) // Empty dependency array - only run once on mount
+
+    fetchUser()
+  }, [])
 
   const handleSyncProfile = async () => {
     try {
       setIsSyncing(true)
-      await accountService.syncProfile()
-      alert('Profile synced successfully!')
+      // Sync with Firebase (backend handles preservation of existing data)
+      const response = await accountService.syncProfile()
+
+      if (response.user) {
+        console.log('[Accounts] Synced user:', response.user)
+        setUser(response.user)
+        setFormData({
+          name: response.user.name || '',
+          email: response.user.email || '',
+          phoneNumber: response.user.phoneNumber || '',
+          avatarURL: response.user.avatarURL || ''
+        })
+        localStorage.setItem('ml_user', JSON.stringify(response.user))
+        toast.success('Profile synced successfully!')
+      }
     } catch (error) {
-      alert('Failed to sync profile: ' + error.message)
+      toast.error('Failed to sync profile: ' + error.message)
     } finally {
       setIsSyncing(false)
     }
@@ -58,23 +100,38 @@ export default function Accounts() {
     try {
       setIsUploading(true)
 
-      // Get current user ID from localStorage (no Firebase auth needed!)
-      const storedUser = localStorage.getItem('ml_user')
-      const userId = storedUser ? JSON.parse(storedUser).id : 'anonymous'
+      // Validate file size (2MB max)
+      const maxSize = 2 * 1024 * 1024 // 2MB
+      if (file.size > maxSize) {
+        toast.error('File size must be less than 2MB')
+        return
+      }
 
-      // Upload image to ImgBB (Free!)
-      const downloadURL = await uploadService.uploadAvatar(file, userId)
+      // Validate file type
+      const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp']
+      if (!allowedTypes.includes(file.type)) {
+        toast.error('Only image files are allowed (JPG, PNG, GIF, WebP)')
+        return
+      }
 
-      // Update form data with new URL
+      // Upload to backend (returns Base64 string, does NOT save to DB yet)
+      const data = await userService.uploadAvatar(file)
+      console.log('[processImageUpload] Upload response:', data)
+
+      const avatarURL = data.data?.avatarURL || data.avatarURL
+
+      console.log('[processImageUpload] New avatarURL:', avatarURL?.substring(0, 50))
+
+      // Only update form data for preview - don't save to DB yet
       setFormData(prev => ({
         ...prev,
-        avatarURL: downloadURL
+        avatarURL: avatarURL
       }))
 
-      alert('Image uploaded successfully!')
+      toast.success('Avatar uploaded! Click Save Changes to update your profile.')
     } catch (error) {
       console.error('Upload error:', error)
-      alert('Failed to upload image: ' + error.message)
+      toast.error('Failed to upload image: ' + error.message)
     } finally {
       setIsUploading(false)
     }
@@ -114,40 +171,57 @@ export default function Accounts() {
     const files = e.dataTransfer.files
     if (files && files.length > 0) {
       const file = files[0]
-      
-      // Validate file type
       const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp']
       if (!allowedTypes.includes(file.type)) {
         alert('Invalid file type. Please upload an image (JPG, PNG, GIF, or WebP).')
         return
       }
-
       await processImageUpload(file)
     }
   }
 
   const handleUpdateProfile = async (e) => {
     e.preventDefault()
-    
+
     try {
       setIsSyncing(true)
-      
+
+      console.log('[Accounts] Calling updateProfile API with data:', formData)
+
       // Call API to update profile
       const response = await accountService.updateProfile(formData)
-      
-      // Update local user state
-      const updatedUser = response.user
-      setUser(updatedUser)
-      localStorage.setItem('ml_user', JSON.stringify(updatedUser))
-      
+
+      console.log('[Accounts] API response:', response)
+
+      // Update local user state with response from MongoDB backend
+      if (response.user) {
+        const updatedUser = {
+          ...user,
+          ...response.user
+        }
+        setUser(updatedUser)
+
+        // Update form data to reflect saved values
+        setFormData({
+          name: updatedUser.name || '',
+          email: updatedUser.email || '',
+          phoneNumber: updatedUser.phoneNumber || '',
+          avatarURL: updatedUser.avatarURL || ''
+        })
+
+        // Update localStorage
+        localStorage.setItem('ml_user', JSON.stringify(updatedUser))
+      }
+
       // Exit edit mode
       setIsEditing(false)
-      
+
       // Show success message
-      alert('Profile updated successfully!')
+      toast.success('Profile updated successfully!')
+
     } catch (error) {
       console.error('Update profile error:', error)
-      alert('Failed to update profile: ' + (error.response?.data?.error || error.message))
+      toast.error('Failed to update profile: ' + (error.response?.data?.error || error.message))
     } finally {
       setIsSyncing(false)
     }
@@ -170,7 +244,7 @@ export default function Accounts() {
     return (
       <div className="px-4 py-6 md:px-10">
         <div className="mx-auto max-w-4xl">
-          <div className="text-center text-text-secondary">Loading...</div>
+          <div className="text-center text-text-secondary">Loading profile...</div>
         </div>
       </div>
     )
@@ -202,16 +276,16 @@ export default function Accounts() {
           <div className="bg-gradient-to-r from-primary/20 to-primary/10 p-8">
             <div className="flex items-center gap-6">
               <div className="relative">
-                {formData.avatarURL ? (
+                {user.avatarURL ? (
                   <img
-                    src={formData.avatarURL}
-                    alt={formData.name}
+                    src={user.avatarURL.startsWith('http') || user.avatarURL.startsWith('data:') ? user.avatarURL : `http://localhost:4000${user.avatarURL}`}
+                    alt={user.name}
                     className="size-24 rounded-full border-4 border-background-dark object-cover"
                   />
                 ) : (
                   <div className="size-24 rounded-full border-4 border-background-dark bg-border-dark flex items-center justify-center">
                     <span className="text-3xl font-bold text-white">
-                      {formData.name?.charAt(0)?.toUpperCase() || 'U'}
+                      {user.name?.charAt(0)?.toUpperCase() || 'U'}
                     </span>
                   </div>
                 )}
@@ -220,8 +294,8 @@ export default function Accounts() {
                 </div>
               </div>
               <div>
-                <h2 className="text-2xl font-bold text-white">{formData.name}</h2>
-                <p className="text-text-secondary mt-1">{formData.email}</p>
+                <h2 className="text-2xl font-bold text-white">{user.name}</h2>
+                <p className="text-text-secondary mt-1">{user.email}</p>
                 <div className="mt-2 inline-flex items-center gap-2 rounded-full bg-primary/20 px-3 py-1">
                   <span className="size-2 rounded-full bg-primary"></span>
                   <span className="text-xs font-medium text-primary">Active</span>
@@ -250,22 +324,22 @@ export default function Accounts() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
                     <label className="block text-sm font-medium text-text-secondary mb-2">Full Name</label>
-                    <div className="text-white font-medium">{formData.name || 'Not set'}</div>
+                    <div className="text-white font-medium">{user.name || 'Not set'}</div>
                   </div>
 
                   <div>
                     <label className="block text-sm font-medium text-text-secondary mb-2">Email Address</label>
-                    <div className="text-white font-medium">{formData.email || 'Not set'}</div>
+                    <div className="text-white font-medium">{user.email || 'Not set'}</div>
                   </div>
 
                   <div>
                     <label className="block text-sm font-medium text-text-secondary mb-2">Phone Number</label>
-                    <div className="text-white font-medium">{formData.phoneNumber || 'Not set'}</div>
+                    <div className="text-white font-medium">{user.phoneNumber || 'Not set'}</div>
                   </div>
 
                   <div>
                     <label className="block text-sm font-medium text-text-secondary mb-2">User ID</label>
-                    <div className="text-white font-medium font-mono text-sm">{user.id || 'N/A'}</div>
+                    <div className="text-white font-medium font-mono text-sm">{user?.id || user?._id || 'N/A'}</div>
                   </div>
                 </div>
 
@@ -380,7 +454,7 @@ export default function Accounts() {
                       <div className="relative">
                         {formData.avatarURL ? (
                           <img
-                            src={formData.avatarURL}
+                            src={formData.avatarURL.startsWith('http') || formData.avatarURL.startsWith('data:') ? formData.avatarURL : `http://localhost:4000${formData.avatarURL}`}
                             alt="Avatar preview"
                             className="size-24 rounded-full border-4 border-border-dark object-cover"
                           />
@@ -407,7 +481,7 @@ export default function Accounts() {
                           onChange={handleImageUpload}
                           className="hidden"
                         />
-                        
+
                         {/* Drop Zone */}
                         <div
                           onDragEnter={handleDragEnter}
@@ -416,10 +490,9 @@ export default function Accounts() {
                           onDrop={handleDrop}
                           onClick={() => !isUploading && fileInputRef.current?.click()}
                           className={
-                            `relative rounded-lg border-2 border-dashed p-6 text-center cursor-pointer transition-all duration-200 ${
-                              isDragging 
-                                ? 'border-primary bg-primary/10 scale-105' 
-                                : 'border-input-border bg-surface-dark hover:border-primary/50 hover:bg-surface-dark/80'
+                            `relative rounded-lg border-2 border-dashed p-6 text-center cursor-pointer transition-all duration-200 ${isDragging
+                              ? 'border-primary bg-primary/10 scale-105'
+                              : 'border-input-border bg-surface-dark hover:border-primary/50 hover:bg-surface-dark/80'
                             } ${isUploading ? 'opacity-50 cursor-not-allowed' : ''}`
                           }
                         >
@@ -464,12 +537,12 @@ export default function Accounts() {
                               Or paste image URL
                             </label>
                             <input
-                              type="url"
+                              type="text"
                               name="avatarURL"
                               value={formData.avatarURL}
                               onChange={handleInputChange}
                               className="w-full h-10 px-3 rounded-lg bg-surface-dark border border-input-border text-white text-xs placeholder:text-text-secondary/50 focus:border-primary focus:ring-1 focus:ring-primary outline-none"
-                              placeholder="https://example.com/avatar.jpg"
+                              placeholder="https://example.com/avatar.jpg or /uploads/avatars/..."
                             />
                           </div>
                         )}
@@ -519,8 +592,8 @@ export default function Accounts() {
               </div>
             </div>
           </div>
-          </div>
         </div>
       </div>
+    </div>
   )
 }

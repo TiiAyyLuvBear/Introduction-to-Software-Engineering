@@ -97,7 +97,11 @@ const authenticate = async (req, res, next) => {
       id: String(user._id),
       _id: user._id,
       email: user.email,
-      name: user.name
+      name: user.name,
+      fullName: user.fullName,
+      phoneNumber: user.phoneNumber,
+      avatarURL: user.avatarURL,
+      roles: user.roles
     }
     
     // 7. Continue đến controller

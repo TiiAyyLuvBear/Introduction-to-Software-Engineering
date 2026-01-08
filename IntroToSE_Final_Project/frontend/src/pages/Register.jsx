@@ -1,6 +1,7 @@
 import React from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import authService from '../services/authService';
+import { useToast } from '../components/Toast.jsx';
 
 
 export default function Register({ onLogin }) {
@@ -12,17 +13,38 @@ export default function Register({ onLogin }) {
   const [agree, setAgree] = React.useState(true)
   const [showPassword, setShowPassword] = React.useState(false)
   const [busy, setBusy] = React.useState(false)
+  // Thêm dòng này để hiện thị thông báo lỗi dạng Toast thay vì alert
+  const toast = useToast();
 
   const submit = async (e) => {
     e.preventDefault()
+    
+    // Validation
+    if (!name.trim()) {
+      toast.error('Please enter your name')
+      return
+    }
+    if (!email.trim()) {
+      toast.error('Please enter your email')
+      return
+    }
+    if (!password) {
+      toast.error('Please enter your password')
+      return
+    }
+    if (!confirmPassword) {
+      toast.error('Please confirm your password')
+      return
+    }
     if (password !== confirmPassword) {
-      alert('Passwords do not match')
+      toast.error('Passwords do not match')
       return
     }
     if (!agree) {
-      alert('Please accept the terms to continue')
+      toast.error('Please accept the terms to continue')
       return
     }
+    
     try {
       setBusy(true)
       const response = await authService.register(email, password, name);
@@ -30,10 +52,11 @@ export default function Register({ onLogin }) {
         onLogin(response);
         navigate('/dashboard');
       } else {
-        alert('Register failed');
+        toast.error('Registration failed');
       }
     } catch (err) {
-      alert(err?.message || 'Register failed')
+      // authService đã xử lý lỗi, chỉ cần hiển thị message
+      toast.error(err.message || 'Registration failed. Please try again.')
     } finally {
       setBusy(false)
     }
@@ -44,7 +67,7 @@ export default function Register({ onLogin }) {
       <header className="lg:hidden flex items-center justify-between border-b border-border-dark px-6 py-4">
         <div className="flex items-center gap-2">
           <span className="material-symbols-outlined text-primary">account_balance_wallet</span>
-          <span className="text-white font-bold">Money Lover</span>
+          <span className="text-white font-bold">4Lover</span>
         </div>
         <Link
           to="/login"
@@ -96,7 +119,7 @@ export default function Register({ onLogin }) {
           <div className="hidden lg:flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="material-symbols-outlined text-primary">account_balance_wallet</span>
-              <span className="text-white font-bold">Money Lover</span>
+              <span className="text-white font-bold">4Lover</span>
             </div>
             <div className="flex items-center gap-3">
               <span className="text-sm text-text-secondary">Already a member?</span>
@@ -114,7 +137,7 @@ export default function Register({ onLogin }) {
             <p className="text-text-secondary text-base">Start your journey to financial freedom today.</p>
           </div>
 
-          <form className="flex flex-col gap-5" onSubmit={submit}>
+          <form className="flex flex-col gap-5" onSubmit={submit} noValidate>
             <label className="flex flex-col gap-1.5">
               <span className="text-white text-sm font-medium">Name</span>
               <div className="relative">
@@ -127,7 +150,6 @@ export default function Register({ onLogin }) {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   type="text"
-                  required
                 />
               </div>
             </label>
@@ -144,7 +166,6 @@ export default function Register({ onLogin }) {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   type="email"
-                  required
                 />
               </div>
             </label>
@@ -161,7 +182,6 @@ export default function Register({ onLogin }) {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   type={showPassword ? 'text' : 'password'}
-                  required
                 />
                 <button
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-text-secondary hover:text-white"
@@ -187,7 +207,6 @@ export default function Register({ onLogin }) {
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   type={showPassword ? 'text' : 'password'}
-                  required
                 />
               </div>
             </label>

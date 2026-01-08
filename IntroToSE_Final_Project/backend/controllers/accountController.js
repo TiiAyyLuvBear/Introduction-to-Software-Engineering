@@ -53,6 +53,8 @@ export async function updateProfile(req, res) {
     try {
         const { token, ...updates } = req.body;
 
+        console.log('[accountController] Received updateProfile request with updates:', updates);
+
         // Verify Firebase token to get userId
         if (!token) {
             return res.status(400).json({ error: 'Token is required' });
@@ -63,12 +65,16 @@ export async function updateProfile(req, res) {
         const decodedToken = await admin.auth().verifyIdToken(token);
         const userId = decodedToken.uid;
 
+        console.log('[accountController] Verified Firebase token, userId:', userId);
+
         // Remove email from updates if present
         if (updates.email) {
             delete updates.email;
         }
 
         const updatedUser = await userService.updateProfile(userId, updates);
+
+        console.log('[accountController] MongoDB update successful, returning user:', updatedUser);
 
         res.json({
             message: 'Profile updated successfully',

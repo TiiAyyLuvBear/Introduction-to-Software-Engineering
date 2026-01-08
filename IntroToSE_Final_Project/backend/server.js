@@ -5,7 +5,14 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import morgan from 'morgan';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import connectDB from './config/database.js';
+
+// Get __dirname equivalent in ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Import routes
 import authRoutes from './routes/auth.js';
@@ -31,6 +38,9 @@ const PORT = process.env.PORT || 4000;
 // MIDDLEWARE
 // ============================================
 
+// Morgan - HTTP request logger (dev mode)
+app.use(morgan('dev'));
+
 // CORS - Allow frontend to call API
 app.use(cors({
   origin: process.env.FRONTEND_URL || 'http://localhost:5173',
@@ -42,6 +52,9 @@ app.use(express.json());
 
 // Body parser - Parse URL-encoded data
 app.use(express.urlencoded({ extended: true }));
+
+// Serve static files from uploads directory
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Request logger (development only)
 if (process.env.NODE_ENV === 'development') {

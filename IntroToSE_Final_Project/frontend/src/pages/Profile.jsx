@@ -1,10 +1,7 @@
 import React from 'react'
-
-// import { api, getApiBaseUrl, setSession } from '../lib/api.js'
+import { getCurrentUser, updateUserProfile, uploadAvatar } from '../services/userService.js'
 
 function getServerBaseUrl() {
-  // API_BASE_URL defaults to http://localhost:4000/api
-  // return getApiBaseUrl().replace(/\/api\/?$/, '')
   return 'http://localhost:4000'
 }
 
@@ -19,13 +16,17 @@ export default function Profile() {
 
   const load = React.useCallback(async () => {
     setMessage('')
-    // const res = await api.me()
-    // const u = res?.user || res?.data?.user || res?.data || res
-    // setUser(u)
-    // setName(u?.name || '')
-    // setEmail(u?.email || '')
-    // setPhone(u?.phone || '')
-    setMessage('API call disabled - me()')
+    try {
+      const res = await getCurrentUser()
+      const u = res?.user || res?.data?.user || res?.data || res
+      setUser(u)
+      setName(u?.name || '')
+      setEmail(u?.email || '')
+      setPhone(u?.phoneNumber || '')
+    } catch (error) {
+      console.error('Failed to load profile:', error)
+      setMessage(error?.message || 'Failed to load profile')
+    }
   }, [])
 
   React.useEffect(() => {
@@ -37,13 +38,16 @@ export default function Profile() {
     setMessage('')
     try {
       setBusy(true)
-      // const res = await api.updateMe({ name, email, phone })
-      // const nextUser = res?.user || res?.data?.user || res?.data || res
-      // setUser(nextUser)
-      // setSession({ user: nextUser })
-      // setMessage(res?.message || 'Profile updated')
-      setMessage('API call disabled - updateMe()')
+      const updates = {
+        name,
+        phoneNumber: phone
+      }
+      const res = await updateUserProfile(updates)
+      const nextUser = res?.user || res?.data?.user || res?.data || res
+      setUser(nextUser)
+      setMessage(res?.message || 'Profile updated successfully')
     } catch (err) {
+      console.error('Failed to update profile:', err)
       setMessage(err?.message || 'Failed to update profile')
     } finally {
       setBusy(false)
@@ -55,20 +59,19 @@ export default function Profile() {
     setMessage('')
     try {
       setBusy(true)
-      // const res = await api.uploadAvatar(file)
-      // const nextUser = res?.user || res?.data?.user || res?.data || res
-      // setUser(nextUser)
-      // setSession({ user: nextUser })
-      // setMessage(res?.message || 'Avatar updated')
-      setMessage('API call disabled - uploadAvatar()')
+      const res = await uploadAvatar(file)
+      const nextUser = res?.user || res?.data?.user || res?.data || res
+      setUser(nextUser)
+      setMessage(res?.message || 'Avatar updated successfully')
     } catch (err) {
+      console.error('Failed to upload avatar:', err)
       setMessage(err?.message || 'Failed to upload avatar')
     } finally {
       setBusy(false)
     }
   }
 
-  const avatarSrc = user?.avatarUrl ? `${getServerBaseUrl()}${user.avatarUrl}` : ''
+  const avatarSrc = user?.avatarURL ? `${getServerBaseUrl()}${user.avatarURL}` : ''
 
   return (
     <main className="p-6 md:p-10">
