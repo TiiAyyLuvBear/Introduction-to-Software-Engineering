@@ -1,62 +1,65 @@
-// /**
-//  * Goal Service
-//  *
-//  * Handles all saving goal-related API calls
-//  */
+/**
+ * Goal Service
+ *
+ * Handles all saving goal-related API calls
+ */
 
-// import { get, post } from './api.js'
+import api from './api.js'
 
-// /**
-//  * List all goals
-//  *
-//  * @returns {Promise<Object>} List of goals
-//  */
-// export async function listGoals() {
-//     return get('/goals')
-// }
+/**
+ * List all goals
+ *
+ * @returns {Promise<Object>} List of goals
+ */
+export async function listGoals() {
+    const res = await api.get('/goals')
+    return res?.data?.data || res?.data || []
+}
 
-// /**
-//  * Get a specific goal
-//  *
-//  * @param {string} id - Goal ID
-//  * @returns {Promise<Object>} Goal details
-//  */
-// export async function getGoal(id) {
-//     return get(`/goals/${encodeURIComponent(id)}`)
-// }
+/**
+ * Get a specific goal
+ *
+ * @param {string} id - Goal ID
+ * @returns {Promise<Object>} Goal details
+ */
+export async function getGoal(id) {
+    const res = await api.get(`/goals/${encodeURIComponent(id)}`)
+    return res?.data?.data || res?.data
+}
 
-// /**
-//  * Create a new goal
-//  *
-//  * @param {Object} data - Goal data
-//  * @param {string} data.name - Goal name
-//  * @param {number} data.targetAmount - Target amount
-//  * @param {string} data.deadline - Deadline date (ISO string)
-//  * @param {string} data.priority - Priority (low, medium, high)
-//  * @returns {Promise<Object>} Created goal
-//  */
-// export async function createGoal({ name, targetAmount, deadline, priority }) {
-//     return post('/goals', { name, targetAmount, deadline, priority })
-// }
+/**
+ * Create a new goal
+ *
+ * @param {Object} data - Goal data
+ * @returns {Promise<Object>} Created goal
+ */
+export async function createGoal(data) {
+    // Backend expects: { name, targetAmount, currentAmount, deadline, description, image, walletId, priority }
+    const res = await api.post('/goals', data)
+    return res?.data?.data || res?.data
+}
 
-// /**
-//  * Contribute to a goal
-//  *
-//  * @param {string} goalId - Goal ID
-//  * @param {Object} data - Contribution data
-//  * @param {number} data.amount - Contribution amount
-//  * @param {string} data.walletId - Wallet ID
-//  * @param {string} data.date - Contribution date (ISO string)
-//  * @param {string} data.note - Contribution note
-//  * @returns {Promise<Object>} Updated goal
-//  */
-// export async function contributeToGoal(goalId, { amount, walletId, date, note } = {}) {
-//     return post(`/goals/${encodeURIComponent(goalId)}/contribute`, { amount, walletId, date, note })
-// }
+/**
+ * Contribute to a goal
+ *
+ * @param {string} goalId - Goal ID
+ * @param {Object} data - Contribution data
+ * @returns {Promise<Object>} Updated goal
+ */
+export async function contributeToGoal(goalId, { amount, walletId, date, note } = {}) {
+    const res = await api.post(`/goals/${encodeURIComponent(goalId)}/contribute`, { amount, walletId, date, note })
+    return res?.data?.data || res?.data
+}
 
-// export default {
-//     listGoals,
-//     getGoal,
-//     createGoal,
-//     contributeToGoal,
-// }
+export async function deleteGoal(id) {
+    const res = await api.delete(`/goals/${encodeURIComponent(id)}`)
+    return res?.data
+}
+
+export default {
+    listGoals,
+    getGoal,
+    createGoal,
+    contributeToGoal,
+    deleteGoal,
+}

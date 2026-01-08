@@ -32,13 +32,15 @@ export async function computeOverspend({ userId, walletId, categoryId, atDate })
   const start = budget.startDate
   const end = budget.endDate ? new Date(Math.min(budget.endDate.getTime(), when.getTime())) : when
 
+  // Fix: Handle userId as String (if User model uses String _id) or ObjectId
+  // Transaction schema uses String for walletId/categoryId/userId
   const match = {
-    userId: new mongoose.Types.ObjectId(userId),
-    walletId: new mongoose.Types.ObjectId(walletId),
+    userId: userId,
+    walletId: walletId,
     type: 'expense',
     date: { $gte: start, $lte: end },
   }
-  if (categoryId) match.categoryId = new mongoose.Types.ObjectId(categoryId)
+  if (categoryId) match.categoryId = categoryId
 
   const rows = await Transaction.aggregate([
     { $match: match },

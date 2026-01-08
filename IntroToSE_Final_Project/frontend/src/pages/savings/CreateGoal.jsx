@@ -1,7 +1,8 @@
 import React from 'react'
 import { useNavigate } from 'react-router-dom'
 
-// import api from '../../services/api.js'
+import { listWallets } from '../../services/walletService.js'
+import { createGoal } from '../../services/goalService.js'
 import FormattedNumberInput from '../../components/FormattedNumberInput.jsx'
 
 export default function CreateGoal() {
@@ -23,23 +24,22 @@ export default function CreateGoal() {
 
   React.useEffect(() => {
     let mounted = true
-    ;(async () => {
-      try {
-        const walletsRes = await api.listWallets()
-        const walletsList = walletsRes?.data?.wallets || walletsRes?.wallets || walletsRes?.data || walletsRes || []
-        const all = Array.isArray(walletsList) ? walletsList : []
-        const editable = all.filter((w) => {
-          const p = w?.myPermission
-          return p === 'owner' || p === 'edit'
-        })
-        if (!mounted) return
-        setWallets(editable)
-        if (!walletId && editable.length) setWalletId(editable[0]?.id || editable[0]?._id || '')
-      } catch {
-        if (!mounted) return
-        setWallets([])
-      }
-    })()
+      ; (async () => {
+        try {
+          const walletsList = await listWallets({ status: 'active' })
+          const all = Array.isArray(walletsList) ? walletsList : []
+          const editable = all.filter((w) => {
+            const p = w?.myPermission
+            return p === 'owner' || p === 'edit'
+          })
+          if (!mounted) return
+          setWallets(editable)
+          if (!walletId && editable.length) setWalletId(editable[0]?.id || editable[0]?._id || '')
+        } catch {
+          if (!mounted) return
+          setWallets([])
+        }
+      })()
     return () => {
       mounted = false
     }
@@ -63,23 +63,23 @@ export default function CreateGoal() {
     }
 
     setBusy(true)
-    ;(async () => {
-      try {
-        await api.createGoal({
-          walletId,
-          name: name.trim() || 'Untitled Goal',
-          targetAmount: amount,
-          deadline: targetDate || null,
-          description: description.trim() || undefined,
-          priority,
-        })
-        navigate('/savings')
-      } catch (e2) {
-        setError(e2?.message || 'Failed to create goal')
-      } finally {
-        setBusy(false)
-      }
-    })()
+      ; (async () => {
+        try {
+          await createGoal({
+            walletId,
+            name: name.trim() || 'Untitled Goal',
+            targetAmount: amount,
+            deadline: targetDate || null,
+            description: description.trim() || undefined,
+            priority,
+          })
+          navigate('/savings')
+        } catch (e2) {
+          setError(e2?.message || 'Failed to create goal')
+        } finally {
+          setBusy(false)
+        }
+      })()
   }
 
   return (
@@ -138,7 +138,7 @@ export default function CreateGoal() {
               <span className="text-sm font-medium text-white">Target amount</span>
               <FormattedNumberInput
                 inputClassName={inputClass}
-                value={targetAmount}
+                value={Number.isFinite(targetAmountNum) ? targetAmountNum : ''}
                 decimals={2}
                 placeholder="0.00"
                 required

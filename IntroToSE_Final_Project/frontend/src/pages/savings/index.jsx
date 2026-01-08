@@ -1,16 +1,22 @@
 import React from 'react'
 import { useNavigate } from 'react-router-dom'
 
-// import { api } from '../../lib/api.js'
+import { listGoals, deleteGoal, contributeToGoal } from '../../services/goalService.js'
+import { listWallets } from '../../services/walletService.js'
+import MoreMenu from '../../components/MoreMenu.jsx'
+import { useToast } from '../../components/Toast.jsx'
 import FormattedNumberInput from '../../components/FormattedNumberInput.jsx'
 import { formatMoney } from '../../lib/format.js'
 
 export default function Savings() {
   const navigate = useNavigate()
+  const toast = useToast()
 
   const [goals, setGoals] = React.useState([])
   const [wallets, setWallets] = React.useState([])
   const [expandedGoalId, setExpandedGoalId] = React.useState(null)
+
+  const [deleteConfirmId, setDeleteConfirmId] = React.useState(null)
   const [contributeGoalId, setContributeGoalId] = React.useState(null)
   const [contributeAmount, setContributeAmount] = React.useState('')
   const [contributeAmountNum, setContributeAmountNum] = React.useState(NaN)
@@ -25,23 +31,20 @@ export default function Savings() {
 
   React.useEffect(() => {
     let mounted = true
-    ;(async () => {
-      try {
-        // const [res, walletsRes] = await Promise.all([api.listGoals(), api.listWallets()])
-        // const list = res?.data || res || []
-        // const walletsList = walletsRes?.data?.wallets || walletsRes?.wallets || walletsRes?.data || walletsRes || []
-        if (!mounted) return
-        // setGoals(Array.isArray(list) ? list : [])
-        // const all = Array.isArray(walletsList) ? walletsList : []
-        // const editable = all.filter((w) => {
-        //   const p = w?.myPermission
-        //   return p === 'owner' || p === 'edit'
-        // })
-        // setWallets(editable)
-      } catch {
-        // ignore
-      }
-    })()
+      ; (async () => {
+        try {
+          const [goalsList, walletsList] = await Promise.all([listGoals(), listWallets()])
+
+          if (!mounted) return
+          setGoals(Array.isArray(goalsList) ? goalsList : [])
+
+          const allWallets = Array.isArray(walletsList) ? walletsList : []
+          // Store all wallets for contribution preference logic, simpler than filtering here
+          setWallets(allWallets)
+        } catch {
+          // ignore
+        }
+      })()
     return () => {
       mounted = false
     }
@@ -55,39 +58,39 @@ export default function Savings() {
 
   React.useEffect(() => {
     let mounted = true
-    ;(async () => {
-      try {
-        const now = new Date()
-        const start = new Date(now.getFullYear(), now.getMonth(), 1)
+      ; (async () => {
+        try {
+          const now = new Date()
+          const start = new Date(now.getFullYear(), now.getMonth(), 1)
 
-        // const res = await api.listTransactions({
-        //   startDate: start.toISOString(),
-        //   endDate: now.toISOString(),
-        //   q: 'Saving Goal',
-        //   limit: 200,
-        // })
-        // const list = res?.data?.transactions || res?.transactions || res?.data || res || []
-        const txns = []
+          // const res = await api.listTransactions({
+          //   startDate: start.toISOString(),
+          //   endDate: now.toISOString(),
+          //   q: 'Saving Goal',
+          //   limit: 200,
+          // })
+          // const list = res?.data?.transactions || res?.transactions || res?.data || res || []
+          const txns = []
 
-        const contributed = txns
-          .filter((t) => String(t.type || '').toLowerCase() === 'expense')
-          .reduce((s, t) => s + Number(t.amount || 0), 0)
+          const contributed = txns
+            .filter((t) => String(t.type || '').toLowerCase() === 'expense')
+            .reduce((s, t) => s + Number(t.amount || 0), 0)
 
-        const baseline = Number(total || 0) - contributed
-        const pct = baseline > 0 ? (contributed / baseline) * 100 : 0
+          const baseline = Number(total || 0) - contributed
+          const pct = baseline > 0 ? (contributed / baseline) * 100 : 0
 
-        const prevProgressPct = totalTarget > 0 ? ((Number(total || 0) - contributed) / totalTarget) * 100 : 0
-        const delta = monthlyRatePct - prevProgressPct
+          const prevProgressPct = totalTarget > 0 ? ((Number(total || 0) - contributed) / totalTarget) * 100 : 0
+          const delta = monthlyRatePct - prevProgressPct
 
-        if (!mounted) return
-        setContribThisMonthPct(Number.isFinite(pct) ? pct : 0)
-        setProgressDeltaPct(Number.isFinite(delta) ? delta : 0)
-      } catch {
-        if (!mounted) return
-        setContribThisMonthPct(0)
-        setProgressDeltaPct(0)
-      }
-    })()
+          if (!mounted) return
+          setContribThisMonthPct(Number.isFinite(pct) ? pct : 0)
+          setProgressDeltaPct(Number.isFinite(delta) ? delta : 0)
+        } catch {
+          if (!mounted) return
+          setContribThisMonthPct(0)
+          setProgressDeltaPct(0)
+        }
+      })()
     return () => {
       mounted = false
     }
@@ -95,36 +98,57 @@ export default function Savings() {
 
   React.useEffect(() => {
     let mounted = true
-    ;(async () => {
-      try {
-        // const res = await api.listTransactions({ q: 'Saving Goal', limit: 3 })
-        // const list = res?.data?.transactions || res?.transactions || res?.data || res || []
-        const txns = []
+      ; (async () => {
+        try {
+          // const res = await api.listTransactions({ q: 'Saving Goal', limit: 3 })
+          // const list = res?.data?.transactions || res?.transactions || res?.data || res || []
+          const txns = []
 
-        const items = txns
-          .filter((t) => String(t.type || '').toLowerCase() === 'expense')
-          .map((t) => {
-            const d = t.date ? new Date(t.date) : null
-            return {
-              id: t.id || t._id,
-              title: t.note || 'Saving Goal Contribution',
-              when: d && !Number.isNaN(d.getTime()) ? d.toLocaleString() : '',
-              amount: Number(t.amount || 0),
-              icon: 'savings',
-            }
-          })
+          const items = txns
+            .filter((t) => String(t.type || '').toLowerCase() === 'expense')
+            .map((t) => {
+              const d = t.date ? new Date(t.date) : null
+              return {
+                id: t.id || t._id,
+                title: t.note || 'Saving Goal Contribution',
+                when: d && !Number.isNaN(d.getTime()) ? d.toLocaleString() : '',
+                amount: Number(t.amount || 0),
+                icon: 'savings',
+              }
+            })
 
-        if (!mounted) return
-        setRecentContributions(items)
-      } catch {
-        if (!mounted) return
-        setRecentContributions([])
-      }
-    })()
+          if (!mounted) return
+          setRecentContributions(items)
+        } catch {
+          if (!mounted) return
+          setRecentContributions([])
+        }
+      })()
     return () => {
       mounted = false
     }
   }, [])
+
+  // Delete Goal Handlers
+  const handleDeleteGoal = async (id) => {
+    setDeleteConfirmId(id)
+  }
+
+  const confirmDeleteGoal = async () => {
+    const id = deleteConfirmId
+    if (!id) return
+    setBusy(true)
+    try {
+      await deleteGoal(id)
+      setGoals((prev) => prev.filter((g) => (g.id || g._id) !== id))
+      setDeleteConfirmId(null)
+      toast.success('Goal deleted successfully')
+    } catch (e) {
+      toast.error('Failed to delete goal: ' + (e?.message || 'Unknown error'))
+    } finally {
+      setBusy(false)
+    }
+  }
 
   const startContribute = (goal) => {
     const id = goal?.id || goal?._id
@@ -153,22 +177,39 @@ export default function Savings() {
     setBusy(true)
     setError('')
     try {
-      // const res = await api.contributeToGoal(contributeGoalId, {
-      //   amount,
-      //   walletId: contributeWalletId,
-      //   note: contributeNote || undefined,
-      //   date: new Date().toISOString(),
-      // })
-      // const updated = res?.data?.goal || res?.data?.data?.goal || res?.data || null
-      // if (updated) {
-      //   setGoals((prev) => prev.map((g) => ((g.id || g._id) === contributeGoalId ? { ...g, ...updated } : g)))
-      // }
+      const res = await contributeToGoal(contributeGoalId, {
+        amount,
+        walletId: contributeWalletId,
+        note: contributeNote || undefined,
+        date: new Date().toISOString(),
+      })
+      // goalService returns { goal: ..., transaction: ... }
+      const updatedGoal = res?.goal || res?.data?.goal || res
+
+      if (updatedGoal && (updatedGoal.id || updatedGoal._id)) {
+        // Also refresh wallets to get updated balance
+        const updatedWallets = await listWallets()
+        setWallets(Array.isArray(updatedWallets) ? updatedWallets : [])
+
+        setGoals((prev) => prev.map((g) => ((g.id || g._id) === contributeGoalId ? { ...g, ...updatedGoal } : g)))
+        toast.success('Added money successfully')
+      } else {
+        // Fallback or just re-fetch
+        const [newGoals, newWallets] = await Promise.all([listGoals(), listWallets()])
+        setGoals(newGoals)
+        setWallets(Array.isArray(newWallets) ? newWallets : [])
+        toast.success('Added money successfully')
+      }
       setContributeGoalId(null)
       setContributeAmount('')
       setContributeAmountNum(NaN)
-      setError('API call disabled - contributeToGoal()')
     } catch (e2) {
-      setError(e2?.message || 'Failed to add money')
+      const msg = e2?.response?.data?.error || e2?.message || 'Failed to add money'
+      if (msg.includes('Insufficient wallet balance')) {
+        setError('Insufficient balance in selected wallet')
+      } else {
+        setError(msg)
+      }
     } finally {
       setBusy(false)
     }
@@ -251,8 +292,19 @@ export default function Savings() {
                           {g.deadline ? `Target: ${String(g.deadline).slice(0, 10)}` : 'No target date'}
                         </div>
                       </div>
-                      <div className="rounded-full bg-border-dark p-2 text-primary">
-                        <span className="material-symbols-outlined">{g.icon || 'flag'}</span>
+                      <div className="flex items-center gap-2">
+                        <div className="rounded-full bg-border-dark p-2 text-primary">
+                          <span className="material-symbols-outlined">{g.icon || 'flag'}</span>
+                        </div>
+                        <MoreMenu
+                          items={[
+                            {
+                              label: 'Delete',
+                              icon: 'delete',
+                              onClick: () => handleDeleteGoal(g.id || g._id),
+                            },
+                          ]}
+                        />
                       </div>
                     </div>
 
@@ -310,25 +362,19 @@ export default function Savings() {
                         ) : null}
                         <div className="grid gap-3">
                           <label className="grid gap-2">
-                            <span className="text-xs font-semibold text-text-secondary">Wallet</span>
-                            <select
-                              className="h-10 w-full rounded-lg bg-surface-dark border border-input-border px-3 text-white outline-none focus:border-primary focus:ring-1 focus:ring-primary"
-                              value={contributeWalletId}
-                              onChange={(e) => setContributeWalletId(e.target.value)}
-                              required
-                            >
-                              {wallets.map((w) => (
-                                <option key={w.id || w._id} value={w.id || w._id}>
-                                  {w.name}
-                                </option>
-                              ))}
-                            </select>
+                            <span className="text-xs font-semibold text-text-secondary">Wallet (Linked)</span>
+                            <div className="h-10 w-full rounded-lg bg-surface-dark border border-input-border px-3 text-white flex items-center opacity-80 cursor-not-allowed">
+                              {(() => {
+                                const w = wallets.find(w => (w.id || w._id) === contributeWalletId)
+                                return w ? `${w.name} (${formatMoney(w.balance ?? w.currentBalance ?? 0)})` : 'Loading...'
+                              })()}
+                            </div>
                           </label>
                           <label className="grid gap-2">
                             <span className="text-xs font-semibold text-text-secondary">Amount</span>
                             <FormattedNumberInput
                               inputClassName="h-10 w-full rounded-lg bg-surface-dark border border-input-border px-3 text-white outline-none focus:border-primary focus:ring-1 focus:ring-primary"
-                              value={contributeAmount}
+                              value={contributeAmountNum}
                               decimals={2}
                               placeholder="0.00"
                               required
@@ -391,11 +437,11 @@ export default function Savings() {
             <div className="rounded-xl border border-border-dark bg-card-dark p-6">
               <div className="flex items-center justify-between">
                 <div className="text-lg font-bold text-white">Recent Contributions</div>
-                  <button
-                    type="button"
-                    onClick={() => navigate('/transactions')}
-                    className="text-sm font-medium text-primary hover:underline"
-                  >
+                <button
+                  type="button"
+                  onClick={() => navigate('/transactions')}
+                  className="text-sm font-medium text-primary hover:underline"
+                >
                   View All
                 </button>
               </div>
@@ -420,6 +466,44 @@ export default function Savings() {
             </div>
           </div>
         </div>
+
+        {/* Delete Goal Confirmation Modal */}
+        {deleteConfirmId ? (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+            <div className="w-full max-w-md rounded-2xl border border-border-dark bg-card-dark p-6">
+              <div className="flex items-center gap-3">
+                <div className="flex size-12 items-center justify-center rounded-full bg-red-500/10 text-red-500">
+                  <span className="material-symbols-outlined">delete</span>
+                </div>
+                <div>
+                  <div className="text-lg font-bold text-white">Delete Goal</div>
+                  <div className="text-sm text-text-secondary">This action cannot be undone</div>
+                </div>
+              </div>
+              <div className="mt-4 text-sm text-text-secondary">
+                Are you sure you want to delete this saving goal? All contributions logic associated with this goal will strictly remain, but the goal tracking will be removed.
+              </div>
+              <div className="mt-6 flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setDeleteConfirmId(null)}
+                  disabled={busy}
+                  className="flex-1 h-10 rounded-lg border border-border-dark bg-transparent px-4 text-sm font-semibold text-text-secondary hover:bg-border-dark hover:text-white disabled:opacity-60"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={confirmDeleteGoal}
+                  disabled={busy}
+                  className="flex-1 h-10 rounded-lg bg-red-500 px-4 text-sm font-bold text-white hover:bg-red-600 disabled:opacity-60"
+                >
+                  {busy ? 'Deleting…' : 'Delete'}
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : null}
       </div>
     </div>
   )

@@ -25,6 +25,13 @@ const BudgetSchema = new mongoose.Schema({
     required: false // null = budget tổng (all categories)
   },
 
+  // Wallet áp dụng budget (M3-01)
+  walletId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Wallet',
+    required: true
+  },
+
   // Tên budget (nếu không chọn category)
   name: {
     type: String,
@@ -132,6 +139,7 @@ BudgetSchema.methods.getDisplayInfo = function () {
   return {
     id: this._id,
     name: this.name,
+    walletId: this.walletId,
     categoryId: this.categoryId,
     amount: this.amount,
     spent: this.spent,
@@ -153,9 +161,10 @@ BudgetSchema.methods.getDisplayInfo = function () {
  * STATIC METHOD: Tạo budget mới với validation
  */
 BudgetSchema.statics.createBudget = async function (budgetData) {
-  // Validate: không tạo budget trùng category + period
+  // Validate: không tạo budget trùng category + period + wallet
   const existing = await this.findOne({
     userId: budgetData.userId,
+    walletId: budgetData.walletId,
     categoryId: budgetData.categoryId || null,
     period: budgetData.period,
     status: 'active'

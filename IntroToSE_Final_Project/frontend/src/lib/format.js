@@ -6,12 +6,16 @@ export function formatNumber(value, { maximumFractionDigits = 2, minimumFraction
   return n.toLocaleString('de-DE', { maximumFractionDigits, minimumFractionDigits })
 }
 
-export function formatMoney(value, { currencySymbol = '$', maximumFractionDigits = 2, minimumFractionDigits = 2 } = {}) {
+export function formatMoney(value, { currencySymbol = ' VND', maximumFractionDigits = 2, minimumFractionDigits = 2, position = 'suffix' } = {}) {
   const n = Number(value)
-  if (!Number.isFinite(n)) return `${currencySymbol}${formatNumber(0, { maximumFractionDigits, minimumFractionDigits })}`
-  const sign = n < 0 ? '-' : ''
-  const abs = Math.abs(n)
-  return `${sign}${currencySymbol}${formatNumber(abs, { maximumFractionDigits, minimumFractionDigits })}`
+  const abs = Number.isFinite(n) ? Math.abs(n) : 0
+  const formatted = formatNumber(abs, { maximumFractionDigits, minimumFractionDigits })
+  const sign = (Number.isFinite(n) && n < 0) ? '-' : ''
+
+  if (position === 'suffix') {
+    return `${sign}${formatted}${currencySymbol}`
+  }
+  return `${sign}${currencySymbol}${formatted}`
 }
 
 export function parseNumberLike(value) {
