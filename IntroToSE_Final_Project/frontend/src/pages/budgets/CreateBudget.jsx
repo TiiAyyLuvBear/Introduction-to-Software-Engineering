@@ -2,6 +2,9 @@ import React from 'react'
 import { useNavigate } from 'react-router-dom'
 
 import api from '../../services/api.js'
+import { createBudget } from '../../services/budgetService.js'
+import { listWallets } from '../../services/walletService.js'
+import { listCategories } from '../../services/categoryService.js'
 import FormattedNumberInput from '../../components/FormattedNumberInput.jsx'
 
 export default function CreateBudget() {
@@ -14,25 +17,30 @@ export default function CreateBudget() {
 
   React.useEffect(() => {
     let mounted = true
-    ;(async () => {
-      try {
-        const [catsRes, walletsRes] = await Promise.all([api.listCategories({ page: 1, limit: 100 }), api.listWallets()])
+      ; (async () => {
+        try {
+          const [catsRes, walletsRes] = await Promise.all([listCategories({ page: 1, limit: 100 }), listWallets()])
 
-        const walletsList = walletsRes?.data?.wallets || walletsRes?.wallets || walletsRes || []
-        const all = Array.isArray(walletsList) ? walletsList : []
-        const editable = all.filter((w) => {
-          const p = w?.myPermission
-          return p === 'owner' || p === 'edit'
-        })
-        if (mounted) setWallets(editable)
+          // listWallets returns array directly from service
+          const walletsList = Array.isArray(walletsRes) ? walletsRes : (walletsRes?.data?.wallets || [])
+          // listCategories returns array directly from service
+          const catsList = Array.isArray(catsRes) ? catsRes : (catsRes?.items || [])
 
-        const items = catsRes?.items || []
-        if (!mounted) return
-        setCategories(Array.isArray(items) ? items.filter((c) => c.type === 'expense') : [])
-      } catch {
-        // ignore
-      }
-    })()
+          // If listWallets is working correctly, it returns wallets.
+          // We'll trust the service and default to showing all returned wallets if myPermission isn't explicitly set,
+          // or filter if myPermission is present.
+          const editable = walletsList.filter((w) => {
+            if (!w.myPermission) return true // Assume editable if permission missing for now, or check detailed logic
+            const p = w.myPermission
+            return p === 'owner' || p === 'edit'
+          })
+          if (mounted) setWallets(editable)
+
+          if (mounted) setCategories(catsList.filter((c) => c.type === 'expense'))
+        } catch (err) {
+          console.error('Failed to load data', err)
+        }
+      })()
     return () => {
       mounted = false
     }
@@ -68,28 +76,28 @@ export default function CreateBudget() {
 
     setError('')
     setBusy(true)
-    ;(async () => {
-      try {
-        const amount = Number.isFinite(limitNum) ? limitNum : Number(limit) || 0
-        if (!(amount > 0)) {
-          setError('Spending limit must be greater than 0')
-          return
+      ; (async () => {
+        try {
+          const amount = Number.isFinite(limitNum) ? limitNum : Number(limit) || 0
+          if (!(amount > 0)) {
+            setError('Spending limit must be greater than 0')
+            return
+          }
+          await createBudget({
+            walletId: walletId || undefined,
+            name: name.trim() || undefined,
+            categoryId: categoryId || undefined,
+            amount,
+            period,
+            startDate: new Date().toISOString(),
+          })
+          navigate('/budgets')
+        } catch (e2) {
+          setError(e2?.message || 'Failed to create budget')
+        } finally {
+          setBusy(false)
         }
-        await api.createBudget({
-          walletId: walletId || undefined,
-          name: name.trim() || undefined,
-          categoryId: categoryId || undefined,
-          amount,
-          period,
-          startDate: new Date().toISOString(),
-        })
-        navigate('/budgets')
-      } catch (e2) {
-        setError(e2?.message || 'Failed to create budget')
-      } finally {
-        setBusy(false)
-      }
-    })()
+      })()
   }
 
   return (
@@ -183,7 +191,7 @@ export default function CreateBudget() {
               <span className="text-sm font-medium text-white">Spending limit</span>
               <FormattedNumberInput
                 inputClassName={inputClass}
-                value={limit}
+                value={limitNum}
                 decimals={2}
                 placeholder="0.00"
                 required

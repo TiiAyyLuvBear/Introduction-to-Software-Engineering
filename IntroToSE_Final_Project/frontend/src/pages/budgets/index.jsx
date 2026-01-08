@@ -4,9 +4,13 @@ import { useNavigate } from 'react-router-dom'
 // import { api } from '../../lib/api.js'
 import { formatMoney } from '../../lib/format.js'
 import MoreMenu from '../../components/MoreMenu.jsx'
+import { listBudgets, deleteBudget } from '../../services/budgetService.js'
+import transactionService from '../../services/transactionService.js'
+import { useToast } from '../../components/Toast.jsx'
 
 export default function Budgets() {
   const navigate = useNavigate()
+  const toast = useToast()
 
   // const me = getStoredUser()
   // const myUserId = me?.id || me?._id || ''
@@ -28,21 +32,22 @@ export default function Budgets() {
 
   const [budgets, setBudgets] = React.useState([])
   const [busyId, setBusyId] = React.useState(null)
-  const [error, setError] = React.useState('')
+
+  const [deleteConfirmId, setDeleteConfirmId] = React.useState(null)
+  const [busy, setBusy] = React.useState(false)
+
   const [spentMoMPct, setSpentMoMPct] = React.useState(0)
   React.useEffect(() => {
     let mounted = true
-    ;(async () => {
-      try {
-        // const res = await api.listBudgets()
-        // const list = res?.data || res || []
-        if (!mounted) return
-        // setBudgets(Array.isArray(list) ? list : [])
-        setBudgets([])
-      } catch {
-        // ignore
-      }
-    })()
+      ; (async () => {
+        try {
+          const list = await listBudgets()
+          if (!mounted) return
+          setBudgets(Array.isArray(list) ? list : [])
+        } catch {
+          // ignore
+        }
+      })()
     return () => {
       mounted = false
     }
@@ -50,41 +55,39 @@ export default function Budgets() {
 
   React.useEffect(() => {
     let mounted = true
-    ;(async () => {
-      try {
-        const now = new Date()
-        const thisStart = new Date(now.getFullYear(), now.getMonth(), 1)
-        const prevStart = new Date(now.getFullYear(), now.getMonth() - 1, 1)
-        const prevEnd = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999)
+      ; (async () => {
+        try {
+          const now = new Date()
+          const thisStart = new Date(now.getFullYear(), now.getMonth(), 1)
+          const prevStart = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+          const prevEnd = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999)
 
-        // const [thisRes, prevRes] = await Promise.all([
-        //   api.listTransactions({ startDate: thisStart.toISOString(), endDate: now.toISOString() }),
-        //   api.listTransactions({ startDate: prevStart.toISOString(), endDate: prevEnd.toISOString() }),
-        // ])
+          const [thisRes, prevRes] = await Promise.all([
+            transactionService.getTransactions({ startDate: thisStart.toISOString(), endDate: now.toISOString() }),
+            transactionService.getTransactions({ startDate: prevStart.toISOString(), endDate: prevEnd.toISOString() }),
+          ])
 
-        // const thisList = thisRes?.data?.transactions || thisRes?.transactions || thisRes?.data || thisRes || []
-        // const prevList = prevRes?.data?.transactions || prevRes?.transactions || prevRes?.data || prevRes || []
-        const thisList = []
-        const prevList = []
-        const thisTxns = Array.isArray(thisList) ? thisList : []
-        const prevTxns = Array.isArray(prevList) ? prevList : []
+          const thisList = thisRes?.data?.transactions || thisRes?.transactions || thisRes?.data || thisRes || []
+          const prevList = prevRes?.data?.transactions || prevRes?.transactions || prevRes?.data || prevRes || []
+          const thisTxns = Array.isArray(thisList) ? thisList : []
+          const prevTxns = Array.isArray(prevList) ? prevList : []
 
-        const sumExpense = (txns) =>
-          txns
-            .filter((t) => String(t.type || '').toLowerCase() === 'expense')
-            .reduce((s, t) => s + Number(t.amount || 0), 0)
+          const sumExpense = (txns) =>
+            txns
+              .filter((t) => String(t.type || '').toLowerCase() === 'expense')
+              .reduce((s, t) => s + Number(t.amount || 0), 0)
 
-        const thisExpense = sumExpense(thisTxns)
-        const prevExpense = sumExpense(prevTxns)
-        const pct = prevExpense > 0 ? ((thisExpense - prevExpense) / prevExpense) * 100 : 0
+          const thisExpense = sumExpense(thisTxns)
+          const prevExpense = sumExpense(prevTxns)
+          const pct = prevExpense > 0 ? ((thisExpense - prevExpense) / prevExpense) * 100 : 0
 
-        if (!mounted) return
-        setSpentMoMPct(Number.isFinite(pct) ? pct : 0)
-      } catch {
-        if (!mounted) return
-        setSpentMoMPct(0)
-      }
-    })()
+          if (!mounted) return
+          setSpentMoMPct(Number.isFinite(pct) ? pct : 0)
+        } catch {
+          if (!mounted) return
+          setSpentMoMPct(0)
+        }
+      })()
     return () => {
       mounted = false
     }
@@ -98,19 +101,25 @@ export default function Budgets() {
 
   const shown = budgets.filter((b) => (filter === 'active' ? (b.status || 'active') === 'active' : true))
 
-  const deleteBudget = async (budget) => {
+  const handleDeleteBudget = async (budget) => {
     const id = budget?.id || budget?._id
     if (!id) return
-    if (!window.confirm('Delete this budget?')) return
-    setBusyId(id)
-    setError('')
+    setDeleteConfirmId(id)
+  }
+
+  const confirmDeleteBudget = async () => {
+    const id = deleteConfirmId
+    if (!id) return
+    setBusy(true)
     try {
-      // await api.deleteBudget(id)
+      await deleteBudget(id)
       setBudgets((prev) => prev.filter((b) => (b.id || b._id) !== id))
+      toast.success('Budget deleted successfully')
+      setDeleteConfirmId(null)
     } catch (e) {
-      setError(e?.message || 'Failed to delete budget')
+      toast.error(e?.message || 'Failed to delete budget')
     } finally {
-      setBusyId(null)
+      setBusy(false)
     }
   }
 
@@ -212,11 +221,7 @@ export default function Budgets() {
         </div>
 
         <div className="mt-6 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 pb-10">
-          {error ? (
-            <div className="col-span-full rounded-xl border border-red-500/40 bg-red-500/10 p-4 text-sm text-red-200">
-              {error}
-            </div>
-          ) : null}
+
           {shown.map((b) => {
             const limit = Math.max(0.01, Number(b.amount || b.limit || 0))
             const spent = Number(b.spent || 0)
@@ -252,7 +257,7 @@ export default function Budgets() {
                         label: 'Delete',
                         icon: 'delete',
                         disabled: !editable || busyId === (b.id || b._id),
-                        onClick: () => deleteBudget(b),
+                        onClick: () => handleDeleteBudget(b),
                       },
                     ]}
                   />
@@ -288,6 +293,48 @@ export default function Budgets() {
           )}
         </div>
       </div>
-    </div>
+
+
+      {/* Delete Budget Confirmation Modal */}
+      {
+        deleteConfirmId ? (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+            <div className="w-full max-w-md rounded-2xl border border-border-dark bg-card-dark p-6">
+              <div className="flex items-center gap-3">
+                <div className="flex size-12 items-center justify-center rounded-full bg-red-500/10 text-red-500">
+                  <span className="material-symbols-outlined">delete</span>
+                </div>
+                <div>
+                  <div className="text-lg font-bold text-white">Delete Budget</div>
+                  <div className="text-sm text-text-secondary">This action cannot be undone</div>
+                </div>
+              </div>
+              <div className="mt-4 text-sm text-text-secondary">
+                Are you sure you want to delete this budget?
+              </div>
+              <div className="mt-6 flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setDeleteConfirmId(null)}
+                  disabled={busy}
+                  className="flex-1 h-10 rounded-lg border border-border-dark bg-transparent px-4 text-sm font-semibold text-text-secondary hover:bg-border-dark hover:text-white disabled:opacity-60"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={confirmDeleteBudget}
+                  disabled={busy}
+                  className="flex-1 h-10 rounded-lg bg-red-500 px-4 text-sm font-bold text-white hover:bg-red-600 disabled:opacity-60"
+                >
+                  {busy ? 'Deleting…' : 'Delete'}
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : null
+      }
+
+    </div >
   )
 }
