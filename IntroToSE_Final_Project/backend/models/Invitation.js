@@ -16,9 +16,9 @@ const InvitationSchema = new mongoose.Schema({
     required: true
   },
   
-  // Người gửi lời mời (owner của wallet)
+  // Người gửi lời mời (owner của wallet) - Firebase UID
   inviterId: {
-    type: mongoose.Schema.Types.ObjectId,
+    type: String,
     ref: 'User',
     required: true
   },
@@ -31,9 +31,9 @@ const InvitationSchema = new mongoose.Schema({
     trim: true
   },
   
-  // ID người được mời (nếu user đã tồn tại)
+  // ID người được mời (nếu user đã tồn tại) - Firebase UID
   inviteeId: {
-    type: mongoose.Schema.Types.ObjectId,
+    type: String,
     ref: 'User'
   },
   
@@ -66,8 +66,10 @@ const InvitationSchema = new mongoose.Schema({
   // Token để xác thực lời mời (security)
   invitationToken: {
     type: String,
-    required: true,
-    unique: true
+    unique: true,
+    default: function() {
+      return Math.random().toString(36).substr(2, 15) + Date.now().toString(36)
+    }
   },
   
   // Message từ người mời (optional)
@@ -163,10 +165,29 @@ InvitationSchema.statics.cleanupExpired = async function() {
 InvitationSchema.statics.getPendingForUser = async function(userEmail) {
   await this.cleanupExpired()
   
-  return await this.find({
+  // Only populate walletId (ObjectId), inviterId is String so we'll fetch separately
+  const invitations = await this.find({
     inviteeEmail: userEmail.toLowerCase(),
     status: 'pending'
-  }).populate('walletId', 'name type').populate('inviterId', 'name email')
+  }).populate('walletId', 'name type')
+  
+  // Fetch inviter info manually since inviterId is String (Firebase UID)
+  const User = mongoose.model('User')
+  const results = await Promise.all(invitations.map(async (inv) => {
+    let inviterInfo = null
+    if (inv.inviterId) {
+      const inviter = await User.findById(inv.inviterId).select('name email')
+      if (inviter) {
+        inviterInfo = { name: inviter.name, email: inviter.email }
+      }
+    }
+    return {
+      ...inv.toObject(),
+      inviterInfo
+    }
+  }))
+  
+  return results
 }
 
 export default mongoose.model('Invitation', InvitationSchema)

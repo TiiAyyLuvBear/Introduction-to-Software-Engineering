@@ -1,7 +1,7 @@
 import React from 'react'
 import { useNavigate } from 'react-router-dom'
 
-// import api from '../../services/api.js'
+import api from '../../services/api.js'
 import FormattedNumberInput from '../../components/FormattedNumberInput.jsx'
 
 const ICONS = ['account_balance_wallet', 'payments', 'account_balance', 'credit_card', 'savings', 'paid']
@@ -30,7 +30,7 @@ export default function CreateWallet() {
     setBusy(true)
     ;(async () => {
       try {
-        await api.createWallet({
+        await api.post('/wallets', {
           name: name.trim() || 'Untitled',
           type,
           initialBalance: Number.isFinite(balanceNum) ? balanceNum : Number(balance) || 0,
@@ -39,7 +39,7 @@ export default function CreateWallet() {
         })
         navigate('/wallets')
       } catch (e2) {
-        setError(e2?.message || 'Failed to create wallet')
+        setError(e2?.response?.data?.error || e2?.message || 'Failed to create wallet')
       } finally {
         setBusy(false)
       }

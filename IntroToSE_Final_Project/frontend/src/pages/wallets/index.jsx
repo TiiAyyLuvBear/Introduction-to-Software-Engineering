@@ -1,7 +1,7 @@
 import React from 'react'
 import { useNavigate } from 'react-router-dom'
 
-// import { api } from '../../lib/api.js'
+import api from '../../services/api.js'
 import MoreMenu from '../../components/MoreMenu.jsx'
 import { formatMoney } from '../../lib/format.js'
 
@@ -33,9 +33,9 @@ export default function Wallets() {
 
   const loadPendingInvites = React.useCallback(async () => {
     try {
-      // const res = await api.listPendingInvitations()
-      // const list = res?.data?.invitations || res?.data?.data?.invitations || res?.invitations || []
-      // setPendingInvites(Array.isArray(list) ? list : [])
+      const res = await api.get('/invitations/pending')
+      const list = res?.data?.data?.invitations || res?.data?.invitations || []
+      setPendingInvites(Array.isArray(list) ? list : [])
     } catch {
       setPendingInvites([])
     }
@@ -43,11 +43,11 @@ export default function Wallets() {
 
   const loadWallets = React.useCallback(async (nextStatus) => {
     try {
-      // const res = await api.listWallets({ status: nextStatus })
-      // const wallets = res?.data?.wallets || res?.data || res || []
-      // setAllWallets(Array.isArray(wallets) ? wallets : [])
+      const res = await api.get('/wallets', { params: { status: nextStatus } })
+      const wallets = res?.data?.data?.wallets || res?.data?.wallets || []
+      setAllWallets(Array.isArray(wallets) ? wallets : [])
     } catch (e) {
-      setError(e?.message || 'Failed to load wallets')
+      setError(e?.response?.data?.error || e?.message || 'Failed to load wallets')
     }
   }, [])
 
@@ -87,10 +87,10 @@ export default function Wallets() {
     setBusyId(id)
     setError('')
     try {
-      // await api.deleteWallet(id)
-      // setAllWallets((prev) => prev.filter((w) => (w.id || w._id) !== id))
+      await api.delete(`/wallets/${id}`)
+      setAllWallets((prev) => prev.filter((w) => (w.id || w._id) !== id))
     } catch (e) {
-      setError(e?.message || 'Failed to delete wallet')
+      setError(e?.response?.data?.error || e?.message || 'Failed to delete wallet')
     } finally {
       setBusyId(null)
     }
@@ -101,11 +101,11 @@ export default function Wallets() {
     setInviteBusyId(invitationId)
     setError('')
     try {
-      // await api.respondToInvitation(invitationId, { response })
-      // setPendingInvites((prev) => prev.filter((i) => i.id !== invitationId))
-      // await loadWallets(status)
+      await api.post(`/invitations/${invitationId}/respond`, { response })
+      setPendingInvites((prev) => prev.filter((i) => i.id !== invitationId))
+      await loadWallets(status)
     } catch (e) {
-      setError(e?.message || 'Failed to respond to invitation')
+      setError(e?.response?.data?.error || e?.message || 'Failed to respond to invitation')
     } finally {
       setInviteBusyId(null)
     }
@@ -127,10 +127,10 @@ export default function Wallets() {
     setMembersBusy(true)
     setError('')
     try {
-      // const res = await api.getWalletMembers(id)
-      // setMembersInfo(res?.data || res)
+      const res = await api.get(`/wallets/${id}/members`)
+      setMembersInfo(res?.data?.data || res?.data || null)
     } catch (e) {
-      setError(e?.message || 'Failed to load members')
+      setError(e?.response?.data?.error || e?.message || 'Failed to load members')
       setMembersInfo(null)
     } finally {
       setMembersBusy(false)
@@ -152,11 +152,12 @@ export default function Wallets() {
     setBusyId(walletId)
     setError('')
     try {
-      // await api.inviteWalletMember(walletId, { email })
-      // setInviteEmail('')
-      // await loadWallets(status)
+      await api.post(`/wallets/${walletId}/invite`, { email })
+      setInviteEmail('')
+      await refreshMembers()
+      await loadWallets(status)
     } catch (e) {
-      setError(e?.message || 'Failed to send invitation')
+      setError(e?.response?.data?.error || e?.message || 'Failed to send invitation')
     } finally {
       setBusyId(null)
     }
@@ -167,10 +168,10 @@ export default function Wallets() {
     if (!walletId) return
     setMembersBusy(true)
     try {
-      // const res = await api.getWalletMembers(walletId)
-      // setMembersInfo(res?.data || res)
+      const res = await api.get(`/wallets/${walletId}/members`)
+      setMembersInfo(res?.data?.data || res?.data || null)
     } catch (e) {
-      setError(e?.message || 'Failed to refresh members')
+      setError(e?.response?.data?.error || e?.message || 'Failed to refresh members')
     } finally {
       setMembersBusy(false)
     }
@@ -182,10 +183,10 @@ export default function Wallets() {
     setBusyId(`${walletId}:${memberId}`)
     setError('')
     try {
-      // await api.setWalletMemberPermission(walletId, memberId, { permission })
-      // await refreshMembers()
+      await api.put(`/wallets/${walletId}/members/${memberId}/permission`, { permission })
+      await refreshMembers()
     } catch (e) {
-      setError(e?.message || 'Failed to update permission')
+      setError(e?.response?.data?.error || e?.message || 'Failed to update permission')
     } finally {
       setBusyId(null)
     }
@@ -198,11 +199,11 @@ export default function Wallets() {
     setBusyId(`${walletId}:rm:${memberId}`)
     setError('')
     try {
-      // await api.removeWalletMember(walletId, memberId)
-      // await refreshMembers()
-      // await loadWallets(status)
+      await api.delete(`/wallets/${walletId}/members/${memberId}`)
+      await refreshMembers()
+      await loadWallets(status)
     } catch (e) {
-      setError(e?.message || 'Failed to remove member')
+      setError(e?.response?.data?.error || e?.message || 'Failed to remove member')
     } finally {
       setBusyId(null)
     }
@@ -215,11 +216,11 @@ export default function Wallets() {
     setBusyId(`${walletId}:own:${newOwnerId}`)
     setError('')
     try {
-      // await api.transferWalletOwnership(walletId, { newOwnerId })
-      // await refreshMembers()
-      // await loadWallets(status)
+      await api.post(`/wallets/${walletId}/transfer-ownership`, { newOwnerId })
+      await refreshMembers()
+      await loadWallets(status)
     } catch (e) {
-      setError(e?.message || 'Failed to transfer ownership')
+      setError(e?.response?.data?.error || e?.message || 'Failed to transfer ownership')
     } finally {
       setBusyId(null)
     }
@@ -232,12 +233,12 @@ export default function Wallets() {
     setBusyId(`leave:${walletId}`)
     setError('')
     try {
-      // await api.leaveWallet(walletId)
-      // closeSharing()
-      // await loadWallets(status)
+      await api.post(`/wallets/${walletId}/leave`)
+      closeSharing()
+      await loadWallets(status)
     } catch (e) {
-      const code = e?.data?.code
-      const eligible = e?.data?.data?.eligibleMembers
+      const code = e?.response?.data?.code
+      const eligible = e?.response?.data?.data?.eligibleMembers
       if (code === 'OWNER_CANNOT_LEAVE' && Array.isArray(eligible) && eligible.length) {
         const defaultEmail = eligible[0]?.email || ''
         const input = window.prompt(
@@ -246,20 +247,19 @@ export default function Wallets() {
             .join('\n')}`,
           defaultEmail
         )
-        if (!input) throw e
+        if (!input) return
         const picked = eligible.find((m) => String(m.email || '').toLowerCase() === String(input).toLowerCase())
         if (!picked?.id) {
-          const err = new Error('Member email not found')
-          err.status = 400
-          throw err
+          setError('Member email not found')
+          return
         }
-        // await api.transferWalletOwnership(walletId, { newOwnerId: picked.id })
-        // await api.leaveWallet(walletId)
+        await api.post(`/wallets/${walletId}/transfer-ownership`, { newOwnerId: picked.id })
+        await api.post(`/wallets/${walletId}/leave`)
         closeSharing()
         await loadWallets(status)
         return
       }
-      setError(e?.message || 'Failed to leave wallet')
+      setError(e?.response?.data?.error || e?.message || 'Failed to leave wallet')
     } finally {
       setBusyId(null)
     }
@@ -273,10 +273,10 @@ export default function Wallets() {
     setBusyId(id)
     setError('')
     try {
-      // await api.updateWallet(id, { name: newName.trim() })
-      // await loadWallets(status)
+      await api.put(`/wallets/${id}`, { name: newName.trim() })
+      await loadWallets(status)
     } catch (e) {
-      setError(e?.message || 'Failed to rename wallet')
+      setError(e?.response?.data?.error || e?.message || 'Failed to rename wallet')
     } finally {
       setBusyId(null)
     }
@@ -289,10 +289,10 @@ export default function Wallets() {
     setBusyId(id)
     setError('')
     try {
-      // await api.updateWallet(id, { status: newStatus })
-      // await loadWallets(status)
+      await api.put(`/wallets/${id}`, { status: newStatus })
+      await loadWallets(status)
     } catch (e) {
-      setError(e?.message || 'Failed to update wallet status')
+      setError(e?.response?.data?.error || e?.message || 'Failed to update wallet status')
     } finally {
       setBusyId(null)
     }

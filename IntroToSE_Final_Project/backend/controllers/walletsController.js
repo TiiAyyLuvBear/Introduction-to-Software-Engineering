@@ -141,8 +141,26 @@ export const getUserWallets = async (req, res) => {
       status: status
     }).sort({ createdAt: -1 })
 
-    // Transform data for display
-    const formattedWallets = wallets.map(wallet => wallet.getDisplayInfo())
+    // Transform data for display with myPermission
+    const formattedWallets = wallets.map(wallet => {
+      const info = wallet.getDisplayInfo()
+      
+      // Determine user's permission for this wallet
+      let myPermission = 'view'
+      const isOwner = wallet.ownerId?.toString() === userId?.toString() || 
+                      wallet.userId?.toString() === userId?.toString()
+      
+      if (isOwner) {
+        myPermission = 'owner'
+      } else {
+        const member = wallet.members?.find(m => m.userId?.toString() === userId?.toString())
+        if (member) {
+          myPermission = member.permission || 'view'
+        }
+      }
+      
+      return { ...info, myPermission }
+    })
     // // Calculate total balance across all wallets
     // const totalBalance = wallets.reduce((sum, wallet) => {
     //   // In real app, implement currency conversion
@@ -497,8 +515,11 @@ export const inviteMember = async (req, res) => {
       })
     }
 
-    // Check if user is owner
-    if (!wallet.ownerId || wallet.ownerId.toString() !== inviterId.toString()) {
+    // Check if user is owner (compare as strings since Firebase UID is string)
+    const isOwner = wallet.ownerId?.toString() === inviterId?.toString() ||
+                    wallet.userId?.toString() === inviterId?.toString()
+    
+    if (!isOwner) {
       return res.status(403).json({
         success: false,
         error: 'Only wallet owner can invite members'
@@ -510,15 +531,25 @@ export const inviteMember = async (req, res) => {
     if (!invitee) {
       return res.status(404).json({
         success: false,
-        error: 'User not found',
+        error: 'User not found. They must register first.',
         code: 'USER_NOT_FOUND'
       })
     }
 
+    // Check if trying to invite self
+    if (invitee._id.toString() === inviterId?.toString()) {
+      return res.status(400).json({
+        success: false,
+        error: 'Cannot invite yourself',
+        code: 'CANNOT_INVITE_SELF'
+      })
+    }
+
     // Check if user already a member
-    const existingMember = wallet.members.find(member =>
-      member.userId._id.toString() === invitee._id.toString()
-    )
+    const existingMember = wallet.members?.find(member => {
+      const memberId = member.userId?._id?.toString() || member.userId?.toString()
+      return memberId === invitee._id.toString()
+    })
     if (existingMember) {
       return res.status(409).json({
         success: false,
@@ -555,6 +586,23 @@ export const inviteMember = async (req, res) => {
     invitation.generateToken()
     await invitation.save()
 
+    // Auto-convert wallet to shared when first invitation is sent
+    if (!wallet.isShared) {
+      wallet.isShared = true
+      // Ensure owner is in members list with edit permission
+      const ownerInMembers = wallet.members?.find(m => 
+        m.userId?.toString() === inviterId?.toString()
+      )
+      if (!ownerInMembers) {
+        wallet.members.push({
+          userId: inviterId,
+          permission: 'edit',
+          joinedAt: new Date()
+        })
+      }
+      await wallet.save()
+    }
+
     const endTime = Date.now()
 
     // Step 7: Send notification (would integrate with notification system)
@@ -578,11 +626,11 @@ export const inviteMember = async (req, res) => {
     })
 
   } catch (error) {
-    console.error('Invite member error:', error)
+    console.error('Invite member error:', error.message, error.stack)
     res.status(500).json({
       success: false,
-      error: 'Failed to send invitation',
-      message: error.message
+      error: error.message || 'Failed to send invitation',
+      details: process.env.NODE_ENV === 'development' ? error.stack : undefined
     })
   }
 }
@@ -630,7 +678,7 @@ export const respondToInvitation = async (req, res) => {
 
         // Ensure shared wallet invariants
         wallet.isShared = true
-        if (!wallet.ownerId) wallet.ownerId = new mongoose.Types.ObjectId(invitation.inviterId)
+        if (!wallet.ownerId) wallet.ownerId = invitation.inviterId
 
         // Ensure owner is a member with edit permission
         const ownerId = wallet.ownerId?.toString()
@@ -647,7 +695,7 @@ export const respondToInvitation = async (req, res) => {
         const uid = userId.toString()
         const existing = wallet.members?.find((m) => m.userId?.toString() === uid)
         if (!existing) {
-          wallet.members.push({ userId: new mongoose.Types.ObjectId(userId), permission: 'view', joinedAt: new Date() })
+          wallet.members.push({ userId: userId, permission: 'view', joinedAt: new Date() })
         }
 
         await wallet.save({ session })
@@ -696,6 +744,13 @@ export const getPendingInvitations = async (req, res) => {
   try {
     const userEmail = req.user?.email
 
+    if (!userEmail) {
+      return res.status(400).json({
+        success: false,
+        error: 'User email not found'
+      })
+    }
+
     const invitations = await Invitation.getPendingForUser(userEmail)
 
     res.json({
@@ -703,14 +758,14 @@ export const getPendingInvitations = async (req, res) => {
       data: {
         invitations: invitations.map(inv => ({
           id: inv._id,
-          wallet: {
+          wallet: inv.walletId ? {
             id: inv.walletId._id,
             name: inv.walletId.name,
             type: inv.walletId.type
-          },
-          inviter: {
-            name: inv.inviterId.name,
-            email: inv.inviterId.email
+          } : null,
+          inviter: inv.inviterInfo || {
+            name: 'Unknown',
+            email: inv.inviterId || 'Unknown'
           },
           message: inv.message,
           invitedAt: inv.invitedAt,
