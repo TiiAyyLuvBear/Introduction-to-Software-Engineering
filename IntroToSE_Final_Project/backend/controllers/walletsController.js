@@ -793,9 +793,7 @@ export const leaveWallet = async (req, res) => {
     const userId = req.user?.id
 
     const result = await withMongoSession(async (session) => {
-      const wallet = await Wallet.findOne({ _id: walletId, status: 'active' })
-        .populate('members.userId', 'name email')
-        .session(session)
+      const wallet = await Wallet.findOne({ _id: walletId, status: 'active' }).session(session)
 
       if (!wallet) {
         const err = new Error('Wallet not found')
@@ -803,43 +801,79 @@ export const leaveWallet = async (req, res) => {
         throw err
       }
 
-      const uid = userId.toString()
-      const memberIndex = wallet.members.findIndex((m) => m.userId?._id?.toString() === uid || m.userId?.toString() === uid)
-      if (memberIndex === -1) {
+      const uid = userId?.toString()
+      const ownerIdStr = wallet.ownerId?.toString()
+      
+      console.log('Leave wallet debug:', { uid, ownerIdStr, members: wallet.members?.map(m => m.userId?.toString()) })
+      
+      // Check if user is CURRENT owner - only check ownerId, NOT userId
+      // userId is the original creator, ownerId is the current owner (can change after transfer)
+      const isOwner = ownerIdStr && ownerIdStr === uid
+
+      // Find member index
+      const memberIndex = wallet.members.findIndex((m) => m.userId?.toString() === uid)
+      
+      // User can leave if they are a member (even if they were original creator)
+      if (!isOwner && memberIndex === -1) {
         const err = new Error('You are not a member of this wallet')
         err.status = 404
         throw err
       }
 
-      const isOwner = wallet.ownerId && wallet.ownerId.toString() === uid
-      const otherMembers = wallet.members.filter((m) => (m.userId?._id?.toString() || m.userId?.toString()) !== uid)
+      // Get other members (excluding current user AND excluding current owner)
+      const otherMembers = wallet.members.filter((m) => {
+        const memberId = m.userId?.toString()
+        return memberId !== uid && memberId !== ownerIdStr
+      })
+      
+      console.log('Other members:', otherMembers.map(m => m.userId?.toString()))
 
-      // If owner is the only member, leaving deletes (deactivates) the shared wallet.
+      // If owner and no other members to transfer to, delete the wallet
       if (isOwner && otherMembers.length === 0) {
         wallet.status = 'inactive'
         await wallet.save({ session })
         return { deleted: true }
       }
 
-      // Owner cannot leave without transferring ownership.
-      if (isOwner) {
+      // Owner cannot leave without transferring ownership if there are other members
+      if (isOwner && otherMembers.length > 0) {
+        // Fetch user info for other members
+        const User = mongoose.model('User')
+        const memberInfos = await Promise.all(otherMembers.map(async (m) => {
+          const memberId = m.userId?.toString()
+          const user = await User.findById(memberId).select('name email')
+          return {
+            id: memberId,
+            name: user?.name || 'Unknown',
+            email: user?.email || 'Unknown',
+            permission: m.permission,
+            joinedAt: m.joinedAt,
+          }
+        }))
+        
+        // Double check - filter out any member with same ID as owner
+        const filteredInfos = memberInfos.filter(m => m.id !== uid && m.id !== ownerIdStr)
+        
+        if (filteredInfos.length === 0) {
+          // No valid members to transfer to, just delete
+          wallet.status = 'inactive'
+          await wallet.save({ session })
+          return { deleted: true }
+        }
+
         const err = new Error('Please transfer ownership before leaving')
         err.status = 400
         err.code = 'OWNER_CANNOT_LEAVE'
         err.data = {
-          eligibleMembers: otherMembers.map((m) => ({
-            id: m.userId?._id || m.userId,
-            name: m.userId?.name,
-            email: m.userId?.email,
-            permission: m.permission,
-            joinedAt: m.joinedAt,
-          })),
+          eligibleMembers: filteredInfos,
         }
         throw err
       }
 
       // Remove member (self)
-      wallet.members.splice(memberIndex, 1)
+      if (memberIndex !== -1) {
+        wallet.members.splice(memberIndex, 1)
+      }
       await wallet.save({ session })
       return { deleted: false }
     })
@@ -879,9 +913,8 @@ export const transferOwnership = async (req, res) => {
     if (!mongoose.Types.ObjectId.isValid(walletId)) {
       return res.status(400).json({ success: false, error: 'Invalid walletId' })
     }
-    if (!mongoose.Types.ObjectId.isValid(newOwnerId)) {
-      return res.status(400).json({ success: false, error: 'Invalid newOwnerId' })
-    }
+    
+    // newOwnerId is Firebase UID (string), not ObjectId - no need to validate as ObjectId
 
     const result = await withMongoSession(async (session) => {
       const wallet = await Wallet.findOne({ _id: walletId, status: 'active' }).session(session)
@@ -891,13 +924,16 @@ export const transferOwnership = async (req, res) => {
         throw err
       }
 
-      if (!wallet.ownerId || wallet.ownerId.toString() !== currentOwnerId.toString()) {
+      // Check if current user is owner - only check ownerId (current owner)
+      const isCurrentOwner = wallet.ownerId?.toString() === currentOwnerId?.toString()
+      
+      if (!isCurrentOwner) {
         const err = new Error('Only current owner can transfer ownership')
         err.status = 403
         throw err
       }
 
-      if (wallet.ownerId.toString() === newOwnerId.toString()) {
+      if (wallet.ownerId?.toString() === newOwnerId?.toString()) {
         const err = new Error('New owner must be different')
         err.status = 400
         throw err
@@ -911,12 +947,12 @@ export const transferOwnership = async (req, res) => {
       }
 
       const oldOwnerId = wallet.ownerId
-      wallet.ownerId = new mongoose.Types.ObjectId(newOwnerId)
+      wallet.ownerId = newOwnerId  // Firebase UID is string, not ObjectId
       wallet.isShared = true
       newOwnerMember.permission = 'edit'
 
-      const oldOwnerMember = wallet.members?.find((m) => m.userId?.toString() === oldOwnerId.toString())
-      if (!oldOwnerMember) {
+      const oldOwnerMember = wallet.members?.find((m) => m.userId?.toString() === oldOwnerId?.toString())
+      if (!oldOwnerMember && oldOwnerId) {
         wallet.members.push({ userId: oldOwnerId, permission: 'view', joinedAt: new Date() })
       }
 
@@ -950,9 +986,10 @@ export const removeMemberFromWallet = async (req, res) => {
     const { id: walletId, memberId } = req.params
     const ownerId = req.user?.id
 
-    if (!mongoose.Types.ObjectId.isValid(walletId) || !mongoose.Types.ObjectId.isValid(memberId)) {
-      return res.status(400).json({ success: false, error: 'Invalid id' })
+    if (!mongoose.Types.ObjectId.isValid(walletId)) {
+      return res.status(400).json({ success: false, error: 'Invalid walletId' })
     }
+    // memberId is Firebase UID (string), not ObjectId
 
     await withMongoSession(async (session) => {
       const wallet = await Wallet.findOne({ _id: walletId, status: 'active' }).session(session)
@@ -962,20 +999,23 @@ export const removeMemberFromWallet = async (req, res) => {
         throw err
       }
 
-      if (!wallet.ownerId || wallet.ownerId.toString() !== ownerId.toString()) {
+      // Check if current user is owner - only check ownerId (current owner)
+      const isCurrentOwner = wallet.ownerId?.toString() === ownerId?.toString()
+      
+      if (!isCurrentOwner) {
         const err = new Error('Only wallet owner can remove members')
         err.status = 403
         throw err
       }
 
       // Owner cannot remove themselves
-      if (memberId === ownerId.toString()) {
+      if (memberId === ownerId?.toString()) {
         const err = new Error('Owner cannot be removed')
         err.status = 400
         throw err
       }
 
-      const idx = wallet.members.findIndex((m) => m.userId?.toString() === memberId.toString())
+      const idx = wallet.members.findIndex((m) => m.userId?.toString() === memberId?.toString())
       if (idx === -1) {
         const err = new Error('User is not a member of this wallet')
         err.status = 404
@@ -1013,9 +1053,10 @@ export const setMemberPermission = async (req, res) => {
       })
     }
 
-    if (!mongoose.Types.ObjectId.isValid(walletId) || !mongoose.Types.ObjectId.isValid(memberId)) {
-      return res.status(400).json({ success: false, error: 'Invalid id' })
+    if (!mongoose.Types.ObjectId.isValid(walletId)) {
+      return res.status(400).json({ success: false, error: 'Invalid walletId' })
     }
+    // memberId is Firebase UID (string), not ObjectId
 
     const updatedMember = await withMongoSession(async (session) => {
       const wallet = await Wallet.findOne({ _id: walletId, status: 'active' }).session(session)
@@ -1025,19 +1066,22 @@ export const setMemberPermission = async (req, res) => {
         throw err
       }
 
-      if (!wallet.ownerId || wallet.ownerId.toString() !== ownerId.toString()) {
+      // Check if current user is owner - only check ownerId (current owner)
+      const isCurrentOwner = wallet.ownerId?.toString() === ownerId?.toString()
+      
+      if (!isCurrentOwner) {
         const err = new Error('Only wallet owner can change permissions')
         err.status = 403
         throw err
       }
 
-      if (memberId.toString() === ownerId.toString()) {
+      if (memberId?.toString() === ownerId?.toString()) {
         const err = new Error('Owner cannot change their own permission')
         err.status = 400
         throw err
       }
 
-      const member = wallet.members.find((m) => m.userId?.toString() === memberId.toString())
+      const member = wallet.members.find((m) => m.userId?.toString() === memberId?.toString())
       if (!member) {
         const err = new Error('User is not a member of this wallet')
         err.status = 404

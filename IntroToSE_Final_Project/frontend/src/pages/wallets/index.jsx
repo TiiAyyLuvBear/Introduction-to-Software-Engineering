@@ -237,26 +237,45 @@ export default function Wallets() {
       closeSharing()
       await loadWallets(status)
     } catch (e) {
+      console.log('Leave wallet error:', e.response?.data)
       const code = e?.response?.data?.code
       const eligible = e?.response?.data?.data?.eligibleMembers
+      console.log('Code:', code, 'Eligible:', eligible)
+      
       if (code === 'OWNER_CANNOT_LEAVE' && Array.isArray(eligible) && eligible.length) {
-        const defaultEmail = eligible[0]?.email || ''
+        // Show list of members to transfer ownership to
+        const memberList = eligible.map((m, i) => `${i + 1}. ${m.name || 'Unknown'} (${m.email || 'Unknown'})`).join('\n')
         const input = window.prompt(
-          `You are the owner. Enter a member email to transfer ownership first:\n${eligible
-            .map((m) => `${m.name || ''} <${m.email || ''}>`)
-            .join('\n')}`,
-          defaultEmail
+          `You are the owner. Enter the NUMBER of the member to transfer ownership:\n\n${memberList}`,
+          '1'
         )
-        if (!input) return
-        const picked = eligible.find((m) => String(m.email || '').toLowerCase() === String(input).toLowerCase())
-        if (!picked?.id) {
-          setError('Member email not found')
+        if (!input) {
+          setBusyId(null)
           return
         }
-        await api.post(`/wallets/${walletId}/transfer-ownership`, { newOwnerId: picked.id })
-        await api.post(`/wallets/${walletId}/leave`)
-        closeSharing()
-        await loadWallets(status)
+        
+        const index = parseInt(input, 10) - 1
+        const picked = eligible[index]
+        console.log('Picked member:', picked)
+        
+        if (!picked || !picked.id) {
+          setError('Invalid selection. Please try again.')
+          setBusyId(null)
+          return
+        }
+        
+        try {
+          console.log('Transferring ownership to:', picked.id)
+          await api.post(`/wallets/${walletId}/transfer-ownership`, { newOwnerId: picked.id })
+          console.log('Transfer successful, now leaving...')
+          await api.post(`/wallets/${walletId}/leave`)
+          closeSharing()
+          await loadWallets(status)
+        } catch (transferErr) {
+          console.error('Transfer/Leave error:', transferErr.response?.data)
+          setError(transferErr?.response?.data?.error || 'Failed to transfer ownership')
+        }
+        setBusyId(null)
         return
       }
       setError(e?.response?.data?.error || e?.message || 'Failed to leave wallet')
