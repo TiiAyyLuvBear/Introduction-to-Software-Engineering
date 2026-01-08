@@ -16,9 +16,6 @@ import About from './pages/About.jsx'
 
 // Transactions module
 import Transactions from './pages/transactions/index.jsx'
-import AddTransaction from './pages/transactions/AddTransaction.jsx'
-import EditTransaction from './pages/transactions/EditTransaction.jsx'
-import TransferMoney from './pages/transactions/TransferMoney.jsx'
 
 // Categories module
 import Categories from './pages/categories/index.jsx'
@@ -122,9 +119,6 @@ function AppContent() {
           <Route path="/profile" element={<Profile />} />
           <Route path="/about" element={<About />} />
 
-          <Route path="/transactions/add" element={<AddTransaction />} />
-          <Route path="/transactions/:id/edit" element={<EditTransaction />} />
-          <Route path="/transactions/transfer" element={<TransferMoney />} />
           <Route path="/categories/new" element={<AddCategory />} />
           <Route path="/wallets/new" element={<CreateWallet />} />
           <Route path="/savings/new" element={<CreateGoal />} />

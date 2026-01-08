@@ -1,7 +1,9 @@
 export function formatNumber(value, { maximumFractionDigits = 2, minimumFractionDigits = 0 } = {}) {
   const n = Number(value)
   if (!Number.isFinite(n)) return '0'
-  return n.toLocaleString(undefined, { maximumFractionDigits, minimumFractionDigits })
+  // Sử dụng locale 'de-DE' để format với dấu chấm (.) làm thousand separator
+  // Ví dụ: 1.000.000 thay vì 1,000,000
+  return n.toLocaleString('de-DE', { maximumFractionDigits, minimumFractionDigits })
 }
 
 export function formatMoney(value, { currencySymbol = '$', maximumFractionDigits = 2, minimumFractionDigits = 2 } = {}) {
@@ -16,9 +18,10 @@ export function parseNumberLike(value) {
   if (value === null || value === undefined) return NaN
   if (typeof value === 'number') return value
   const s = String(value)
-    .replace(/,/g, '')
-    .replace(/\s+/g, '')
-    .replace(/[^0-9.-]/g, '')
+    .replace(/\s+/g, '') // Xóa spaces
+    .replace(/\./g, '') // Xóa dấu chấm (thousand separator trong format VN: 1.000.000)
+    .replace(/,/g, '.') // Đổi dấu phẩy thành chấm (decimal separator: 1,5 -> 1.5)
+    .replace(/[^0-9.-]/g, '') // Chỉ giữ số, dấu chấm, dấu trừ
   const n = Number(s)
-  return Number.isFinite(n) ? n : NaN
+  return Number.isFinite(n) ? n : 0
 }
