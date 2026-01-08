@@ -45,7 +45,7 @@ const WalletSchema = new mongoose.Schema({
   currency: {
     type: String,
     default: 'USD',
-    enum: ['USD', 'VND', 'EUR', 'JPY']
+    enum: ['USD', 'VND']
   },
 
   // Có phải ví chia sẻ không (cho tương lai mở rộng)

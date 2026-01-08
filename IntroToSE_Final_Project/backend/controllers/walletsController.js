@@ -130,18 +130,34 @@ export const getUserWallets = async (req, res) => {
     const userId = req.user?.id
     const { status = 'active' } = req.query
 
-    const wallets = await Wallet.getUserWallets(userId, status)
+    // const wallets = await Wallet.getUserWallets(userId, status)
+    // Updated query to find wallets where user is OWNER or MEMBER (isShared logic)
+    // Use Case U010/U011: User sees their own wallets and wallets they are invited to
+    const wallets = await Wallet.find({
+      $or: [
+        { userId: userId },
+        { 'members.userId': userId }
+      ],
+      status: status
+    }).sort({ createdAt: -1 })
 
-    // Calculate total balance across all wallets
-    const totalBalance = wallets.reduce((sum, wallet) => {
-      // In real app, implement currency conversion
-      return sum + wallet.balance
+    // Transform data for display
+    const formattedWallets = wallets.map(wallet => wallet.getDisplayInfo())
+    // // Calculate total balance across all wallets
+    // const totalBalance = wallets.reduce((sum, wallet) => {
+    //   // In real app, implement currency conversion
+    //   return sum + wallet.balance
+    // Spec doesn't specify, but usually "My Assets" implies own wallets. 
+    // For now, we sum all visible wallets or maybe just owned ones. 
+    // Let's sum all visible for simplicity as per requirement "Lấy ví của tôi & ví được share")
+    const totalBalance = formattedWallets.reduce((sum, wallet) => {
+      return sum + (wallet.balance || 0)
     }, 0)
 
     res.json({
       success: true,
       data: {
-        wallets,
+        wallets: formattedWallets,
         totalBalance,
         walletCount: wallets.length
       }
@@ -167,7 +183,11 @@ export const getWallet = async (req, res) => {
 
     const wallet = await Wallet.findOne({
       _id: id,
-      userId,
+      // Implement permissions: Owner OR Member can view
+      $or: [
+        { userId },
+        { 'members.userId': userId }
+      ],
       status: 'active'
     })
 
