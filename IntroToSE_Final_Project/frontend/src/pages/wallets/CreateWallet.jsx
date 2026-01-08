@@ -4,14 +4,28 @@ import { useNavigate } from 'react-router-dom'
 import * as walletService from '../../services/walletService.js'
 import FormattedNumberInput from '../../components/FormattedNumberInput.jsx'
 
-const ICONS = ['account_balance_wallet', 'payments', 'account_balance', 'credit_card', 'savings', 'paid']
+// Icon list with labels for tooltips
+const ICONS = [
+  { id: 'account_balance_wallet', label: 'Wallet' },
+  { id: 'payments', label: 'Payments' },
+  { id: 'account_balance', label: 'Bank' },
+  { id: 'credit_card', label: 'Credit Card' },
+  { id: 'savings', label: 'Savings' },
+  { id: 'paid', label: 'Paid' },
+]
+
+// Currency options
+const CURRENCIES = [
+  { code: 'VND', name: 'Vietnamese Dong' },
+  { code: 'USD', name: 'US Dollar' },
+]
 
 export default function CreateWallet() {
   const navigate = useNavigate()
 
-  const [icon, setIcon] = React.useState(ICONS[0])
+  const [icon, setIcon] = React.useState(ICONS[0].id)
   const [name, setName] = React.useState('')
-  const [currency, setCurrency] = React.useState('USD')
+  const [currency, setCurrency] = React.useState('VND')
   const [balance, setBalance] = React.useState('0')
   const [balanceNum, setBalanceNum] = React.useState(0)
   const [type, setType] = React.useState('Cash')
@@ -22,6 +36,9 @@ export default function CreateWallet() {
 
   const inputClass =
     'h-12 w-full rounded-lg bg-surface-dark border border-input-border px-4 text-white placeholder:text-text-secondary/60 focus:border-primary focus:ring-1 focus:ring-primary outline-none'
+
+  const selectClass =
+    'h-12 w-full rounded-lg bg-surface-dark border border-input-border px-4 text-white focus:border-primary focus:ring-1 focus:ring-primary outline-none appearance-none cursor-pointer'
 
   const submit = (e) => {
     e.preventDefault()
@@ -75,17 +92,18 @@ export default function CreateWallet() {
               <div className="grid grid-cols-6 gap-2">
                 {ICONS.map((i) => (
                   <button
-                    key={i}
+                    key={i.id}
                     type="button"
-                    onClick={() => setIcon(i)}
+                    title={i.label}
+                    onClick={() => setIcon(i.id)}
                     className={
                       'flex h-12 items-center justify-center rounded-lg border transition-colors ' +
-                      (icon === i
+                      (icon === i.id
                         ? 'border-primary bg-primary/10 text-primary'
                         : 'border-border-dark bg-surface-dark text-text-secondary hover:text-white')
                     }
                   >
-                    <span className="material-symbols-outlined">{i}</span>
+                    <span className="material-symbols-outlined">{i.id}</span>
                   </button>
                 ))}
               </div>
@@ -99,7 +117,22 @@ export default function CreateWallet() {
             <div className="grid gap-4 sm:grid-cols-2">
               <label className="grid gap-2">
                 <span className="text-sm font-medium text-white">Currency</span>
-                <input className={inputClass} value={currency} onChange={(e) => setCurrency(e.target.value)} />
+                <div className="relative">
+                  <select
+                    className={selectClass}
+                    value={currency}
+                    onChange={(e) => setCurrency(e.target.value)}
+                  >
+                    {CURRENCIES.map((c) => (
+                      <option key={c.code} value={c.code}>
+                        {c.code} - {c.name}
+                      </option>
+                    ))}
+                  </select>
+                  <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-text-secondary pointer-events-none">
+                    expand_more
+                  </span>
+                </div>
               </label>
               <label className="grid gap-2">
                 <span className="text-sm font-medium text-white">Starting balance</span>
