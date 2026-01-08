@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 
 import * as walletService from '../../services/walletService.js'
 import MoreMenu from '../../components/MoreMenu.jsx'
-import { formatMoney } from '../../lib/format.js'
+import { formatNumber } from '../../lib/format.js'
 
 function getStoredUser() {
   try {
@@ -334,7 +334,7 @@ export default function Wallets() {
                 Total Net Worth
                 <span className="material-symbols-outlined text-[16px] text-text-secondary">visibility</span>
               </div>
-              <div className="mt-2 text-4xl font-bold text-white">{formatMoney(total)}</div>
+              <div className="mt-2 text-4xl font-bold text-white">{formatNumber(total, { minimumFractionDigits: 2 })}</div>
               <div className="mt-2 text-xs text-text-secondary">Updated just now</div>
             </div>
           </div>
@@ -599,9 +599,11 @@ export default function Wallets() {
               <div className="mt-4 flex items-end justify-between border-t border-border-dark pt-4">
                 <div>
                   <div className="text-xs text-text-secondary">Balance</div>
-                  <div className="mt-1 text-xl font-bold text-white">{formatMoney(Number(w.balance ?? w.currentBalance ?? 0))}</div>
+                  <div className="mt-1 text-xl font-bold text-white">
+                    {formatNumber(Number(w.balance ?? w.currentBalance ?? 0), { minimumFractionDigits: 2 })}
+                    <span className="ml-1 text-sm font-normal text-text-secondary">{w.currency}</span>
+                  </div>
                 </div>
-                <div className="text-xs text-text-secondary">{w.currency}</div>
               </div>
             </div>
           ))}
