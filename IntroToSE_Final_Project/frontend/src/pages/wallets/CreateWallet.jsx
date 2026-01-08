@@ -26,7 +26,6 @@ export default function CreateWallet() {
   const [icon, setIcon] = React.useState(ICONS[0].id)
   const [name, setName] = React.useState('')
   const [currency, setCurrency] = React.useState('VND')
-  const [currency, setCurrency] = React.useState('VND')
   const [balance, setBalance] = React.useState('0')
   const [balanceNum, setBalanceNum] = React.useState(0)
   const [type, setType] = React.useState('Cash')
