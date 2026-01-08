@@ -1,7 +1,8 @@
 import React from 'react'
 import FormattedNumberInput from '../../../components/FormattedNumberInput.jsx'
 import { useToast } from '../../../components/Toast.jsx'
-import api from '../../../services/api.js'
+import transactionService from '../../../services/transactionService.js'
+import walletService from '../../../services/walletService.js'
 
 function toNumber(value) {
     const n = Number(value)
@@ -22,22 +23,25 @@ export default function TransferMoneyForm({ onSuccess, onCancel, onSwitchToTrans
         let mounted = true
             ; (async () => {
                 try {
-                    // const walletsRes = await api.listWallets()
-                    // const list = walletsRes?.data?.wallets || walletsRes?.wallets || walletsRes?.data || walletsRes || []
+                    const walletsRes = await walletService.listWallets({ status: 'active' })
                     if (!mounted) return
-                    const all = []
+
+                    const list = walletsRes || []
+                    const all = Array.isArray(list) ? list : []
                     const editable = all.filter((w) => {
                         const p = w?.myPermission
                         return p === 'owner' || p === 'edit'
                     })
                     setWallets(editable)
 
+                    // Auto-select first two different wallets if available
                     const firstId = editable[0]?.id || editable[0]?._id || ''
-                    const secondId = editable[1]?.id || editable[1]?._id || firstId
+                    const secondId = editable[1]?.id || editable[1]?._id || ''
                     if (!fromId && firstId) setFromId(firstId)
                     if (!toId && secondId) setToId(secondId)
-                } catch {
-                    // ignore
+                } catch (error) {
+                    console.error('Failed to fetch wallets:', error)
+                    if (mounted) setWallets([])
                 }
             })()
         return () => {
@@ -52,12 +56,16 @@ export default function TransferMoneyForm({ onSuccess, onCancel, onSwitchToTrans
     const submit = (e) => {
         e.preventDefault()
 
+        if (wallets.length < 2) {
+            toast.error('You need at least 2 wallets to transfer money')
+            return
+        }
         if (!fromId || !toId) {
-            toast.error('Please select both wallets')
+            toast.error('Please select both source and destination wallets')
             return
         }
         if (fromId === toId) {
-            toast.error('Please select two different wallets')
+            toast.error('Source and destination wallets must be different')
             return
         }
         if (!Number.isFinite(amount) || amount <= 0) {
@@ -68,16 +76,23 @@ export default function TransferMoneyForm({ onSuccess, onCancel, onSwitchToTrans
         setBusy(true)
             ; (async () => {
                 try {
-                    // await api.transfer({
-                    //   fromWalletId: fromId,
-                    //   toWalletId: toId,
-                    //   amount: Math.abs(amountNum),
-                    //   date,
-                    //   note,
-                    // })
+                    await transactionService.transferMoney({
+                        fromWalletId: fromId,
+                        toWalletId: toId,
+                        amount: Math.abs(amount),
+                        date,
+                        note,
+                    })
+                    // Recalculate balance for both wallets
+                    try {
+                        await walletService.recalculateBalance()
+                    } catch (e) {
+                        console.warn('Failed to recalculate balance:', e)
+                    }
+                    // Notify wallet pages to refresh
+                    window.dispatchEvent(new CustomEvent('walletBalanceChanged'))
                     toast.success('Transfer completed successfully')
                     if (onSuccess) onSuccess()
-                    toast.warning('API call disabled - transfer()')
                 } catch (e2) {
                     toast.error(e2?.response?.data?.error || e2?.message || 'Failed to transfer')
                 } finally {
@@ -115,9 +130,9 @@ export default function TransferMoneyForm({ onSuccess, onCancel, onSwitchToTrans
             </div>
 
             <form onSubmit={submit} className="mt-5 grid gap-4">
-                {!wallets.length ? (
-                    <div className="rounded-xl border border-border-dark bg-surface-dark p-3 text-sm text-text-secondary">
-                        You need at least one wallet with edit permission.
+                {wallets.length < 2 ? (
+                    <div className="rounded-xl border border-red-500/40 bg-red-500/10 p-3 text-sm text-red-200">
+                        ⚠️ You need at least 2 wallets to transfer money. Please create another wallet first.
                     </div>
                 ) : null}
                 <div className="grid gap-4 sm:grid-cols-2">
@@ -134,11 +149,13 @@ export default function TransferMoneyForm({ onSuccess, onCancel, onSwitchToTrans
                     <label className="grid gap-2">
                         <span className="text-sm font-medium text-white">To</span>
                         <select className={inputClass} value={toId} onChange={(e) => setToId(e.target.value)}>
-                            {wallets.map((w) => (
-                                <option key={w.id || w._id} value={w.id || w._id}>
-                                    {w.name}
-                                </option>
-                            ))}
+                            {wallets
+                                .filter((w) => (w.id || w._id) !== fromId)
+                                .map((w) => (
+                                    <option key={w.id || w._id} value={w.id || w._id}>
+                                        {w.name}
+                                    </option>
+                                ))}
                         </select>
                     </label>
                 </div>
@@ -169,7 +186,7 @@ export default function TransferMoneyForm({ onSuccess, onCancel, onSwitchToTrans
                 <div className="flex gap-3">
                     <button
                         type="submit"
-                        disabled={busy}
+                        disabled={busy || wallets.length < 2}
                         className="flex-1 inline-flex h-12 items-center justify-center rounded-lg bg-primary px-5 text-sm font-bold text-background-dark hover:brightness-110 disabled:opacity-60"
                     >
                         {busy ? 'Transferring…' : 'Transfer'}

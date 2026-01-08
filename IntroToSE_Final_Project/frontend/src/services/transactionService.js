@@ -15,6 +15,10 @@ const transactionService = {
         return await api.post('/transactions', transaction);
     },
 
+    transferMoney: async (transferData) => {
+        return await api.post('/transactions/transfer', transferData);
+    },
+
     updateTransaction: async (id, transaction) => {
         return await api.put(`/transactions/${id}`, transaction);
     },

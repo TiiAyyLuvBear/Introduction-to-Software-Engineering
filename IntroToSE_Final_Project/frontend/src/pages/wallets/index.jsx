@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import * as walletService from '../../services/walletService.js'
 import MoreMenu from '../../components/MoreMenu.jsx'
 import { formatNumber } from '../../lib/format.js'
+import { useToast } from '../../components/Toast.jsx'
 
 // Exchange rates (1 unit = X VND)
 const EXCHANGE_RATES = {
@@ -33,6 +34,7 @@ function getStoredUser() {
  */
 export default function Wallets() {
   const navigate = useNavigate()
+  const toast = useToast()
   const me = getStoredUser()
   const myUserId = me?.id || me?._id || ''
 
@@ -40,10 +42,16 @@ export default function Wallets() {
   const [status, setStatus] = React.useState('active')
   const [sortDir, setSortDir] = React.useState('asc')
   const [busyId, setBusyId] = React.useState(null)
-  const [error, setError] = React.useState('')
 
   const [pendingInvites, setPendingInvites] = React.useState([])
   const [inviteBusyId, setInviteBusyId] = React.useState(null)
+
+  const [deleteConfirmId, setDeleteConfirmId] = React.useState(null)
+  const [removeMemberConfirm, setRemoveMemberConfirm] = React.useState(null)
+  const [transferOwnerConfirm, setTransferOwnerConfirm] = React.useState(null)
+  const [leaveWalletConfirm, setLeaveWalletConfirm] = React.useState(null)
+  const [renameWalletId, setRenameWalletId] = React.useState(null)
+  const [renameValue, setRenameValue] = React.useState('')
 
   const loadPendingInvites = React.useCallback(async () => {
     try {
@@ -59,9 +67,9 @@ export default function Wallets() {
       const wallets = await walletService.listWallets({ status: nextStatus })
       setAllWallets(Array.isArray(wallets) ? wallets : [])
     } catch (e) {
-      setError(e?.response?.data?.error || e?.message || 'Failed to load wallets')
+      toast.error(e?.response?.data?.error || e?.message || 'Failed to load wallets')
     }
-  }, [])
+  }, [toast])
 
   React.useEffect(() => {
     loadWallets(status)
@@ -71,9 +79,20 @@ export default function Wallets() {
     loadPendingInvites()
   }, [loadPendingInvites])
 
+  // Listen for wallet balance changes from transaction operations
+  React.useEffect(() => {
+    const handleBalanceChange = () => {
+      loadWallets(status)
+    }
+    window.addEventListener('walletBalanceChanged', handleBalanceChange)
+    return () => {
+      window.removeEventListener('walletBalanceChanged', handleBalanceChange)
+    }
+  }, [loadWallets, status])
+
   const [query, setQuery] = React.useState('')
   const [displayCurrency, setDisplayCurrency] = React.useState('VND') // Toggle between VND and USD
-  
+
   const wallets = allWallets
     .filter((w) => (query ? String(w.name || '').toLowerCase().includes(query.toLowerCase()) : true))
     .slice()
@@ -102,7 +121,6 @@ export default function Wallets() {
   }
 
   const toggleStatus = () => {
-    setError('')
     setStatus((prev) => (prev === 'active' ? 'inactive' : 'active'))
   }
 
@@ -113,14 +131,20 @@ export default function Wallets() {
   const deleteWallet = async (wallet) => {
     const id = wallet?.id || wallet?._id
     if (!id) return
-    if (!window.confirm('Delete this wallet?')) return
+    setDeleteConfirmId(id)
+  }
+
+  const confirmDeleteWallet = async () => {
+    const id = deleteConfirmId
+    if (!id) return
     setBusyId(id)
-    setError('')
     try {
       await walletService.deleteWallet(id)
       setAllWallets((prev) => prev.filter((w) => (w.id || w._id) !== id))
+      setDeleteConfirmId(null)
+      toast.success('Wallet deleted successfully')
     } catch (e) {
-      setError(e?.response?.data?.error || e?.message || 'Failed to delete wallet')
+      toast.error(e?.response?.data?.error || e?.message || 'Failed to delete wallet')
     } finally {
       setBusyId(null)
     }
@@ -129,13 +153,13 @@ export default function Wallets() {
   const respondInvite = async (invitationId, response) => {
     if (!invitationId) return
     setInviteBusyId(invitationId)
-    setError('')
     try {
       await walletService.respondToInvitation(invitationId, response)
       setPendingInvites((prev) => prev.filter((i) => i.id !== invitationId))
       await loadWallets(status)
+      toast.success(response === 'accept' ? 'Invitation accepted' : 'Invitation declined')
     } catch (e) {
-      setError(e?.response?.data?.error || e?.message || 'Failed to respond to invitation')
+      toast.error(e?.response?.data?.error || e?.message || 'Failed to respond to invitation')
     } finally {
       setInviteBusyId(null)
     }
@@ -155,12 +179,11 @@ export default function Wallets() {
     setSharingWalletId(id)
     setMembersInfo(null)
     setMembersBusy(true)
-    setError('')
     try {
       const info = await walletService.getWalletMembers(id)
       setMembersInfo(info)
     } catch (e) {
-      setError(e?.response?.data?.error || e?.message || 'Failed to load members')
+      toast.error(e?.response?.data?.error || e?.message || 'Failed to load members')
       setMembersInfo(null)
     } finally {
       setMembersBusy(false)
@@ -180,14 +203,14 @@ export default function Wallets() {
     const email = String(inviteEmail || '').trim()
     if (!email) return
     setBusyId(walletId)
-    setError('')
     try {
       await walletService.sendInvitation(walletId, email)
       setInviteEmail('')
       await refreshMembers()
       await loadWallets(status)
+      toast.success('Invitation sent successfully')
     } catch (e) {
-      setError(e?.response?.data?.error || e?.message || 'Failed to send invitation')
+      toast.error(e?.response?.data?.error || e?.message || 'Failed to send invitation')
     } finally {
       setBusyId(null)
     }
@@ -201,7 +224,7 @@ export default function Wallets() {
       const info = await walletService.getWalletMembers(walletId)
       setMembersInfo(info)
     } catch (e) {
-      setError(e?.response?.data?.error || e?.message || 'Failed to refresh members')
+      toast.error(e?.response?.data?.error || e?.message || 'Failed to refresh members')
     } finally {
       setMembersBusy(false)
     }
@@ -211,12 +234,12 @@ export default function Wallets() {
     const walletId = sharingWallet?.id || sharingWallet?._id
     if (!walletId || !memberId) return
     setBusyId(`${walletId}:${memberId}`)
-    setError('')
     try {
       await walletService.setMemberPermission(walletId, memberId, permission)
       await refreshMembers()
+      toast.success('Permission updated successfully')
     } catch (e) {
-      setError(e?.response?.data?.error || e?.message || 'Failed to update permission')
+      toast.error(e?.response?.data?.error || e?.message || 'Failed to update permission')
     } finally {
       setBusyId(null)
     }
@@ -225,15 +248,22 @@ export default function Wallets() {
   const removeMember = async (memberId) => {
     const walletId = sharingWallet?.id || sharingWallet?._id
     if (!walletId || !memberId) return
-    if (!window.confirm('Remove this member from the wallet?')) return
+    setRemoveMemberConfirm(memberId)
+  }
+
+  const confirmRemoveMember = async () => {
+    const memberId = removeMemberConfirm
+    const walletId = sharingWallet?.id || sharingWallet?._id
+    if (!walletId || !memberId) return
     setBusyId(`${walletId}:rm:${memberId}`)
-    setError('')
     try {
       await walletService.removeMember(walletId, memberId)
       await refreshMembers()
       await loadWallets(status)
+      setRemoveMemberConfirm(null)
+      toast.success('Member removed successfully')
     } catch (e) {
-      setError(e?.response?.data?.error || e?.message || 'Failed to remove member')
+      toast.error(e?.response?.data?.error || e?.message || 'Failed to remove member')
     } finally {
       setBusyId(null)
     }
@@ -242,15 +272,22 @@ export default function Wallets() {
   const transferOwnership = async (newOwnerId) => {
     const walletId = sharingWallet?.id || sharingWallet?._id
     if (!walletId || !newOwnerId) return
-    if (!window.confirm('Transfer ownership to this member?')) return
+    setTransferOwnerConfirm(newOwnerId)
+  }
+
+  const confirmTransferOwnership = async () => {
+    const newOwnerId = transferOwnerConfirm
+    const walletId = sharingWallet?.id || sharingWallet?._id
+    if (!walletId || !newOwnerId) return
     setBusyId(`${walletId}:own:${newOwnerId}`)
-    setError('')
     try {
       await walletService.transferOwnership(walletId, newOwnerId)
       await refreshMembers()
       await loadWallets(status)
+      setTransferOwnerConfirm(null)
+      toast.success('Ownership transferred successfully')
     } catch (e) {
-      setError(e?.response?.data?.error || e?.message || 'Failed to transfer ownership')
+      toast.error(e?.response?.data?.error || e?.message || 'Failed to transfer ownership')
     } finally {
       setBusyId(null)
     }
@@ -259,50 +296,55 @@ export default function Wallets() {
   const leaveCurrentWallet = async () => {
     const walletId = sharingWallet?.id || sharingWallet?._id
     if (!walletId) return
-    if (!window.confirm('Leave this wallet?')) return
+    setLeaveWalletConfirm(walletId)
+  }
+
+  const [ownerLeaveMembers, setOwnerLeaveMembers] = React.useState(null)
+  const [selectedTransferMember, setSelectedTransferMember] = React.useState('')
+
+  const confirmLeaveWallet = async () => {
+    const walletId = leaveWalletConfirm
+    if (!walletId) return
     setBusyId(`leave:${walletId}`)
-    setError('')
     try {
       await walletService.leaveWallet(walletId)
       closeSharing()
       await loadWallets(status)
+      setLeaveWalletConfirm(null)
+      toast.success('Left wallet successfully')
     } catch (e) {
       const code = e?.response?.data?.code
       const eligible = e?.response?.data?.data?.eligibleMembers
-      
+
       if (code === 'OWNER_CANNOT_LEAVE' && Array.isArray(eligible) && eligible.length) {
-        // Show list of members to transfer ownership to
-        const memberList = eligible.map((m, i) => `${i + 1}. ${m.name || 'Unknown'} (${m.email || 'Unknown'})`).join('\n')
-        const input = window.prompt(
-          `You are the owner. Enter the NUMBER of the member to transfer ownership:\n\n${memberList}`,
-          '1'
-        )
-        if (!input) {
-          setBusyId(null)
-          return
-        }
-        
-        const index = parseInt(input, 10) - 1
-        const picked = eligible[index]
-        
-        if (!picked || !picked.id) {
-          setError('Invalid selection. Please try again.')
-          setBusyId(null)
-          return
-        }
-        
-        try {
-          await walletService.transferOwnership(walletId, picked.id)
-          await walletService.leaveWallet(walletId)
-          closeSharing()
-          await loadWallets(status)
-        } catch (transferErr) {
-          setError(transferErr?.response?.data?.error || 'Failed to transfer ownership')
-        }
+        // Show modal to select member to transfer ownership
+        setOwnerLeaveMembers(eligible)
+        setSelectedTransferMember(eligible[0]?.id || '')
+        toast.warning('You must transfer ownership before leaving')
         setBusyId(null)
         return
       }
-      setError(e?.response?.data?.error || e?.message || 'Failed to leave wallet')
+      toast.error(e?.response?.data?.error || e?.message || 'Failed to leave wallet')
+    } finally {
+      setBusyId(null)
+    }
+  }
+
+  const confirmTransferAndLeave = async () => {
+    const walletId = leaveWalletConfirm
+    if (!walletId || !selectedTransferMember) return
+    setBusyId(`leave:${walletId}`)
+    try {
+      await walletService.transferOwnership(walletId, selectedTransferMember)
+      await walletService.leaveWallet(walletId)
+      closeSharing()
+      await loadWallets(status)
+      setLeaveWalletConfirm(null)
+      setOwnerLeaveMembers(null)
+      setSelectedTransferMember('')
+      toast.success('Ownership transferred and left wallet successfully')
+    } catch (e) {
+      toast.error(e?.response?.data?.error || e?.message || 'Failed to transfer ownership and leave')
     } finally {
       setBusyId(null)
     }
@@ -311,15 +353,22 @@ export default function Wallets() {
   const renameWallet = async (wallet) => {
     const id = wallet?.id || wallet?._id
     if (!id) return
-    const newName = window.prompt('Enter new wallet name:', wallet.name)
-    if (!newName || newName.trim() === wallet.name) return
+    setRenameWalletId(id)
+    setRenameValue(wallet.name || '')
+  }
+
+  const confirmRenameWallet = async () => {
+    const id = renameWalletId
+    if (!id || !renameValue.trim()) return
     setBusyId(id)
-    setError('')
     try {
-      await walletService.updateWallet(id, { name: newName.trim() })
+      await walletService.updateWallet(id, { name: renameValue.trim() })
       await loadWallets(status)
+      setRenameWalletId(null)
+      setRenameValue('')
+      toast.success('Wallet renamed successfully')
     } catch (e) {
-      setError(e?.response?.data?.error || e?.message || 'Failed to rename wallet')
+      toast.error(e?.response?.data?.error || e?.message || 'Failed to rename wallet')
     } finally {
       setBusyId(null)
     }
@@ -330,12 +379,12 @@ export default function Wallets() {
     if (!id) return
     const newStatus = wallet.status === 'active' ? 'inactive' : 'active'
     setBusyId(id)
-    setError('')
     try {
       await walletService.updateWallet(id, { status: newStatus })
       await loadWallets(status)
+      toast.success(`Wallet ${newStatus === 'active' ? 'activated' : 'deactivated'} successfully`)
     } catch (e) {
-      setError(e?.response?.data?.error || e?.message || 'Failed to update wallet status')
+      toast.error(e?.response?.data?.error || e?.message || 'Failed to update wallet status')
     } finally {
       setBusyId(null)
     }
@@ -511,57 +560,57 @@ export default function Wallets() {
                     membersInfo.members
                       .filter((m) => String(m.id) !== String(membersInfo.owner?.id))
                       .map((m) => {
-                      const isSelf = myUserId && String(m.id) === String(myUserId)
-                      const canOwnerManage = sharingWallet.myPermission === 'owner' && String(m.id) !== String(membersInfo.owner?.id)
-                      return (
-                        <div
-                          key={m.id}
-                          className="rounded-xl border border-border-dark bg-surface-dark p-3 flex items-center justify-between gap-3"
-                        >
-                          <div>
-                            <div className="text-white font-semibold">
-                              {m.name} {isSelf ? <span className="text-xs text-text-secondary">(you)</span> : null}
+                        const isSelf = myUserId && String(m.id) === String(myUserId)
+                        const canOwnerManage = sharingWallet.myPermission === 'owner' && String(m.id) !== String(membersInfo.owner?.id)
+                        return (
+                          <div
+                            key={m.id}
+                            className="rounded-xl border border-border-dark bg-surface-dark p-3 flex items-center justify-between gap-3"
+                          >
+                            <div>
+                              <div className="text-white font-semibold">
+                                {m.name} {isSelf ? <span className="text-xs text-text-secondary">(you)</span> : null}
+                              </div>
+                              <div className="text-xs text-text-secondary">{m.email}</div>
                             </div>
-                            <div className="text-xs text-text-secondary">{m.email}</div>
+                            <div className="flex items-center gap-2">
+                              <div className="text-xs text-text-secondary">{m.permission}</div>
+                              {canOwnerManage ? (
+                                <MoreMenu
+                                  ariaLabel="Member options"
+                                  buttonClassName="text-text-secondary hover:text-white disabled:opacity-60"
+                                  items={[
+                                    {
+                                      label: 'Set View',
+                                      icon: 'visibility',
+                                      disabled: busyId === `${sharingWallet.id || sharingWallet._id}:${m.id}`,
+                                      onClick: () => setPermission(m.id, 'view'),
+                                    },
+                                    {
+                                      label: 'Set Edit',
+                                      icon: 'edit',
+                                      disabled: busyId === `${sharingWallet.id || sharingWallet._id}:${m.id}`,
+                                      onClick: () => setPermission(m.id, 'edit'),
+                                    },
+                                    {
+                                      label: 'Make Owner',
+                                      icon: 'swap_horiz',
+                                      disabled: busyId === `${sharingWallet.id || sharingWallet._id}:own:${m.id}`,
+                                      onClick: () => transferOwnership(m.id),
+                                    },
+                                    {
+                                      label: 'Remove',
+                                      icon: 'person_remove',
+                                      disabled: busyId === `${sharingWallet.id || sharingWallet._id}:rm:${m.id}`,
+                                      onClick: () => removeMember(m.id),
+                                    },
+                                  ]}
+                                />
+                              ) : null}
+                            </div>
                           </div>
-                          <div className="flex items-center gap-2">
-                            <div className="text-xs text-text-secondary">{m.permission}</div>
-                            {canOwnerManage ? (
-                              <MoreMenu
-                                ariaLabel="Member options"
-                                buttonClassName="text-text-secondary hover:text-white disabled:opacity-60"
-                                items={[
-                                  {
-                                    label: 'Set View',
-                                    icon: 'visibility',
-                                    disabled: busyId === `${sharingWallet.id || sharingWallet._id}:${m.id}`,
-                                    onClick: () => setPermission(m.id, 'view'),
-                                  },
-                                  {
-                                    label: 'Set Edit',
-                                    icon: 'edit',
-                                    disabled: busyId === `${sharingWallet.id || sharingWallet._id}:${m.id}`,
-                                    onClick: () => setPermission(m.id, 'edit'),
-                                  },
-                                  {
-                                    label: 'Make Owner',
-                                    icon: 'swap_horiz',
-                                    disabled: busyId === `${sharingWallet.id || sharingWallet._id}:own:${m.id}`,
-                                    onClick: () => transferOwnership(m.id),
-                                  },
-                                  {
-                                    label: 'Remove',
-                                    icon: 'person_remove',
-                                    disabled: busyId === `${sharingWallet.id || sharingWallet._id}:rm:${m.id}`,
-                                    onClick: () => removeMember(m.id),
-                                  },
-                                ]}
-                              />
-                            ) : null}
-                          </div>
-                        </div>
-                      )
-                    })
+                        )
+                      })
                   ) : (
                     <div className="rounded-xl border border-border-dark bg-surface-dark p-3 text-sm text-text-secondary">
                       No members.
@@ -587,11 +636,6 @@ export default function Wallets() {
         ) : null}
 
         <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 pb-8">
-          {error ? (
-            <div className="col-span-full rounded-xl border border-red-500/40 bg-red-500/10 p-4 text-sm text-red-200">
-              {error}
-            </div>
-          ) : null}
           {wallets.map((w) => (
             <div
               key={w.id || w._id}
@@ -657,6 +701,263 @@ export default function Wallets() {
             </div>
           )}
         </div>
+
+        {/* Delete Wallet Confirmation Modal */}
+        {deleteConfirmId ? (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+            <div className="w-full max-w-md rounded-2xl border border-border-dark bg-card-dark p-6">
+              <div className="flex items-center gap-3">
+                <div className="flex size-12 items-center justify-center rounded-full bg-red-500/10 text-red-500">
+                  <span className="material-symbols-outlined">delete</span>
+                </div>
+                <div>
+                  <div className="text-lg font-bold text-white">Delete Wallet</div>
+                  <div className="text-sm text-text-secondary">This action cannot be undone</div>
+                </div>
+              </div>
+              <div className="mt-4 text-sm text-text-secondary">
+                Are you sure you want to delete this wallet? All transactions associated with this wallet will also be deleted.
+              </div>
+              <div className="mt-6 flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setDeleteConfirmId(null)}
+                  disabled={busyId === deleteConfirmId}
+                  className="flex-1 h-10 rounded-lg border border-border-dark bg-transparent px-4 text-sm font-semibold text-text-secondary hover:bg-border-dark hover:text-white disabled:opacity-60"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={confirmDeleteWallet}
+                  disabled={busyId === deleteConfirmId}
+                  className="flex-1 h-10 rounded-lg bg-red-500 px-4 text-sm font-bold text-white hover:bg-red-600 disabled:opacity-60"
+                >
+                  {busyId === deleteConfirmId ? 'Deleting…' : 'Delete'}
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : null}
+
+        {/* Remove Member Confirmation Modal */}
+        {removeMemberConfirm ? (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+            <div className="w-full max-w-md rounded-2xl border border-border-dark bg-card-dark p-6">
+              <div className="flex items-center gap-3">
+                <div className="flex size-12 items-center justify-center rounded-full bg-red-500/10 text-red-500">
+                  <span className="material-symbols-outlined">person_remove</span>
+                </div>
+                <div>
+                  <div className="text-lg font-bold text-white">Remove Member</div>
+                  <div className="text-sm text-text-secondary">Remove access to this wallet</div>
+                </div>
+              </div>
+              <div className="mt-4 text-sm text-text-secondary">
+                Are you sure you want to remove this member from the wallet?
+              </div>
+              <div className="mt-6 flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setRemoveMemberConfirm(null)}
+                  disabled={busyId === `${sharingWallet?.id || sharingWallet?._id}:rm:${removeMemberConfirm}`}
+                  className="flex-1 h-10 rounded-lg border border-border-dark bg-transparent px-4 text-sm font-semibold text-text-secondary hover:bg-border-dark hover:text-white disabled:opacity-60"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={confirmRemoveMember}
+                  disabled={busyId === `${sharingWallet?.id || sharingWallet?._id}:rm:${removeMemberConfirm}`}
+                  className="flex-1 h-10 rounded-lg bg-red-500 px-4 text-sm font-bold text-white hover:bg-red-600 disabled:opacity-60"
+                >
+                  {busyId === `${sharingWallet?.id || sharingWallet?._id}:rm:${removeMemberConfirm}` ? 'Removing…' : 'Remove'}
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : null}
+
+        {/* Transfer Ownership Confirmation Modal */}
+        {transferOwnerConfirm ? (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+            <div className="w-full max-w-md rounded-2xl border border-border-dark bg-card-dark p-6">
+              <div className="flex items-center gap-3">
+                <div className="flex size-12 items-center justify-center rounded-full bg-primary/10 text-primary">
+                  <span className="material-symbols-outlined">swap_horiz</span>
+                </div>
+                <div>
+                  <div className="text-lg font-bold text-white">Transfer Ownership</div>
+                  <div className="text-sm text-text-secondary">Make this member the new owner</div>
+                </div>
+              </div>
+              <div className="mt-4 text-sm text-text-secondary">
+                Are you sure you want to transfer ownership? You will become a regular member with edit permissions.
+              </div>
+              <div className="mt-6 flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setTransferOwnerConfirm(null)}
+                  disabled={busyId === `${sharingWallet?.id || sharingWallet?._id}:own:${transferOwnerConfirm}`}
+                  className="flex-1 h-10 rounded-lg border border-border-dark bg-transparent px-4 text-sm font-semibold text-text-secondary hover:bg-border-dark hover:text-white disabled:opacity-60"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={confirmTransferOwnership}
+                  disabled={busyId === `${sharingWallet?.id || sharingWallet?._id}:own:${transferOwnerConfirm}`}
+                  className="flex-1 h-10 rounded-lg bg-primary px-4 text-sm font-bold text-background-dark hover:brightness-110 disabled:opacity-60"
+                >
+                  {busyId === `${sharingWallet?.id || sharingWallet?._id}:own:${transferOwnerConfirm}` ? 'Transferring…' : 'Transfer'}
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : null}
+
+        {/* Leave Wallet Confirmation Modal */}
+        {leaveWalletConfirm && !ownerLeaveMembers ? (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+            <div className="w-full max-w-md rounded-2xl border border-border-dark bg-card-dark p-6">
+              <div className="flex items-center gap-3">
+                <div className="flex size-12 items-center justify-center rounded-full bg-red-500/10 text-red-500">
+                  <span className="material-symbols-outlined">logout</span>
+                </div>
+                <div>
+                  <div className="text-lg font-bold text-white">Leave Wallet</div>
+                  <div className="text-sm text-text-secondary">Remove yourself from this wallet</div>
+                </div>
+              </div>
+              <div className="mt-4 text-sm text-text-secondary">
+                Are you sure you want to leave this wallet? You will lose access to all transactions and data.
+              </div>
+              <div className="mt-6 flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setLeaveWalletConfirm(null)}
+                  disabled={busyId === `leave:${leaveWalletConfirm}`}
+                  className="flex-1 h-10 rounded-lg border border-border-dark bg-transparent px-4 text-sm font-semibold text-text-secondary hover:bg-border-dark hover:text-white disabled:opacity-60"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={confirmLeaveWallet}
+                  disabled={busyId === `leave:${leaveWalletConfirm}`}
+                  className="flex-1 h-10 rounded-lg bg-red-500 px-4 text-sm font-bold text-white hover:bg-red-600 disabled:opacity-60"
+                >
+                  {busyId === `leave:${leaveWalletConfirm}` ? 'Leaving…' : 'Leave'}
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : null}
+
+        {/* Owner Leave - Transfer Ownership Modal */}
+        {ownerLeaveMembers ? (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+            <div className="w-full max-w-md rounded-2xl border border-border-dark bg-card-dark p-6">
+              <div className="flex items-center gap-3">
+                <div className="flex size-12 items-center justify-center rounded-full bg-primary/10 text-primary">
+                  <span className="material-symbols-outlined">swap_horiz</span>
+                </div>
+                <div>
+                  <div className="text-lg font-bold text-white">Transfer Ownership to Leave</div>
+                  <div className="text-sm text-text-secondary">Select a new owner before leaving</div>
+                </div>
+              </div>
+              <div className="mt-4 text-sm text-text-secondary">
+                As the owner, you must transfer ownership to another member before leaving the wallet.
+              </div>
+              <div className="mt-4">
+                <label className="text-sm font-medium text-white">Select new owner</label>
+                <select
+                  className="mt-2 h-12 w-full rounded-lg bg-surface-dark border border-border-dark px-4 text-white focus:border-primary focus:ring-1 focus:ring-primary outline-none"
+                  value={selectedTransferMember}
+                  onChange={(e) => setSelectedTransferMember(e.target.value)}
+                >
+                  {ownerLeaveMembers.map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.name} ({m.email})
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="mt-6 flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setOwnerLeaveMembers(null)
+                    setSelectedTransferMember('')
+                    setLeaveWalletConfirm(null)
+                  }}
+                  disabled={busyId === `leave:${leaveWalletConfirm}`}
+                  className="flex-1 h-10 rounded-lg border border-border-dark bg-transparent px-4 text-sm font-semibold text-text-secondary hover:bg-border-dark hover:text-white disabled:opacity-60"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={confirmTransferAndLeave}
+                  disabled={busyId === `leave:${leaveWalletConfirm}` || !selectedTransferMember}
+                  className="flex-1 h-10 rounded-lg bg-primary px-4 text-sm font-bold text-background-dark hover:brightness-110 disabled:opacity-60"
+                >
+                  {busyId === `leave:${leaveWalletConfirm}` ? 'Processing…' : 'Transfer & Leave'}
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : null}
+
+        {/* Rename Wallet Modal */}
+        {renameWalletId ? (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+            <div className="w-full max-w-md rounded-2xl border border-border-dark bg-card-dark p-6">
+              <div className="flex items-center gap-3">
+                <div className="flex size-12 items-center justify-center rounded-full bg-primary/10 text-primary">
+                  <span className="material-symbols-outlined">edit</span>
+                </div>
+                <div>
+                  <div className="text-lg font-bold text-white">Rename Wallet</div>
+                  <div className="text-sm text-text-secondary">Change the wallet name</div>
+                </div>
+              </div>
+              <div className="mt-4">
+                <label className="text-sm font-medium text-white">Wallet name</label>
+                <input
+                  type="text"
+                  className="mt-2 h-12 w-full rounded-lg bg-surface-dark border border-border-dark px-4 text-white placeholder:text-text-secondary focus:border-primary focus:ring-1 focus:ring-primary outline-none"
+                  value={renameValue}
+                  onChange={(e) => setRenameValue(e.target.value)}
+                  placeholder="Enter wallet name"
+                  autoFocus
+                />
+              </div>
+              <div className="mt-6 flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setRenameWalletId(null)
+                    setRenameValue('')
+                  }}
+                  disabled={busyId === renameWalletId}
+                  className="flex-1 h-10 rounded-lg border border-border-dark bg-transparent px-4 text-sm font-semibold text-text-secondary hover:bg-border-dark hover:text-white disabled:opacity-60"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={confirmRenameWallet}
+                  disabled={busyId === renameWalletId || !renameValue.trim()}
+                  className="flex-1 h-10 rounded-lg bg-primary px-4 text-sm font-bold text-background-dark hover:brightness-110 disabled:opacity-60"
+                >
+                  {busyId === renameWalletId ? 'Saving…' : 'Save'}
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : null}
       </div>
     </div>
   )

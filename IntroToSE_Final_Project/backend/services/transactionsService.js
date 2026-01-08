@@ -95,6 +95,14 @@ export const createTransactionService = async (userId, transactionData) => {
             }
         }
 
+        // Kiểm tra số dư ví trước khi tạo expense
+        if (type === 'expense') {
+            const newBalance = wallet.currentBalance - amount
+            if (newBalance < 0) {
+                throw httpError(400, `Insufficient balance. Current balance: ${wallet.currentBalance.toLocaleString()}, Required: ${amount.toLocaleString()}`)
+            }
+        }
+
         // Tạo transaction
         const tx = await Transaction.create([{
             userId,
@@ -109,12 +117,12 @@ export const createTransactionService = async (userId, transactionData) => {
             goalId: transactionData.goalId || undefined, // Thêm goalId nếu có
         }], { session })
 
-        // // Cập nhật balance của wallet
-        // wallet.currentBalance += signedAmount(type, amount)
-        // await wallet.save({ session })
+        // Cập nhật balance của wallet
+        wallet.currentBalance += signedAmount(type, amount)
+        await wallet.save({ session })
 
-        // // Tự động cập nhật Budget spent và Saving Goal (nếu có)
-        // await updateBalanceOnTransaction(userId, tx[0], session)
+        // Tự động cập nhật Budget spent và Saving Goal (nếu có)
+        await updateBalanceOnTransaction(userId, tx[0], session)
 
         return tx[0]
     })
@@ -170,10 +178,21 @@ export const updateTransactionService = async (userId, transactionId, updates) =
                 throw httpError(404, 'New wallet not found or access denied')
             }
 
+            // Kiểm tra số dư sau khi rollback và apply
+            const oldWalletNewBalance = oldWallet.currentBalance - oldSigned
+            const newWalletNewBalance = newWalletDoc.currentBalance + newSigned
+
+            if (oldWalletNewBalance < 0) {
+                throw httpError(400, `Insufficient balance in old wallet. Balance after rollback: ${oldWalletNewBalance.toLocaleString()}`)
+            }
+            if (newWalletNewBalance < 0) {
+                throw httpError(400, `Insufficient balance in new wallet. Current balance: ${newWalletDoc.currentBalance.toLocaleString()}, Required: ${Math.abs(newSigned).toLocaleString()}`)
+            }
+
             // Rollback balance từ wallet cũ
-            oldWallet.currentBalance -= oldSigned
+            oldWallet.currentBalance = oldWalletNewBalance
             // Thêm balance vào wallet mới
-            newWalletDoc.currentBalance += newSigned
+            newWalletDoc.currentBalance = newWalletNewBalance
 
             await oldWallet.save({ session })
             await newWalletDoc.save({ session })
@@ -184,8 +203,16 @@ export const updateTransactionService = async (userId, transactionId, updates) =
                 throw httpError(404, 'Wallet not found or access denied')
             }
 
+            // Tính balance mới
+            const newBalance = wallet.currentBalance + (newSigned - oldSigned)
+
+            // Kiểm tra số dư
+            if (newBalance < 0) {
+                throw httpError(400, `Insufficient balance. Current balance: ${wallet.currentBalance.toLocaleString()}, Change: ${(newSigned - oldSigned).toLocaleString()}, Result: ${newBalance.toLocaleString()}`)
+            }
+
             // Rollback balance cũ và apply balance mới
-            wallet.currentBalance += (newSigned - oldSigned)
+            wallet.currentBalance = newBalance
             await wallet.save({ session })
         }
 
@@ -305,6 +332,11 @@ export const transferMoneyService = async (userId, transferData) => {
         }
         if (!toWallet || !canAccessWallet(toWallet, userId)) {
             throw httpError(404, 'To wallet not found or access denied')
+        }
+
+        // Kiểm tra số dư ví nguồn
+        if (fromWallet.currentBalance < amount) {
+            throw httpError(400, `Insufficient balance in source wallet. Current balance: ${fromWallet.currentBalance.toLocaleString()}, Required: ${amount.toLocaleString()}`)
         }
 
         const when = date ? new Date(date) : new Date()

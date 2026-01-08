@@ -123,6 +123,18 @@ export async function leaveWallet(walletId) {
     return res?.data
 }
 
+// ==================== WALLET BALANCE ====================
+
+/**
+ * Recalculate wallet balance
+ * @param {string} walletId - Optional wallet ID to recalculate specific wallet
+ * @returns {Promise<Object>} Response
+ */
+export async function recalculateBalance(walletId = null) {
+    const res = await api.post('/balance/recalculate', walletId ? { walletId } : {})
+    return res?.data
+}
+
 // ==================== WALLET INVITATIONS ====================
 
 /**
@@ -176,6 +188,8 @@ export default {
     getWallet,
     updateWallet,
     deleteWallet,
+    // Balance
+    recalculateBalance,
     // Members
     getWalletMembers,
     setMemberPermission,

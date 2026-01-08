@@ -1,31 +1,39 @@
 import React from 'react'
 import { useNavigate } from 'react-router-dom'
 
-import api from '../../services/api.js'
+import categoryService from '../../services/categoryService.js'
 import MoreMenu from '../../components/MoreMenu.jsx'
+import { useToast } from '../../components/Toast.jsx'
 
 export default function Categories() {
   const navigate = useNavigate()
+  const toast = useToast()
 
   const [all, setAll] = React.useState([])
   const [busyId, setBusyId] = React.useState(null)
-  const [error, setError] = React.useState('')
+  const [deleteConfirmId, setDeleteConfirmId] = React.useState(null)
+  const [renameId, setRenameId] = React.useState(null)
+  const [renameValue, setRenameValue] = React.useState('')
+
   React.useEffect(() => {
     let mounted = true
-    ;(async () => {
-      try {
-        const res = await api.listCategories({ page: 1, limit: 200 })
-        const items = res?.items || []
-        if (!mounted) return
-        setAll(Array.isArray(items) ? items : [])
-      } catch {
-        // ignore
-      }
-    })()
+      ; (async () => {
+        try {
+          const items = await categoryService.listCategories({ page: 1, limit: 200 })
+          if (!mounted) return
+          setAll(Array.isArray(items) ? items : [])
+        } catch (error) {
+          console.error('Failed to fetch categories:', error)
+          if (mounted) {
+            setAll([])
+            toast.error('Failed to load categories')
+          }
+        }
+      })()
     return () => {
       mounted = false
     }
-  }, [])
+  }, [toast])
 
   const [type, setType] = React.useState('expense')
   const [query, setQuery] = React.useState('')
@@ -37,17 +45,23 @@ export default function Categories() {
     const id = category?._id || category?.id
     if (!id) return
     if (category?.isDefault) {
-      setError('Default categories cannot be deleted')
+      toast.error('Default categories cannot be deleted')
       return
     }
-    if (!window.confirm('Delete this category?')) return
+    setDeleteConfirmId(id)
+  }
+
+  const confirmDelete = async () => {
+    const id = deleteConfirmId
+    if (!id) return
     setBusyId(id)
-    setError('')
     try {
-      await api.deleteCategory(id)
+      await categoryService.deleteCategory(id)
       setAll((prev) => prev.filter((c) => (c._id || c.id) !== id))
+      setDeleteConfirmId(null)
+      toast.success('Category deleted successfully')
     } catch (e) {
-      setError(e?.message || 'Failed to delete category')
+      toast.error(e?.response?.data?.error || e?.message || 'Failed to delete category')
     } finally {
       setBusyId(null)
     }
@@ -57,23 +71,30 @@ export default function Categories() {
     const id = category?._id || category?.id
     if (!id) return
     if (category?.isDefault) {
-      setError('Default categories cannot be edited')
+      toast.error('Default categories cannot be edited')
       return
     }
+    setRenameId(id)
+    setRenameValue(category?.name || '')
+  }
 
-    const currentName = String(category?.name || '').trim()
-    const nextName = window.prompt('Rename category', currentName)
-    if (nextName === null) return
-    const trimmed = String(nextName).trim()
-    if (!trimmed || trimmed === currentName) return
-
+  const confirmRename = async () => {
+    const id = renameId
+    if (!id) return
+    const trimmed = String(renameValue).trim()
+    if (!trimmed) {
+      toast.error('Category name cannot be empty')
+      return
+    }
     setBusyId(id)
-    setError('')
     try {
-      const updated = await api.updateCategory(id, { name: trimmed })
+      const updated = await categoryService.updateCategory(id, { name: trimmed })
       setAll((prev) => prev.map((c) => ((c._id || c.id) === id ? { ...c, ...(updated || {}) } : c)))
+      setRenameId(null)
+      setRenameValue('')
+      toast.success('Category renamed successfully')
     } catch (e) {
-      setError(e?.message || 'Failed to rename category')
+      toast.error(e?.response?.data?.error || e?.message || 'Failed to rename category')
     } finally {
       setBusyId(null)
     }
@@ -140,11 +161,6 @@ export default function Categories() {
         </div>
 
         <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 pb-20">
-          {error ? (
-            <div className="sm:col-span-2 lg:col-span-3 xl:col-span-4 rounded-xl border border-red-500/40 bg-red-500/10 p-4 text-sm text-red-200">
-              {error}
-            </div>
-          ) : null}
           <button
             type="button"
             onClick={() => navigate('/categories/new')}
@@ -197,6 +213,93 @@ export default function Categories() {
             </div>
           )}
         </div>
+
+        {/* Delete Confirmation Modal */}
+        {deleteConfirmId ? (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+            <div className="w-full max-w-md rounded-2xl border border-border-dark bg-card-dark p-6">
+              <div className="flex items-center gap-3">
+                <div className="flex size-12 items-center justify-center rounded-full bg-red-500/10 text-red-500">
+                  <span className="material-symbols-outlined">delete</span>
+                </div>
+                <div>
+                  <div className="text-lg font-bold text-white">Delete Category</div>
+                  <div className="text-sm text-text-secondary">This action cannot be undone</div>
+                </div>
+              </div>
+              <div className="mt-4 text-sm text-text-secondary">
+                Are you sure you want to delete this category? All transactions using this category will become uncategorized.
+              </div>
+              <div className="mt-6 flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setDeleteConfirmId(null)}
+                  disabled={busyId === deleteConfirmId}
+                  className="flex-1 h-10 rounded-lg border border-border-dark bg-transparent px-4 text-sm font-semibold text-text-secondary hover:bg-border-dark hover:text-white disabled:opacity-60"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={confirmDelete}
+                  disabled={busyId === deleteConfirmId}
+                  className="flex-1 h-10 rounded-lg bg-red-500 px-4 text-sm font-bold text-white hover:bg-red-600 disabled:opacity-60"
+                >
+                  {busyId === deleteConfirmId ? 'Deleting…' : 'Delete'}
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : null}
+
+        {/* Rename Category Modal */}
+        {renameId ? (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+            <div className="w-full max-w-md rounded-2xl border border-border-dark bg-card-dark p-6">
+              <div className="flex items-center gap-3">
+                <div className="flex size-12 items-center justify-center rounded-full bg-primary/10 text-primary">
+                  <span className="material-symbols-outlined">edit</span>
+                </div>
+                <div>
+                  <div className="text-lg font-bold text-white">Rename Category</div>
+                  <div className="text-sm text-text-secondary">Change the category name</div>
+                </div>
+              </div>
+              <div className="mt-4">
+                <label className="text-sm font-medium text-white">Category name</label>
+                <input
+                  type="text"
+                  className="mt-2 h-12 w-full rounded-lg bg-surface-dark border border-border-dark px-4 text-white placeholder:text-text-secondary focus:border-primary focus:ring-1 focus:ring-primary outline-none"
+                  value={renameValue}
+                  onChange={(e) => setRenameValue(e.target.value)}
+                  placeholder="Enter category name"
+                  autoFocus
+                />
+              </div>
+              <div className="mt-6 flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setRenameId(null)
+                    setRenameValue('')
+                  }}
+                  disabled={busyId === renameId}
+                  className="flex-1 h-10 rounded-lg border border-border-dark bg-transparent px-4 text-sm font-semibold text-text-secondary hover:bg-border-dark hover:text-white disabled:opacity-60"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={confirmRename}
+                  disabled={busyId === renameId || !renameValue.trim()}
+                  className="flex-1 h-10 rounded-lg bg-primary px-4 text-sm font-bold text-background-dark hover:brightness-110 disabled:opacity-60"
+                >
+                  {busyId === renameId ? 'Saving…' : 'Save'}
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : null}
       </div>
     </div>
   )

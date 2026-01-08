@@ -26,6 +26,7 @@ export default function CreateWallet() {
   const [icon, setIcon] = React.useState(ICONS[0].id)
   const [name, setName] = React.useState('')
   const [currency, setCurrency] = React.useState('VND')
+  const [currency, setCurrency] = React.useState('VND')
   const [balance, setBalance] = React.useState('0')
   const [balanceNum, setBalanceNum] = React.useState(0)
   const [type, setType] = React.useState('Cash')
@@ -45,22 +46,22 @@ export default function CreateWallet() {
 
     setError('')
     setBusy(true)
-    ;(async () => {
-      try {
-        await walletService.createWallet({
-          name: name.trim() || 'Untitled',
-          type,
-          initialBalance: Number.isFinite(balanceNum) ? balanceNum : Number(balance) || 0,
-          currency,
-          isShared,
-        })
-        navigate('/wallets')
-      } catch (e2) {
-        setError(e2?.response?.data?.error || e2?.message || 'Failed to create wallet')
-      } finally {
-        setBusy(false)
-      }
-    })()
+      ; (async () => {
+        try {
+          await walletService.createWallet({
+            name: name.trim() || 'Untitled',
+            type,
+            initialBalance: Number.isFinite(balanceNum) ? balanceNum : Number(balance) || 0,
+            currency,
+            isShared,
+          })
+          navigate('/wallets')
+        } catch (e2) {
+          setError(e2?.response?.data?.error || e2?.message || 'Failed to create wallet')
+        } finally {
+          setBusy(false)
+        }
+      })()
   }
 
   return (
@@ -138,11 +139,11 @@ export default function CreateWallet() {
                 <span className="text-sm font-medium text-white">Starting balance</span>
                 <FormattedNumberInput
                   inputClassName={inputClass}
-                  value={balance}
+                  value={balanceNum}
                   decimals={2}
                   onChangeValue={(n, raw) => {
-                    setBalance(raw)
                     setBalanceNum(n)
+                    setBalance(raw)
                   }}
                 />
               </label>

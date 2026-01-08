@@ -1,7 +1,9 @@
 import React from 'react'
 import FormattedNumberInput from '../../../components/FormattedNumberInput.jsx'
 import { useToast } from '../../../components/Toast.jsx'
-import api from '../../../services/api.js'
+import transactionService from '../../../services/transactionService.js'
+import categoryService from '../../../services/categoryService.js'
+import walletService from '../../../services/walletService.js'
 
 function toNumber(value) {
     const n = Number(value)
@@ -15,6 +17,7 @@ export default function EditTransactionForm({ transaction, onSuccess, onCancel }
     const [wallets, setWallets] = React.useState([])
     const [busy, setBusy] = React.useState(false)
     const [permissionBlocked, setPermissionBlocked] = React.useState(false)
+    const [walletsLoaded, setWalletsLoaded] = React.useState(false)
 
     const [type, setType] = React.useState('expense')
     const [amount, setAmount] = React.useState(0)
@@ -27,28 +30,40 @@ export default function EditTransactionForm({ transaction, onSuccess, onCancel }
         let mounted = true
             ; (async () => {
                 try {
-                    // const [catsRes, walletsRes] = await Promise.all([
-                    //   api.listCategories({ page: 1, limit: 200 }),
-                    //   api.listWallets(),
-                    // ])
-                    // const items = catsRes?.items || []
-                    // const walletsList = walletsRes?.data?.wallets || walletsRes?.wallets || walletsRes?.data || walletsRes || []
+                    const [categoriesData, walletsRes] = await Promise.all([
+                        categoryService.listCategories({ page: 1, limit: 200 }),
+                        walletService.listWallets({ status: 'active' })
+                    ])
                     if (!mounted) return
-                    // setCategories(Array.isArray(items) ? items : [])
-                    // const all = Array.isArray(walletsList) ? walletsList : []
-                    // const editable = all.filter((w) => {
-                    //   const p = w?.myPermission
-                    //   return p === 'owner' || p === 'edit'
-                    // })
-                    // setWallets(editable)
-                } catch {
-                    // ignore
+
+                    // Set categories
+                    setCategories(Array.isArray(categoriesData) ? categoriesData : [])
+
+                    // Extract wallets array from response
+                    const walletsList = walletsRes || []
+                    const all = Array.isArray(walletsList) ? walletsList : []
+
+                    // Filter wallets where user has edit permission
+                    const editable = all.filter((w) => {
+                        const p = w?.myPermission
+                        return p === 'owner' || p === 'edit'
+                    })
+                    setWallets(editable)
+                    setWalletsLoaded(true)
+                } catch (error) {
+                    console.error('Failed to fetch data:', error)
+                    if (mounted) {
+                        setWallets([])
+                        setCategories([])
+                        setWalletsLoaded(true)
+                        toast.error('Failed to load categories and wallets')
+                    }
                 }
             })()
         return () => {
             mounted = false
         }
-    }, [])
+    }, [toast])
 
     React.useEffect(() => {
         if (transaction) {
@@ -75,8 +90,11 @@ export default function EditTransactionForm({ transaction, onSuccess, onCancel }
 
     React.useEffect(() => {
         if (!tx) return
+        if (!walletsLoaded) return // Wait for wallets to load before checking permission
+
         const wid = tx.walletId
         if (!wid) return
+
         const ok = wallets.some((w) => String(w.id || w._id) === String(wid))
         if (!ok) {
             setPermissionBlocked(true)
@@ -84,7 +102,7 @@ export default function EditTransactionForm({ transaction, onSuccess, onCancel }
         } else {
             setPermissionBlocked(false)
         }
-    }, [tx, wallets, toast])
+    }, [tx, wallets, walletsLoaded, toast])
 
     const submit = (e) => {
         e.preventDefault()
@@ -114,18 +132,23 @@ export default function EditTransactionForm({ transaction, onSuccess, onCancel }
             ; (async () => {
                 try {
                     const category = categories.find((c) => c._id === categoryId)
-                    // await api.updateTransaction(tx._id || tx.id, {
-                    //   amount: Math.abs(amountNum),
-                    //   type,
-                    //   walletId,
-                    //   categoryId,
-                    //   category: category?.name || tx?.category,
-                    //   date,
-                    //   note,
-                    // })
+                    await transactionService.updateTransaction(tx._id || tx.id, {
+                        amount: Math.abs(amount),
+                        type,
+                        walletId,
+                        categoryId,
+                        category: category?.name || tx?.category,
+                        date,
+                        note,
+                    })
+
+                    // Backend already updates wallet balance correctly using rollback-and-apply pattern
+                    // No need to recalculate here as it may cause race conditions
+
+                    // Notify wallet pages to refresh
+                    window.dispatchEvent(new CustomEvent('walletBalanceChanged'))
                     toast.success('Transaction updated successfully')
                     if (onSuccess) onSuccess()
-                    toast.warning('API call disabled - updateTransaction()')
                 } catch (e2) {
                     toast.error(e2?.response?.data?.error || e2?.message || 'Failed to update transaction')
                 } finally {

@@ -2,18 +2,22 @@ import React from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 
 import transactionService from '../../services/transactionService.js'
+import walletService from '../../services/walletService.js'
 import { formatMoney } from '../../lib/format.js'
 import AddTransactionForm from './components/AddTransaction.jsx'
 import EditTransactionForm from './components/EditTransaction.jsx'
+import { useToast } from '../../components/Toast.jsx'
 
 export default function Transactions() {
   const navigate = useNavigate()
   const location = useLocation()
+  const toast = useToast()
   const [items, setItems] = React.useState([])
   const [selected, setSelected] = React.useState(null)
   const [showAddModal, setShowAddModal] = React.useState(false)
   const [showEditModal, setShowEditModal] = React.useState(false)
   const [editingTransaction, setEditingTransaction] = React.useState(null)
+  const [deleteConfirmId, setDeleteConfirmId] = React.useState(null)
 
   const qs = React.useMemo(() => new URLSearchParams(location.search), [location.search])
   const initialWalletId = qs.get('walletId') || ''
@@ -24,6 +28,7 @@ export default function Transactions() {
   const [categoryFilter, setCategoryFilter] = React.useState('all')
   const [monthFilter, setMonthFilter] = React.useState(initialWalletId ? 'all' : 'month')
   const [refreshCounter, setRefreshCounter] = React.useState(0)
+  const [wallets, setWallets] = React.useState([])
 
   // Trigger refresh when navigating back from AddTransaction
   React.useEffect(() => {
@@ -34,6 +39,23 @@ export default function Transactions() {
     }
   }, [location.state])
 
+  // Fetch wallets for wallet name lookup
+  React.useEffect(() => {
+    let mounted = true
+    const fetchWallets = async () => {
+      try {
+        const walletsData = await walletService.listWallets({ status: 'active' })
+        if (!mounted) return
+        setWallets(Array.isArray(walletsData) ? walletsData : [])
+      } catch (error) {
+        console.error('Failed to fetch wallets:', error)
+        if (mounted) setWallets([])
+      }
+    }
+    fetchWallets()
+    return () => { mounted = false }
+  }, [])
+
   React.useEffect(() => {
     let mounted = true
     const fetchTransactions = async () => {
@@ -43,11 +65,6 @@ export default function Transactions() {
         if (initialQ) params.q = initialQ
 
         const response = await transactionService.getTransactions(params)
-        if (response) {
-          console.log('[getTransactions] Response:', response.data);
-          console.log('Is array?', Array.isArray(response.data));
-          console.log('Type of response.data:', typeof response.data);
-        }
         if (!mounted) return
 
         // Backend returns: { status, message, data: [transactions] }
@@ -75,6 +92,18 @@ export default function Transactions() {
     fetchTransactions()
     return () => { mounted = false }
   }, [initialWalletId, initialQ, refreshCounter])
+
+  // Create wallet map for quick lookup
+  const walletMap = React.useMemo(() => {
+    const map = {}
+    wallets.forEach(wallet => {
+      const id = wallet.id || wallet._id
+      if (id) {
+        map[id.toString()] = wallet.name || 'Unnamed Wallet'
+      }
+    })
+    return map
+  }, [wallets])
 
   const filtered = React.useMemo(() => {
     // Ensure list is always an array
@@ -263,7 +292,9 @@ export default function Transactions() {
                       <td className="px-4 py-4 font-medium text-white">{String(t.date || '').slice(0, 10)}</td>
                       <td className="px-4 py-4 text-text-secondary">{t.type}</td>
                       <td className="px-4 py-4 text-text-secondary">{t.category || 'Uncategorized'}</td>
-                      <td className="px-4 py-4 text-text-secondary">Uncategorized</td>
+                      <td className="px-4 py-4 text-text-secondary">
+                        {t.walletId ? (walletMap[t.walletId.toString()] || 'Unknown Wallet') : 'No Wallet'}
+                      </td>
                       <td className="px-4 py-4 text-right font-bold text-white">
                         {sign}{formatMoney(Math.abs(Number(t.amount || 0)))}
                       </td>
@@ -314,7 +345,9 @@ export default function Transactions() {
                 </div>
                 <div className="flex justify-between gap-4">
                   <span className="text-text-secondary">Wallet</span>
-                  <span className="font-medium text-white">Uncategorized</span>
+                  <span className="font-medium text-white">
+                    {selected.walletId ? (walletMap[selected.walletId.toString()] || 'Unknown Wallet') : 'No Wallet'}
+                  </span>
                 </div>
                 <div className="flex justify-between gap-4">
                   <span className="text-text-secondary">Amount</span>
@@ -344,17 +377,10 @@ export default function Transactions() {
                 <button
                   type="button"
                   className="rounded-lg border border-border-dark px-3 py-2 text-sm font-semibold text-text-secondary hover:bg-border-dark hover:text-white"
-                  onClick={async () => {
+                  onClick={() => {
                     const id = selected?._id || selected?.id
                     if (!id) return
-                    if (!window.confirm('Delete this transaction?')) return
-                    try {
-                      await transactionService.deleteTransaction(id)
-                      setItems((prev) => prev.filter((x) => (x._id || x.id) !== id))
-                      setSelected(null)
-                    } catch (e) {
-                      window.alert(e?.message || 'Failed to delete')
-                    }
+                    setDeleteConfirmId(id)
                   }}
                 >
                   Delete
@@ -393,6 +419,56 @@ export default function Transactions() {
                   setEditingTransaction(null)
                 }}
               />
+            </div>
+          </div>
+        )}
+
+        {deleteConfirmId && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+            <div className="w-full max-w-md rounded-2xl border border-border-dark bg-card-dark p-6 shadow-lg">
+              <div className="text-center">
+                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-red-900/30">
+                  <span className="material-symbols-outlined text-2xl text-red-400">delete</span>
+                </div>
+                <h3 className="mt-4 text-lg font-semibold text-white">Delete Transaction</h3>
+                <p className="mt-2 text-sm text-text-secondary">
+                  Are you sure you want to delete this transaction? This action cannot be undone.
+                </p>
+              </div>
+              <div className="mt-6 flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setDeleteConfirmId(null)}
+                  className="flex-1 rounded-lg border border-border-dark bg-transparent px-4 py-2.5 text-sm font-semibold text-text-secondary hover:bg-border-dark hover:text-white"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    try {
+                      await transactionService.deleteTransaction(deleteConfirmId)
+                      setItems((prev) => prev.filter((x) => (x._id || x.id) !== deleteConfirmId))
+                      setDeleteConfirmId(null)
+                      setSelected(null)
+                      // Recalculate wallet balance
+                      try {
+                        await walletService.recalculateBalance()
+                      } catch (e) {
+                        console.warn('Failed to recalculate balance:', e)
+                      }
+                      // Notify wallet pages to refresh
+                      window.dispatchEvent(new CustomEvent('walletBalanceChanged'))
+                      toast.success('Transaction deleted successfully')
+                    } catch (e) {
+                      toast.error(e?.message || 'Failed to delete transaction')
+                    }
+                  }}
+                  className="flex-1 rounded-lg bg-red-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-red-700"
+                >
+                  Delete
+                </button>
+              </div>
             </div>
           </div>
         )}

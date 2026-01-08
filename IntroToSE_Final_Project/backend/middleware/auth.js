@@ -52,7 +52,7 @@ const authenticate = async (req, res, next) => {
     
     // 2. Extract token (bỏ prefix 'Bearer ')
     const token = authHeader.substring(7);
-    console.log("[MIDDLEWARE ACCESS TOKEN]: ", token);
+    //console.log("[MIDDLEWARE ACCESS TOKEN]: ", token);
     
     if (!token) {
       return sendUnauthorized(res, 'Token is empty')
@@ -61,15 +61,15 @@ const authenticate = async (req, res, next) => {
     // 3. Verify JWT token
     let decoded;
     try {
-      console.log("[MIDDLEWARE] Verifying token with JWT_SECRET:", JWT_SECRET);
+      //console.log("[MIDDLEWARE] Verifying token with JWT_SECRET:", JWT_SECRET);
       decoded = jwt.verify(token, JWT_SECRET);
-      console.log("[MIDDLEWARE] Token verified successfully!");
+      //console.log("[MIDDLEWARE] Token verified successfully!");
     } catch (error) {
-      console.log("[MIDDLEWARE] JWT Verification Error:");
-      console.log("  - Error name:", error.name);
-      console.log("  - Error message:", error.message);
-      console.log("  - JWT_SECRET used:", JWT_SECRET);
-      console.log("  - Token (first 50 chars):", token.substring(0, 50));
+      // console.log("[MIDDLEWARE] JWT Verification Error:");
+      // console.log("  - Error name:", error.name);
+      // console.log("  - Error message:", error.message);
+      // console.log("  - JWT_SECRET used:", JWT_SECRET);
+      // console.log("  - Token (first 50 chars):", token.substring(0, 50));
       
       if (error.name === 'TokenExpiredError') {
         return sendUnauthorized(res, 'Token expired')

@@ -10,7 +10,6 @@ import ForgotPassword from './pages/auth/ForgotPassword.jsx'
 import ResetPassword from './pages/auth/ResetPassword.jsx'
 
 // Standalone pages
-import Profile from './pages/Profile.jsx'
 import Dashboard from './pages/Dashboard.jsx'
 import About from './pages/About.jsx'
 
@@ -23,7 +22,7 @@ import AddCategory from './pages/categories/AddCategory.jsx'
 
 // Wallets module
 import Wallets from './pages/wallets/index.jsx'
-import Accounts from './pages/accounts/Accounts.jsx'
+import Accounts from './pages/accounts/index.jsx'
 import CreateWallet from './pages/wallets/CreateWallet.jsx'
 
 // Savings module
@@ -116,7 +115,6 @@ function AppContent() {
           <Route path="/reports" element={<Reports />} />
           <Route path="/reports/category" element={<ReportByCategory />} />
           <Route path="/reports/wallet" element={<ReportByWallet />} />
-          <Route path="/profile" element={<Profile />} />
           <Route path="/about" element={<About />} />
 
           <Route path="/categories/new" element={<AddCategory />} />

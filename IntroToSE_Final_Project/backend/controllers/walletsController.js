@@ -144,12 +144,12 @@ export const getUserWallets = async (req, res) => {
     // Transform data for display with myPermission
     const formattedWallets = wallets.map(wallet => {
       const info = wallet.getDisplayInfo()
-      
+
       // Determine user's permission for this wallet
       let myPermission = 'view'
-      const isOwner = wallet.ownerId?.toString() === userId?.toString() || 
-                      wallet.userId?.toString() === userId?.toString()
-      
+      const isOwner = wallet.ownerId?.toString() === userId?.toString() ||
+        wallet.userId?.toString() === userId?.toString()
+
       if (isOwner) {
         myPermission = 'owner'
       } else {
@@ -158,7 +158,7 @@ export const getUserWallets = async (req, res) => {
           myPermission = member.permission || 'view'
         }
       }
-      
+
       return { ...info, myPermission }
     })
     // // Calculate total balance across all wallets
@@ -300,7 +300,7 @@ export const updateWallet = async (req, res) => {
   }
 }
 
-// @desc    Delete wallet (soft delete)
+// @desc    Delete wallet (hard delete - permanently removes wallet and associated transactions)
 // @route   DELETE /api/wallets/:id
 // @access  Private
 export const deleteWallet = async (req, res) => {
@@ -321,14 +321,30 @@ export const deleteWallet = async (req, res) => {
       })
     }
 
-    // Soft delete - set status to inactive
-    wallet.status = 'inactive'
-    await wallet.save()
+    // Hard delete - permanently remove wallet and associated transactions
+    // Use transaction to ensure atomicity
+    const session = await mongoose.startSession()
+    session.startTransaction()
 
-    res.json({
-      success: true,
-      message: 'Wallet deleted successfully'
-    })
+    try {
+      // Delete all transactions associated with this wallet
+      await Transaction.deleteMany({ walletId: id }, { session })
+
+      // Delete the wallet itself
+      await Wallet.deleteOne({ _id: id }, { session })
+
+      await session.commitTransaction()
+
+      res.json({
+        success: true,
+        message: 'Wallet and associated transactions deleted successfully'
+      })
+    } catch (txError) {
+      await session.abortTransaction()
+      throw txError
+    } finally {
+      session.endSession()
+    }
 
   } catch (error) {
     console.error('Delete wallet error:', error)
@@ -517,8 +533,8 @@ export const inviteMember = async (req, res) => {
 
     // Check if user is owner (compare as strings since Firebase UID is string)
     const isOwner = wallet.ownerId?.toString() === inviterId?.toString() ||
-                    wallet.userId?.toString() === inviterId?.toString()
-    
+      wallet.userId?.toString() === inviterId?.toString()
+
     if (!isOwner) {
       return res.status(403).json({
         success: false,
@@ -590,7 +606,7 @@ export const inviteMember = async (req, res) => {
     if (!wallet.isShared) {
       wallet.isShared = true
       // Ensure owner is in members list with edit permission
-      const ownerInMembers = wallet.members?.find(m => 
+      const ownerInMembers = wallet.members?.find(m =>
         m.userId?.toString() === inviterId?.toString()
       )
       if (!ownerInMembers) {
@@ -803,16 +819,16 @@ export const leaveWallet = async (req, res) => {
 
       const uid = userId?.toString()
       const ownerIdStr = wallet.ownerId?.toString()
-      
+
       console.log('Leave wallet debug:', { uid, ownerIdStr, members: wallet.members?.map(m => m.userId?.toString()) })
-      
+
       // Check if user is CURRENT owner - only check ownerId, NOT userId
       // userId is the original creator, ownerId is the current owner (can change after transfer)
       const isOwner = ownerIdStr && ownerIdStr === uid
 
       // Find member index
       const memberIndex = wallet.members.findIndex((m) => m.userId?.toString() === uid)
-      
+
       // User can leave if they are a member (even if they were original creator)
       if (!isOwner && memberIndex === -1) {
         const err = new Error('You are not a member of this wallet')
@@ -825,7 +841,7 @@ export const leaveWallet = async (req, res) => {
         const memberId = m.userId?.toString()
         return memberId !== uid && memberId !== ownerIdStr
       })
-      
+
       console.log('Other members:', otherMembers.map(m => m.userId?.toString()))
 
       // If owner and no other members to transfer to, delete the wallet
@@ -850,10 +866,10 @@ export const leaveWallet = async (req, res) => {
             joinedAt: m.joinedAt,
           }
         }))
-        
+
         // Double check - filter out any member with same ID as owner
         const filteredInfos = memberInfos.filter(m => m.id !== uid && m.id !== ownerIdStr)
-        
+
         if (filteredInfos.length === 0) {
           // No valid members to transfer to, just delete
           wallet.status = 'inactive'
@@ -913,7 +929,7 @@ export const transferOwnership = async (req, res) => {
     if (!mongoose.Types.ObjectId.isValid(walletId)) {
       return res.status(400).json({ success: false, error: 'Invalid walletId' })
     }
-    
+
     // newOwnerId is Firebase UID (string), not ObjectId - no need to validate as ObjectId
 
     const result = await withMongoSession(async (session) => {
@@ -926,7 +942,7 @@ export const transferOwnership = async (req, res) => {
 
       // Check if current user is owner - only check ownerId (current owner)
       const isCurrentOwner = wallet.ownerId?.toString() === currentOwnerId?.toString()
-      
+
       if (!isCurrentOwner) {
         const err = new Error('Only current owner can transfer ownership')
         err.status = 403
@@ -1001,7 +1017,7 @@ export const removeMemberFromWallet = async (req, res) => {
 
       // Check if current user is owner - only check ownerId (current owner)
       const isCurrentOwner = wallet.ownerId?.toString() === ownerId?.toString()
-      
+
       if (!isCurrentOwner) {
         const err = new Error('Only wallet owner can remove members')
         err.status = 403
@@ -1068,7 +1084,7 @@ export const setMemberPermission = async (req, res) => {
 
       // Check if current user is owner - only check ownerId (current owner)
       const isCurrentOwner = wallet.ownerId?.toString() === ownerId?.toString()
-      
+
       if (!isCurrentOwner) {
         const err = new Error('Only wallet owner can change permissions')
         err.status = 403

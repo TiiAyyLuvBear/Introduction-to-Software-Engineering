@@ -60,6 +60,32 @@ export default function Dashboard() {
     }
   }, [])
 
+  // Listen for wallet balance changes from transaction operations
+  React.useEffect(() => {
+    const handleBalanceChange = () => {
+      refreshBalance()
+      // Reload dashboard data
+      ;(async () => {
+        try {
+          const [w, t] = await Promise.all([
+            api.listWallets(),
+            api.listTransactions(),
+          ])
+          const walletsList = w?.data?.wallets || w?.data || w || []
+          const txList = t || []
+          setWallets(walletsList)
+          setTx(txList)
+        } catch {
+          // ignore
+        }
+      })()
+    }
+    window.addEventListener('walletBalanceChanged', handleBalanceChange)
+    return () => {
+      window.removeEventListener('walletBalanceChanged', handleBalanceChange)
+    }
+  }, [refreshBalance])
+
   React.useEffect(() => {
     let mounted = true
     ;(async () => {

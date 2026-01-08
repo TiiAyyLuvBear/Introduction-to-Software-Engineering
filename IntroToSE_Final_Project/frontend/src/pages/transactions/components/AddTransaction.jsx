@@ -2,8 +2,8 @@ import React from 'react'
 import transactionService from '../../../services/transactionService.js'
 import FormattedNumberInput from '../../../components/FormattedNumberInput.jsx'
 import { useToast } from '../../../components/Toast.jsx'
-// import categoriesService from '../../../services/categoriesService.js'
-// import walletService from '../../../services/walletService.js'
+import categoryService from '../../../services/categoryService.js'
+import walletService from '../../../services/walletService.js'
 
 function toNumber(value) {
     const n = Number(value)
@@ -16,34 +16,40 @@ export default function AddTransactionForm({ onSuccess, onCancel }) {
     const [wallets, setWallets] = React.useState([])
     const [busy, setBusy] = React.useState(false)
 
-    // Commented out for quick transaction creation without fetching categories and wallets
-    // React.useEffect(() => {
-    //     let mounted = true
-    //         ; (async () => {
-    //             try {
-    //                 const [catsRes, walletsRes] = await Promise.all([
-    //                     categoriesService.getCategories({ page: 1, limit: 200 }),
-    //                     walletService.getWallets(),
-    //                 ])
-    //                 const items = catsRes?.items || []
-    //                 const walletsList = walletsRes?.data?.wallets || walletsRes?.wallets || walletsRes?.data || walletsRes || []
+    // Fetch categories and wallets
+    React.useEffect(() => {
+        let mounted = true
+            ; (async () => {
+                try {
+                    const [categoriesData, walletsRes] = await Promise.all([
+                        categoryService.listCategories({ page: 1, limit: 200 }),
+                        walletService.listWallets({ status: 'active' })
+                    ])
 
-    //                 if (!mounted) return
-    //                 setCategories(Array.isArray(items) ? items : [])
-    //                 const all = Array.isArray(walletsList) ? walletsList : []
-    //                 const editable = all.filter((w) => {
-    //                     const p = w?.myPermission
-    //                     return p === 'owner' || p === 'edit'
-    //                 })
-    //                 setWallets(editable)
-    //             } catch {
-    //                 // ignore
-    //             }
-    //         })()
-    //     return () => {
-    //         mounted = false
-    //     }
-    // }, [])
+                    if (!mounted) return
+
+                    // Set categories
+                    setCategories(Array.isArray(categoriesData) ? categoriesData : [])
+
+                    // Set wallets with edit permission
+                    const walletsList = walletsRes || []
+                    const all = Array.isArray(walletsList) ? walletsList : []
+                    const editable = all.filter((w) => {
+                        const p = w?.myPermission
+                        return p === 'owner' || p === 'edit'
+                    })
+                    setWallets(editable)
+                } catch (error) {
+                    console.error('Failed to fetch data:', error)
+                    if (mounted) {
+                        toast.error('Failed to load categories and wallets')
+                    }
+                }
+            })()
+        return () => {
+            mounted = false
+        }
+    }, [toast])
 
     const [type, setType] = React.useState('expense')
     const [amount, setAmount] = React.useState(0)
@@ -117,6 +123,14 @@ export default function AddTransactionForm({ onSuccess, onCancel }) {
                         })
                         toast.success('Transaction created successfully')
                     }
+                    // Recalculate wallet balance
+                    try {
+                        await walletService.recalculateBalance(type === 'transfer' ? null : walletId)
+                    } catch (e) {
+                        console.warn('Failed to recalculate balance:', e)
+                    }
+                    // Notify wallet pages to refresh
+                    window.dispatchEvent(new CustomEvent('walletBalanceChanged'))
                     if (onSuccess) onSuccess()
                 } catch (e2) {
                     toast.error(e2?.response?.data?.error || e2?.message || 'Failed to create transaction')
