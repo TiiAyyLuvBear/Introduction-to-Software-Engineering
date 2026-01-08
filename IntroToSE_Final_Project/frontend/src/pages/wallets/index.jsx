@@ -5,6 +5,20 @@ import * as walletService from '../../services/walletService.js'
 import MoreMenu from '../../components/MoreMenu.jsx'
 import { formatNumber } from '../../lib/format.js'
 
+// Exchange rates (1 unit = X VND)
+const EXCHANGE_RATES = {
+  VND: 1,
+  USD: 25000,
+  EUR: 27000,
+  GBP: 31500,
+  JPY: 167,
+  KRW: 18.5,
+  CNY: 3450,
+  THB: 700,
+  SGD: 18500,
+  AUD: 16000,
+}
+
 function getStoredUser() {
   try {
     const userStr = localStorage.getItem('ml_user')
@@ -58,6 +72,8 @@ export default function Wallets() {
   }, [loadPendingInvites])
 
   const [query, setQuery] = React.useState('')
+  const [displayCurrency, setDisplayCurrency] = React.useState('VND') // Toggle between VND and USD
+  
   const wallets = allWallets
     .filter((w) => (query ? String(w.name || '').toLowerCase().includes(query.toLowerCase()) : true))
     .slice()
@@ -67,7 +83,23 @@ export default function Wallets() {
       return sortDir === 'asc' ? an.localeCompare(bn) : bn.localeCompare(an)
     })
 
-  const total = wallets.reduce((s, w) => s + Number(w.balance ?? w.currentBalance ?? 0), 0)
+  // Calculate total net worth converted to display currency
+  const totalInDisplayCurrency = React.useMemo(() => {
+    let totalInVND = 0
+    for (const w of wallets) {
+      const balance = Number(w.balance ?? w.currentBalance ?? 0)
+      const walletCurrency = w.currency || 'VND'
+      const rateToVND = EXCHANGE_RATES[walletCurrency] || 1
+      totalInVND += balance * rateToVND
+    }
+    // Convert from VND to display currency
+    const displayRate = EXCHANGE_RATES[displayCurrency] || 1
+    return totalInVND / displayRate
+  }, [wallets, displayCurrency])
+
+  const toggleDisplayCurrency = () => {
+    setDisplayCurrency((prev) => (prev === 'VND' ? 'USD' : 'VND'))
+  }
 
   const toggleStatus = () => {
     setError('')
@@ -332,10 +364,22 @@ export default function Wallets() {
             <div className="relative">
               <div className="text-sm font-medium text-text-secondary flex items-center gap-2">
                 Total Net Worth
-                <span className="material-symbols-outlined text-[16px] text-text-secondary">visibility</span>
+                <button
+                  type="button"
+                  onClick={toggleDisplayCurrency}
+                  className="ml-2 rounded-md border border-border-dark bg-surface-dark px-2 py-0.5 text-xs font-bold text-primary hover:bg-border-dark transition-colors"
+                  title="Click to switch currency"
+                >
+                  {displayCurrency === 'VND' ? 'VND → USD' : 'USD → VND'}
+                </button>
               </div>
-              <div className="mt-2 text-4xl font-bold text-white">{formatNumber(total, { minimumFractionDigits: 2 })}</div>
-              <div className="mt-2 text-xs text-text-secondary">Updated just now</div>
+              <div className="mt-2 text-4xl font-bold text-white">
+                {formatNumber(totalInDisplayCurrency, { minimumFractionDigits: displayCurrency === 'VND' ? 0 : 2 })}
+                <span className="ml-2 text-lg font-normal text-text-secondary">{displayCurrency}</span>
+              </div>
+              <div className="mt-2 text-xs text-text-secondary">
+                Rate: 1 USD = {formatNumber(EXCHANGE_RATES.USD, { minimumFractionDigits: 0 })} VND
+              </div>
             </div>
           </div>
           <div className="rounded-xl border border-border-dark bg-card-dark p-6">
