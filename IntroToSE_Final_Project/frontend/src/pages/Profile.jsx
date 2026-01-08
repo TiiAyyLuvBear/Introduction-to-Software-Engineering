@@ -1,21 +1,18 @@
 import React from 'react'
-import { getCurrentUser, updateUserProfile, uploadAvatar } from '../services/userService.js'
+import { getCurrentUser, updateUserProfile, uploadAvatar, getServerBaseUrl } from '../services/userService.js'
+import { useToast } from '../components/Toast.jsx'
 
-function getServerBaseUrl() {
-  return 'http://localhost:4000'
-}
 
 export default function Profile() {
   const [busy, setBusy] = React.useState(false)
-  const [message, setMessage] = React.useState('')
   const [user, setUser] = React.useState(null)
+  const toast = useToast()
 
   const [name, setName] = React.useState('')
   const [email, setEmail] = React.useState('')
   const [phone, setPhone] = React.useState('')
 
   const load = React.useCallback(async () => {
-    setMessage('')
     try {
       const res = await getCurrentUser()
       const u = res?.user || res?.data?.user || res?.data || res
@@ -25,30 +22,44 @@ export default function Profile() {
       setPhone(u?.phoneNumber || '')
     } catch (error) {
       console.error('Failed to load profile:', error)
-      setMessage(error?.message || 'Failed to load profile')
+      toast.error(error?.message || 'Failed to load profile')
     }
-  }, [])
+  }, [toast])
 
   React.useEffect(() => {
-    load().catch((e) => setMessage(e?.message || 'Failed to load profile'))
-  }, [load])
+    load().catch((e) => toast.error(e?.message || 'Failed to load profile'))
+  }, [load, toast])
 
   const submit = async (e) => {
     e.preventDefault()
-    setMessage('')
+    
+    // Validation
+    if (!name.trim()) {
+      toast.error('Please enter your name')
+      return
+    }
+    
     try {
       setBusy(true)
       const updates = {
-        name,
-        phoneNumber: phone
+        name: name.trim(),
+        phoneNumber: phone.trim()
       }
       const res = await updateUserProfile(updates)
       const nextUser = res?.user || res?.data?.user || res?.data || res
       setUser(nextUser)
-      setMessage(res?.message || 'Profile updated successfully')
+      
+      // Update localStorage if exists
+      const localUser = localStorage.getItem('ml_user')
+      if (localUser) {
+        const parsed = JSON.parse(localUser)
+        localStorage.setItem('ml_user', JSON.stringify({ ...parsed, ...nextUser }))
+      }
+      
+      toast.success('Profile updated successfully')
     } catch (err) {
       console.error('Failed to update profile:', err)
-      setMessage(err?.message || 'Failed to update profile')
+      toast.error(err?.message || 'Failed to update profile')
     } finally {
       setBusy(false)
     }
@@ -56,16 +67,24 @@ export default function Profile() {
 
   const onPickAvatar = async (file) => {
     if (!file) return
-    setMessage('')
+    
     try {
       setBusy(true)
       const res = await uploadAvatar(file)
       const nextUser = res?.user || res?.data?.user || res?.data || res
       setUser(nextUser)
-      setMessage(res?.message || 'Avatar updated successfully')
+      
+      // Update localStorage if exists
+      const localUser = localStorage.getItem('ml_user')
+      if (localUser) {
+        const parsed = JSON.parse(localUser)
+        localStorage.setItem('ml_user', JSON.stringify({ ...parsed, ...nextUser }))
+      }
+      
+      toast.success('Avatar updated successfully')
     } catch (err) {
       console.error('Failed to upload avatar:', err)
-      setMessage(err?.message || 'Failed to upload avatar')
+      toast.error(err?.message || 'Failed to upload avatar')
     } finally {
       setBusy(false)
     }
@@ -104,7 +123,7 @@ export default function Profile() {
             </div>
           </div>
 
-          <form className="mt-8 grid gap-4" onSubmit={submit}>
+          <form className="mt-8 grid gap-4" onSubmit={submit} noValidate>
             <label className="grid gap-2">
               <span className="text-sm font-medium text-white">Name</span>
               <input
@@ -112,18 +131,18 @@ export default function Profile() {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 type="text"
-                required
+                placeholder="Enter your name"
               />
             </label>
 
             <label className="grid gap-2">
               <span className="text-sm font-medium text-white">Email</span>
               <input
-                className="h-12 w-full rounded-lg bg-surface-dark border border-input-border px-4 text-white placeholder:text-text-secondary/50 outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                className="h-12 w-full rounded-lg bg-surface-dark border border-input-border px-4 text-white placeholder:text-text-secondary/50 outline-none focus:border-primary focus:ring-1 focus:ring-primary opacity-60 cursor-not-allowed"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
                 type="email"
-                required
+                placeholder="Email (read-only)"
+                disabled
               />
             </label>
 
@@ -134,19 +153,14 @@ export default function Profile() {
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 type="tel"
+                placeholder="Enter your phone number"
               />
             </label>
-
-            {message ? (
-              <div className="rounded-lg border border-border-dark bg-border-dark/30 px-4 py-3 text-sm text-white">
-                {message}
-              </div>
-            ) : null}
 
             <button
               type="submit"
               disabled={busy}
-              className="h-12 rounded-lg bg-primary text-background-dark font-bold hover:brightness-110 disabled:opacity-60"
+              className="h-12 rounded-lg bg-primary text-background-dark font-bold hover:brightness-110 disabled:opacity-60 transition-all"
             >
               {busy ? 'Saving…' : 'Save changes'}
             </button>
