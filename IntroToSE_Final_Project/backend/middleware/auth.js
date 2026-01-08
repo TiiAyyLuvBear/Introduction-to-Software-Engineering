@@ -14,7 +14,7 @@
  * NOTE: Firebase CHỈ dùng cho login/register, KHÔNG dùng cho API authorization
  */
 
-import { sendUnauthorized } from '../utils/response.js'
+import { sendUnauthorized, sendServerError } from '../utils/response.js'
 import jwt from 'jsonwebtoken'
 import User from '../models/User.js'
 import dotenv from 'dotenv'
@@ -52,7 +52,7 @@ const authenticate = async (req, res, next) => {
     
     // 2. Extract token (bỏ prefix 'Bearer ')
     const token = authHeader.substring(7);
-    console.log("[MIDDLEWARE ACCESS TOKEN]: ", token);
+    //console.log("[MIDDLEWARE ACCESS TOKEN]: ", token);
     
     if (!token) {
       return sendUnauthorized(res, 'Token is empty')
@@ -61,9 +61,9 @@ const authenticate = async (req, res, next) => {
     // 3. Verify JWT token
     let decoded;
     try {
-      console.log("[MIDDLEWARE] Verifying token with JWT_SECRET:", JWT_SECRET);
+      //console.log("[MIDDLEWARE] Verifying token with JWT_SECRET:", JWT_SECRET);
       decoded = jwt.verify(token, JWT_SECRET);
-      console.log("[MIDDLEWARE] Token verified successfully!");
+      //console.log("[MIDDLEWARE] Token verified successfully!");
     } catch (error) {
       console.log("[MIDDLEWARE] JWT Verification Error:");
       console.log("  - Error name:", error.name);
@@ -114,104 +114,3 @@ const authenticate = async (req, res, next) => {
 }
 
 export default authenticate;
-/**
- * MIDDLEWARE: Optional Authenticate
- * 
- * Tương tự authenticate nhưng KHÔNG block request nếu không có token
- * Dùng cho routes có thể access bởi cả authenticated và guest users
- * 
- * Nếu có token valid → attach req.user
- * Nếu không có token hoặc invalid → req.user = null và vẫn pass
- * 
- * Usage:
- * router.get('/public-but-personalized', optionalAuthenticate, controller)
- * 
- * Controller check:
- * if (req.user) {
- *   // User logged in, show personalized content
- * } else {
- *   // Guest user, show default content
- * }
- */
-// export const optionalAuthenticate = async (req, res, next) => {
-//   try {
-//     const authHeader = req.headers.authorization
-    
-//     // Nếu không có auth header, skip authentication
-//     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-//       req.user = null
-//       return next()
-//     }
-    
-//     const idToken = authHeader.substring(7)
-    
-//     if (!idToken) {
-//       req.user = null
-//       return next()
-//     }
-    
-//     // Try verify token (JWT first)
-//     try {
-//       const decoded = jwt.verify(idToken, JWT_SECRET)
-//       if (decoded?.type === 'access' && decoded?.id) {
-//         const user = await User.findById(decoded.id).select('-password')
-//         if (user) {
-//           req.user = {
-//             id: String(user._id),
-//             _id: user._id,
-//             email: user.email,
-//             name: user.name,
-//             firebaseUid: user.firebaseUid || null,
-//           }
-//           return next()
-//         }
-//       }
-//     } catch {
-//       // ignore
-//     }
-
-//     // Firebase fallback
-//     if (!firebaseAuth) {
-//       req.user = null
-//       return next()
-//     }
-
-//     try {
-//       const decodedToken = await firebaseAuth.verifyIdToken(idToken)
-//       const { uid: firebaseUid, email, name: firebaseName } = decodedToken
-
-//       if (firebaseUid && email) {
-//         let user = await User.findOne({ firebaseUid })
-
-//         if (!user) {
-//           user = await User.create({
-//             firebaseUid,
-//             email,
-//             name: firebaseName || email.split('@')[0],
-//           })
-//         }
-
-//         req.user = {
-//           id: String(user._id),
-//           _id: user._id,
-//           firebaseUid: user.firebaseUid,
-//           email: user.email,
-//           name: user.name,
-//         }
-//       } else {
-//         req.user = null
-//       }
-//     } catch {
-//       console.log('Optional auth: Token invalid, continuing as guest')
-//       req.user = null
-//     }
-    
-//     next()
-    
-//   } catch (error) {
-//     // Có lỗi xảy ra, nhưng vẫn cho pass với guest mode
-//     console.error('Optional authentication error:', error)
-//     req.user = null
-//     next()
-//   }
-// }

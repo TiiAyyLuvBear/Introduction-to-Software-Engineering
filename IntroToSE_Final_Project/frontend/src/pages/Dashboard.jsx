@@ -1,10 +1,14 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
 
-// import api from '../services/api.js'
+import api from '../services/api.js'
 import { formatMoney } from '../lib/format.js'
+import { useBalance } from '../hooks/useBalance.js'
 
 export default function Dashboard() {
+  // Sử dụng custom hook để quản lý balance với caching và auto-refresh
+  const { balance, loading: balanceLoading, error: balanceError, refresh: refreshBalance } = useBalance()
+
   const [cashflowRange, setCashflowRange] = React.useState('month')
   const [cashflowRows, setCashflowRows] = React.useState([])
   const [cashflowBusy, setCashflowBusy] = React.useState(false)
@@ -146,7 +150,14 @@ export default function Dashboard() {
     return { viewBox: `0 0 ${width} ${height}`, incomePath, expensePath, incomePoints, expensePoints, labels }
   }, [cashflowRows, cashflowRange])
 
-  const totalBalance = wallets.reduce((s, w) => s + Number(w.balance ?? w.currentBalance ?? 0), 0)
+  // Tính totalBalance từ hook useBalance (đã được optimize với cache)
+  // Fallback về cách cũ nếu balance chưa load
+  const totalBalance = balance?.totalWalletBalance ?? 
+    wallets.reduce((s, w) => s + Number(w.balance ?? w.currentBalance ?? 0), 0)
+  
+  // Tính tổng balance bao gồm cả budgets và saving goals
+  const totalBalanceWithGoals = balance ? 
+    (balance.totalWalletBalance + balance.totalSavingBalance) : totalBalance
 
   const currentMonth = new Date().toISOString().slice(0, 7)
   const monthTx = tx.filter((t) => String(t.date || '').slice(0, 7) === currentMonth)
@@ -188,8 +199,25 @@ export default function Dashboard() {
             <div className="flex items-start justify-between gap-3">
               <div>
                 <div className="text-sm font-medium text-text-secondary">Total Balance</div>
-                <div className="mt-2 text-3xl font-bold text-white">{formatMoney(totalBalance)}</div>
-                <div className="mt-1 text-xs text-text-secondary">Across {wallets.length} wallets</div>
+                {balanceLoading && !balance ? (
+                  <div className="mt-2 text-xl text-text-secondary">Loading...</div>
+                ) : balanceError ? (
+                  <div className="mt-2 text-xl text-red-400">Error</div>
+                ) : (
+                  <>
+                    <div className="mt-2 text-3xl font-bold text-white">{formatMoney(totalBalance)}</div>
+                    <div className="mt-1 text-xs text-text-secondary">
+                      {balance ? (
+                        <>
+                          Wallets: {formatMoney(balance.totalWalletBalance)} • 
+                          Savings: {formatMoney(balance.totalSavingBalance)}
+                        </>
+                      ) : (
+                        `Across ${wallets.length} wallets`
+                      )}
+                    </div>
+                  </>
+                )}
               </div>
               <div className="flex size-10 items-center justify-center rounded-full bg-primary/20 text-primary">
                 <span className="material-symbols-outlined">account_balance_wallet</span>
@@ -309,10 +337,30 @@ export default function Dashboard() {
                 <div className="text-sm font-semibold text-white">Goals</div>
                 <div className="text-sm text-text-secondary">{goals.length}</div>
               </div>
+              {balance?.summary && (
+                <>
+                  <div className="flex items-center justify-between">
+                    <div className="text-sm font-semibold text-white">Savings Progress</div>
+                    <div className="text-sm text-primary font-bold">{balance.summary.savingsPercentage}%</div>
+                  </div>
+                  <div className="w-full bg-border-dark rounded-full h-2">
+                    <div 
+                      className="bg-primary h-2 rounded-full transition-all duration-500" 
+                      style={{ width: `${Math.min(balance.summary.savingsPercentage, 100)}%` }}
+                    />
+                  </div>
+                </>
+              )}
               <div className="flex items-center justify-between">
                 <div className="text-sm font-semibold text-white">Budgets</div>
                 <div className="text-sm text-text-secondary">{budgets.length}</div>
               </div>
+              {balance?.summary && (
+                <div className="flex items-center justify-between">
+                  <div className="text-xs text-text-secondary">Budget Remaining</div>
+                  <div className="text-xs text-white font-semibold">{formatMoney(balance.summary.budgetRemaining)}</div>
+                </div>
+              )}
               <Link
                 to="/savings"
                 className="mt-2 inline-flex items-center gap-2 text-sm font-semibold text-primary hover:underline"

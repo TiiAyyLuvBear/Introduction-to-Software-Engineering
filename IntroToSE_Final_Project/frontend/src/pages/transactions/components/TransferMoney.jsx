@@ -1,5 +1,7 @@
 import React from 'react'
 import FormattedNumberInput from '../../../components/FormattedNumberInput.jsx'
+import { useToast } from '../../../components/Toast.jsx'
+import api from '../../../services/api.js'
 
 function toNumber(value) {
     const n = Number(value)
@@ -7,15 +9,14 @@ function toNumber(value) {
 }
 
 export default function TransferMoneyForm({ onSuccess, onCancel, onSwitchToTransaction }) {
+    const toast = useToast()
     const [wallets, setWallets] = React.useState([])
     const [fromId, setFromId] = React.useState('')
     const [toId, setToId] = React.useState('')
-    const [amount, setAmount] = React.useState('')
-    const [amountNum, setAmountNum] = React.useState(NaN)
+    const [amount, setAmount] = React.useState(0)
     const [date, setDate] = React.useState(new Date().toISOString().slice(0, 10))
     const [note, setNote] = React.useState('')
     const [busy, setBusy] = React.useState(false)
-    const [error, setError] = React.useState('')
 
     React.useEffect(() => {
         let mounted = true
@@ -51,26 +52,34 @@ export default function TransferMoneyForm({ onSuccess, onCancel, onSwitchToTrans
     const submit = (e) => {
         e.preventDefault()
 
-        if (!fromId || !toId || fromId === toId) {
-            setError('Please select two different wallets with edit permission')
+        if (!fromId || !toId) {
+            toast.error('Please select both wallets')
+            return
+        }
+        if (fromId === toId) {
+            toast.error('Please select two different wallets')
+            return
+        }
+        if (!Number.isFinite(amount) || amount <= 0) {
+            toast.error('Please enter a valid amount')
             return
         }
 
-        setError('')
         setBusy(true)
             ; (async () => {
                 try {
                     // await api.transfer({
                     //   fromWalletId: fromId,
                     //   toWalletId: toId,
-                    //   amount: Math.abs(Number.isFinite(amountNum) ? amountNum : toNumber(amount)),
+                    //   amount: Math.abs(amountNum),
                     //   date,
                     //   note,
                     // })
+                    toast.success('Transfer completed successfully')
                     if (onSuccess) onSuccess()
-                    setError('API call disabled - transfer()')
+                    toast.warning('API call disabled - transfer()')
                 } catch (e2) {
-                    setError(e2?.message || 'Failed to transfer')
+                    toast.error(e2?.response?.data?.error || e2?.message || 'Failed to transfer')
                 } finally {
                     setBusy(false)
                 }
@@ -104,12 +113,6 @@ export default function TransferMoneyForm({ onSuccess, onCancel, onSwitchToTrans
                     Transfer
                 </button>
             </div>
-
-            {error ? (
-                <div className="mb-4 rounded-xl border border-red-500/40 bg-red-500/10 px-3 py-2 text-red-200">
-                    {error}
-                </div>
-            ) : null}
 
             <form onSubmit={submit} className="mt-5 grid gap-4">
                 {!wallets.length ? (
@@ -147,10 +150,8 @@ export default function TransferMoneyForm({ onSuccess, onCancel, onSwitchToTrans
                         value={amount}
                         decimals={2}
                         placeholder="0.00"
-                        required
-                        onChangeValue={(n, raw) => {
-                            setAmount(raw)
-                            setAmountNum(n)
+                        onChangeValue={(n) => {
+                            setAmount(Number.isFinite(n) ? n : 0)
                         }}
                     />
                 </label>

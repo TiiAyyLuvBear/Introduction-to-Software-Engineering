@@ -3,12 +3,17 @@ import { useLocation, useNavigate } from 'react-router-dom'
 
 import transactionService from '../../services/transactionService.js'
 import { formatMoney } from '../../lib/format.js'
+import AddTransactionForm from './components/AddTransaction.jsx'
+import EditTransactionForm from './components/EditTransaction.jsx'
 
 export default function Transactions() {
   const navigate = useNavigate()
   const location = useLocation()
   const [items, setItems] = React.useState([])
   const [selected, setSelected] = React.useState(null)
+  const [showAddModal, setShowAddModal] = React.useState(false)
+  const [showEditModal, setShowEditModal] = React.useState(false)
+  const [editingTransaction, setEditingTransaction] = React.useState(null)
 
   const qs = React.useMemo(() => new URLSearchParams(location.search), [location.search])
   const initialWalletId = qs.get('walletId') || ''
@@ -121,7 +126,7 @@ export default function Transactions() {
           </div>
           <button
             type="button"
-            onClick={() => navigate('/transactions/add')}
+            onClick={() => setShowAddModal(true)}
             className="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-primary px-5 text-sm font-bold text-background-dark hover:brightness-110 transition-all"
           >
             <span className="material-symbols-outlined text-[20px]">add</span>
@@ -329,10 +334,9 @@ export default function Transactions() {
                   type="button"
                   className="rounded-lg border border-border-dark px-3 py-2 text-sm font-semibold text-text-secondary hover:bg-border-dark hover:text-white"
                   onClick={() => {
-                    const id = selected?._id || selected?.id
-                    if (!id) return
+                    setEditingTransaction(selected)
+                    setShowEditModal(true)
                     setSelected(null)
-                    navigate(`/transactions/${encodeURIComponent(id)}/edit`, { state: { tx: selected } })
                   }}
                 >
                   Edit
@@ -356,6 +360,39 @@ export default function Transactions() {
                   Delete
                 </button>
               </div>
+            </div>
+          </div>
+        )}
+
+        {showAddModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+            <div className="w-full max-w-lg rounded-2xl border border-border-dark bg-card-dark p-6 shadow-lg">
+              <AddTransactionForm
+                onSuccess={() => {
+                  setShowAddModal(false)
+                  setRefreshCounter(prev => prev + 1)
+                }}
+                onCancel={() => setShowAddModal(false)}
+              />
+            </div>
+          </div>
+        )}
+
+        {showEditModal && editingTransaction && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+            <div className="w-full max-w-lg rounded-2xl border border-border-dark bg-card-dark p-6 shadow-lg">
+              <EditTransactionForm
+                transaction={editingTransaction}
+                onSuccess={() => {
+                  setShowEditModal(false)
+                  setEditingTransaction(null)
+                  setRefreshCounter(prev => prev + 1)
+                }}
+                onCancel={() => {
+                  setShowEditModal(false)
+                  setEditingTransaction(null)
+                }}
+              />
             </div>
           </div>
         )}

@@ -14,6 +14,7 @@ const WalletSchema = new mongoose.Schema({
   name: {
     type: String,
     required: [true, 'Wallet name is required'],
+    unique: true,
     trim: true,
     maxLength: [50, 'Wallet name cannot exceed 50 characters']
   },
