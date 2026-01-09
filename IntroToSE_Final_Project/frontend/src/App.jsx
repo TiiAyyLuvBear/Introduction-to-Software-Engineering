@@ -38,6 +38,7 @@ import EditBudget from './pages/budgets/EditBudget.jsx'
 import Reports from './pages/reports/index.jsx'
 import ReportByCategory from './pages/reports/ReportByCategory.jsx'
 import ReportByWallet from './pages/reports/ReportByWallet.jsx'
+import AcceptInvitation from './pages/accept-invitation.jsx'
 
 import Sidebar from './components/Sidebar.jsx'
 
@@ -117,6 +118,8 @@ function AppContent() {
           <Route path="/reports/category" element={<ReportByCategory />} />
           <Route path="/reports/wallet" element={<ReportByWallet />} />
           <Route path="/about" element={<About />} />
+          <Route path="/accept-invitation" element={<AcceptInvitation />} />
+          <Route path="/accept-invitation/:token" element={<AcceptInvitation />} />
 
           <Route path="/categories/new" element={<AddCategory />} />
           <Route path="/wallets/new" element={<CreateWallet />} />

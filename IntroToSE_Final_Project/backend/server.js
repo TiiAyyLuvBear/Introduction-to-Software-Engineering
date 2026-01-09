@@ -27,6 +27,7 @@ import reportRoutes from './routes/reports.js';
 import balanceRoutes from './routes/balance.js';
 import invitationRoutes from './routes/invitations.js';
 import { seedDefaultCategories } from './utils/seedDefaultCategories.js';
+import invitationTokenRoutes from './routes/invitations-token.js';
 
 // Load environment variables
 dotenv.config();
@@ -92,6 +93,8 @@ app.use('/api/reports', reportRoutes);
 app.use('/api/report', reportRoutes);
 app.use('/api/balance', balanceRoutes);
 app.use('/api/invitations', invitationRoutes);
+app.use('/api/invitations-token', invitationTokenRoutes);
+app.use('/api/invitations', invitationTokenRoutes);
 
 // 404 handler
 app.use('*', (req, res) => {

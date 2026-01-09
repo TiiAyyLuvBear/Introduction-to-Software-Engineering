@@ -4,6 +4,7 @@ import User from '../models/User.js'
 import Transaction from '../models/Transaction.js'
 import mongoose from 'mongoose'
 import { withMongoSession } from '../utils/mongoSession.js'
+import { sendInvitationMail } from '../services/mailerService.js'
 
 function canViewWallet(wallet, userId) {
   if (!wallet || !userId) return false
@@ -619,10 +620,24 @@ export const inviteMember = async (req, res) => {
       await wallet.save()
     }
 
-    const endTime = Date.now()
+    // Gửi email invitation
+    try {
+      console.log('[INVITE] Sending mail to:', invitation.inviteeEmail)
+      const inviter = await User.findById(inviterId)
+      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173'
+      const acceptUrl = `${frontendUrl}/accept-invitation/${invitation.invitationToken}`
+      await sendInvitationMail({
+        to: invitation.inviteeEmail,
+        inviterName: inviter?.name || 'Someone',
+        walletName: wallet.name,
+        acceptUrl
+      })
+      console.log('[INVITE] Mail sent successfully to:', invitation.inviteeEmail)
+    } catch (mailErr) {
+      console.error('[INVITE] Send invitation mail error:', mailErr)
+    }
 
-    // Step 7: Send notification (would integrate with notification system)
-    // TODO: Implement email/push notification service
+    const endTime = Date.now()
 
     // Step 8: Confirm to owner that invitation was sent
     res.status(201).json({

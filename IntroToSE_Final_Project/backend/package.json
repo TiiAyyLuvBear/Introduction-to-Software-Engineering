@@ -20,9 +20,12 @@
     "firebase": "^12.7.0",
     "firebase-admin": "^12.0.0",
     "jsonwebtoken": "^9.0.2",
+    "mailer": "^0.6.7",
     "mongoose": "^7.0.0",
     "morgan": "^1.10.1",
     "multer": "^2.0.2",
+    "node": "^24.12.0",
+    "nodemailer": "^7.0.12",
     "zod": "^4.2.1"
   },
   "devDependencies": {
