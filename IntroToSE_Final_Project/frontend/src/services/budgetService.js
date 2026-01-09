@@ -35,6 +35,29 @@ export async function createBudget(data) {
 }
 
 /**
+ * Get a budget by ID
+ *
+ * @param {string} id - Budget ID
+ * @returns {Promise<Object>} Budget data
+ */
+export async function getBudget(id) {
+    const res = await api.get(`/budgets/${encodeURIComponent(id)}`)
+    return res?.data?.data || res?.data
+}
+
+/**
+ * Update a budget
+ *
+ * @param {string} id - Budget ID
+ * @param {Object} data - Update data
+ * @returns {Promise<Object>} Updated budget
+ */
+export async function updateBudget(id, data) {
+    const res = await api.put(`/budgets/${encodeURIComponent(id)}`, data)
+    return res?.data?.data || res?.data
+}
+
+/**
  * Delete a budget
  *
  * @param {string} id - Budget ID
@@ -48,5 +71,7 @@ export async function deleteBudget(id) {
 export default {
     listBudgets,
     createBudget,
+    getBudget,
+    updateBudget,
     deleteBudget,
 }

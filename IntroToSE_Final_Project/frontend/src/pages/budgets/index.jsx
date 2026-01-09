@@ -8,13 +8,22 @@ import { listBudgets, deleteBudget } from '../../services/budgetService.js'
 import transactionService from '../../services/transactionService.js'
 import { useToast } from '../../components/Toast.jsx'
 
+// Helper to get stored user
+function getStoredUser() {
+  try {
+    const userStr = localStorage.getItem('ml_user')
+    return userStr ? JSON.parse(userStr) : null
+  } catch {
+    return null
+  }
+}
+
 export default function Budgets() {
   const navigate = useNavigate()
   const toast = useToast()
 
-  // const me = getStoredUser()
-  // const myUserId = me?.id || me?._id || ''
-  const myUserId = ''
+  const me = getStoredUser()
+  const myUserId = me?.id || me?._id || ''
 
   const canEditWallet = React.useCallback(
     (wallet) => {
@@ -253,6 +262,12 @@ export default function Budgets() {
                     ariaLabel="Budget options"
                     buttonClassName="text-text-secondary hover:text-white disabled:opacity-60"
                     items={[
+                      {
+                        label: 'Edit',
+                        icon: 'edit',
+                        disabled: !editable || busyId === (b.id || b._id),
+                        onClick: () => navigate(`/budgets/edit/${b.id || b._id}`),
+                      },
                       {
                         label: 'Delete',
                         icon: 'delete',

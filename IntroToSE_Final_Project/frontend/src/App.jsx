@@ -32,6 +32,7 @@ import CreateGoal from './pages/savings/CreateGoal.jsx'
 // Budgets module
 import Budgets from './pages/budgets/index.jsx'
 import CreateBudget from './pages/budgets/CreateBudget.jsx'
+import EditBudget from './pages/budgets/EditBudget.jsx'
 
 // Reports module
 import Reports from './pages/reports/index.jsx'
@@ -121,6 +122,7 @@ function AppContent() {
           <Route path="/wallets/new" element={<CreateWallet />} />
           <Route path="/savings/new" element={<CreateGoal />} />
           <Route path="/budgets/new" element={<CreateBudget />} />
+          <Route path="/budgets/edit/:id" element={<EditBudget />} />
 
           <Route path="*" element={<Navigate to={user ? '/' : '/login'} replace />} />
         </Routes>
