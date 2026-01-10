@@ -6,11 +6,11 @@ const items = [
   // { to: '/profile', label: 'Profile', icon: 'person' },
   { to: '/transactions', label: 'Transactions', icon: 'receipt_long' },
   { to: '/wallets', label: 'Wallets', icon: 'account_balance_wallet' },
-  { to: '/accounts', label: 'Accounts', icon: 'account_balance' },
   { to: '/savings', label: 'Savings', icon: 'savings' },
   { to: '/budgets', label: 'Budgets', icon: 'pie_chart' },
   { to: '/categories', label: 'Categories', icon: 'list' },
   { to: '/reports', label: 'Reports', icon: 'bar_chart' },
+  { to: '/accounts', label: 'Accounts', icon: 'account_balance' },
   { to: '/about', label: 'About us', icon: 'info' },
 ]
 
