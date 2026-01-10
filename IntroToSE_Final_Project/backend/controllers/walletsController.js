@@ -309,9 +309,10 @@ export const deleteWallet = async (req, res) => {
     const { id } = req.params
     const userId = req.user?.id
 
+
+    // Tìm ví mà user là owner hoặc creator
     const wallet = await Wallet.findOne({
       _id: id,
-      userId,
       status: 'active'
     })
 
@@ -319,6 +320,14 @@ export const deleteWallet = async (req, res) => {
       return res.status(404).json({
         success: false,
         error: 'Wallet not found'
+      })
+    }
+
+    // Chỉ cho phép ownerId (chủ sở hữu hiện tại) được xóa ví
+    if (wallet.ownerId?.toString() !== userId?.toString()) {
+      return res.status(403).json({
+        success: false,
+        error: 'Only the wallet owner can delete this wallet.'
       })
     }
 
