@@ -48,12 +48,12 @@ export const getUserBalance = async (userId) => {
     // 2. Tổng budget balance (ngân sách còn lại)
     const budgets = await Budget.find({
         userId,
-        isActive: true
+        status: 'active'
     })
 
     const totalBudgetBalance = budgets.reduce((sum, b) => {
         const spent = b.spent || 0
-        const limit = b.limit || 0
+        const limit = b.amount || 0
         const remaining = limit - spent
         return sum + remaining
     }, 0)
@@ -114,10 +114,11 @@ export const updateBalanceOnTransaction = async (userId, transaction, session = 
 
             const budget = await Budget.findOne({
                 userId,
+                walletId,
                 categoryId,
-                isActive: true,
+                status: 'active',
                 startDate: { $lte: endOfMonth },
-                endDate: { $gte: startOfMonth }
+                $or: [{ endDate: null }, { endDate: { $gte: startOfMonth } }]
             }).session(sess)
 
             if (budget) {
@@ -125,8 +126,8 @@ export const updateBalanceOnTransaction = async (userId, transaction, session = 
                 await budget.save({ session: sess })
 
                 // Check overspending
-                if (budget.spent > budget.limit) {
-                    console.warn(`Budget overspending detected: ${budget.name} (${budget.spent}/${budget.limit})`)
+                if (budget.spent > budget.amount) {
+                    console.warn(`Budget overspending detected: ${budget.name} (${budget.spent}/${budget.amount})`)
                     // TODO: Trigger notification
                 }
             }
@@ -189,10 +190,11 @@ export const rollbackBalanceOnTransaction = async (userId, oldTransaction, sessi
 
         const budget = await Budget.findOne({
             userId,
+            walletId,
             categoryId,
-            isActive: true,
+            status: 'active',
             startDate: { $lte: endOfMonth },
-            endDate: { $gte: startOfMonth }
+            $or: [{ endDate: null }, { endDate: { $gte: startOfMonth } }]
         }).session(session)
 
         if (budget) {
@@ -278,7 +280,7 @@ export const recalculateBalance = async (userId, walletId = null) => {
         }
 
         // 2. Recalculate Budget spent
-        const budgets = await Budget.find({ userId, isActive: true }).session(session)
+        const budgets = await Budget.find({ userId, status: 'active' }).session(session)
 
         for (const budget of budgets) {
             const startDate = new Date(budget.startDate)
@@ -287,7 +289,8 @@ export const recalculateBalance = async (userId, walletId = null) => {
             // Tính spent từ transactions
             const transactions = await Transaction.find({
                 userId,
-                categoryId: budget.categoryId,
+                walletId: budget.walletId?.toString?.() || String(budget.walletId),
+                categoryId: budget.categoryId?.toString?.() || String(budget.categoryId),
                 type: 'expense',
                 date: { $gte: startDate, $lte: endDate }
             })

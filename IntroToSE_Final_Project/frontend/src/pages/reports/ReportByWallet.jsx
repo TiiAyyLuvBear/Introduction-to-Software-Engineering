@@ -1,8 +1,10 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
 
-// import { api } from '../../lib/api.js'
 import { formatMoney } from '../../lib/format.js'
+import reportService from '../../services/reportService.js'
+import transactionService from '../../services/transactionService.js'
+import { listWallets } from '../../services/walletService.js'
 
 function downloadText(filename, text) {
   const blob = new Blob([text], { type: 'text/plain;charset=utf-8' })
@@ -25,19 +27,17 @@ export default function ReportByWallet() {
     let mounted = true
     ;(async () => {
       try {
-        const [byWalletRes, txRes, walletsRes] = await Promise.all([
-          api.reportByWallet({ type: 'expense' }),
-          api.listTransactions(),
-          api.listWallets(),
+        const [reportRows, txRes, walletsRes] = await Promise.all([
+          reportService.getByWallet({ type: 'expense' }),
+          transactionService.getTransactions(),
+          listWallets({ status: 'active' }),
         ])
 
-        const reportRows = byWalletRes?.data || []
-
-        const walletsList = walletsRes?.data?.wallets || walletsRes?.wallets || walletsRes?.data || walletsRes || []
         const map = {}
-        if (Array.isArray(walletsList)) {
-          for (const w of walletsList) {
-            if (w?._id) map[String(w._id)] = w.name
+        if (Array.isArray(walletsRes)) {
+          for (const w of walletsRes) {
+            const id = w?.id || w?._id
+            if (id) map[String(id)] = w?.name || 'Wallet'
           }
         }
 
@@ -48,8 +48,9 @@ export default function ReportByWallet() {
             })
           : []
 
-        const list = Array.isArray(txRes) ? txRes : []
-        const expenseTx = list.filter((t) => t?.type === 'expense')
+        const txListRaw = txRes?.data?.data ?? txRes?.data ?? []
+        const txList = Array.isArray(txListRaw) ? txListRaw : []
+        const expenseTx = txList.filter((t) => t?.type === 'expense')
 
         if (!mounted) return
         setWalletNameById(map)
@@ -230,7 +231,7 @@ export default function ReportByWallet() {
             </div>
             <ul className="divide-y divide-border-dark">
               {drill.map((t) => (
-                <li key={t._id} className="flex items-center justify-between gap-4 px-5 py-3">
+                <li key={t._id || t.id} className="flex items-center justify-between gap-4 px-5 py-3">
                   <div>
                     <div className="text-sm font-semibold text-white">{t.note || '—'}</div>
                     <div className="text-xs text-text-secondary">

@@ -10,68 +10,72 @@ import mongoose from 'mongoose'
  */
 const BudgetSchema = new mongoose.Schema({
   // User sở hữu budget này
-  // Using String to support Firebase UID
+  // App uses Firebase UID / custom string IDs for users
   userId: {
     type: String,
+    ref: 'User',
     required: true,
-    index: true
+    index: true,
   },
 
+  // Wallet áp dụng budget (required)
+  walletId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Wallet',
+    required: true,
+    index: true,
+  },
+  
   // Category áp dụng budget
   // Chỉ áp dụng cho expense categories
   categoryId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Category',
-    required: false // null = budget tổng (all categories)
+    required: false, // null = budget tổng (all categories)
+    default: null,
+    index: true,
   },
-
-  // Wallet áp dụng budget (M3-01)
-  walletId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Wallet',
-    required: true
-  },
-
+  
   // Tên budget (nếu không chọn category)
-  name: {
+  name: { 
     type: String,
     trim: true
   },
-
+  
   // Số tiền giới hạn
-  amount: {
-    type: Number,
+  amount: { 
+    type: Number, 
     required: true,
     min: [0, 'Budget amount must be positive']
   },
-
+  
   // Chu kỳ budget: daily/weekly/monthly/yearly
-  period: {
-    type: String,
+  period: { 
+    type: String, 
     enum: ['daily', 'weekly', 'monthly', 'yearly'],
     default: 'monthly'
   },
-
+  
   // Ngày bắt đầu budget
-  startDate: {
-    type: Date,
-    required: true
+  startDate: { 
+    type: Date, 
+    required: true 
   },
-
+  
   // Ngày kết thúc budget
   // null = không có end date (recurring budget)
-  endDate: {
-    type: Date
+  endDate: { 
+    type: Date 
   },
-
+  
   // Số tiền đã chi trong chu kỳ hiện tại
   // Được tính toán từ transactions
-  spent: {
-    type: Number,
+  spent: { 
+    type: Number, 
     default: 0,
     min: 0
   },
-
+  
   // Cảnh báo khi chi tiêu đạt X% budget
   alertThreshold: {
     type: Number,
@@ -79,31 +83,32 @@ const BudgetSchema = new mongoose.Schema({
     min: 0,
     max: 100
   },
-
+  
   // Có gửi thông báo khi vượt ngưỡng không
   enableAlerts: {
     type: Boolean,
     default: true
   },
-
+  
   // Trạng thái budget
   status: {
     type: String,
     enum: ['active', 'paused', 'completed'],
     default: 'active'
   }
-}, {
-  timestamps: true
+}, { 
+  timestamps: true 
 })
 
 // Index để query nhanh budgets của user
 BudgetSchema.index({ userId: 1, status: 1 })
-BudgetSchema.index({ userId: 1, categoryId: 1, period: 1 })
+BudgetSchema.index({ userId: 1, walletId: 1, status: 1 })
+BudgetSchema.index({ userId: 1, walletId: 1, categoryId: 1, period: 1, status: 1 })
 
 /**
  * METHOD: Tính % chi tiêu so với budget
  */
-BudgetSchema.methods.getSpendingPercentage = function () {
+BudgetSchema.methods.getSpendingPercentage = function() {
   if (this.amount === 0) return 0
   return Math.round((this.spent / this.amount) * 100)
 }
@@ -111,21 +116,21 @@ BudgetSchema.methods.getSpendingPercentage = function () {
 /**
  * METHOD: Kiểm tra có vượt ngưỡng cảnh báo không
  */
-BudgetSchema.methods.isOverThreshold = function () {
+BudgetSchema.methods.isOverThreshold = function() {
   return this.getSpendingPercentage() >= this.alertThreshold
 }
 
 /**
  * METHOD: Kiểm tra có vượt budget không
  */
-BudgetSchema.methods.isOverBudget = function () {
+BudgetSchema.methods.isOverBudget = function() {
   return this.spent > this.amount
 }
 
 /**
  * METHOD: Lấy thời gian còn lại của chu kỳ
  */
-BudgetSchema.methods.getRemainingDays = function () {
+BudgetSchema.methods.getRemainingDays = function() {
   if (!this.endDate) return null
   const now = new Date()
   const diff = this.endDate - now
@@ -135,12 +140,13 @@ BudgetSchema.methods.getRemainingDays = function () {
 /**
  * METHOD: Format thông tin budget để hiển thị
  */
-BudgetSchema.methods.getDisplayInfo = function () {
+BudgetSchema.methods.getDisplayInfo = function() {
   return {
     id: this._id,
     name: this.name,
-    walletId: this.walletId,
-    categoryId: this.categoryId,
+    userId: this.userId,
+    walletId: this.walletId?.toString?.() || this.walletId,
+    categoryId: this.categoryId?.toString?.() || this.categoryId,
     amount: this.amount,
     spent: this.spent,
     remaining: Math.max(0, this.amount - this.spent),
@@ -160,8 +166,8 @@ BudgetSchema.methods.getDisplayInfo = function () {
 /**
  * STATIC METHOD: Tạo budget mới với validation
  */
-BudgetSchema.statics.createBudget = async function (budgetData) {
-  // Validate: không tạo budget trùng category + period + wallet
+BudgetSchema.statics.createBudget = async function(budgetData) {
+  // Validate: không tạo budget trùng category + period
   const existing = await this.findOne({
     userId: budgetData.userId,
     walletId: budgetData.walletId,
@@ -173,7 +179,7 @@ BudgetSchema.statics.createBudget = async function (budgetData) {
   if (existing) {
     throw new Error('Budget for this category and period already exists')
   }
-
+  
   const budget = new this(budgetData)
   await budget.save()
   return budget.getDisplayInfo()
@@ -183,15 +189,15 @@ BudgetSchema.statics.createBudget = async function (budgetData) {
  * STATIC METHOD: Update spent amount khi có transaction mới
  * Gọi method này trong transactionController khi create/update/delete transaction
  */
-BudgetSchema.statics.updateSpentAmount = async function (userId, categoryId, periodStart, periodEnd) {
+BudgetSchema.statics.updateSpentAmount = async function(userId, categoryId, periodStart, periodEnd) {
   const Transaction = mongoose.model('Transaction')
-
+  
   // Tính tổng chi tiêu của category trong khoảng thời gian
   const result = await Transaction.aggregate([
     {
       $match: {
-        userId: mongoose.Types.ObjectId(userId),
-        categoryId: mongoose.Types.ObjectId(categoryId),
+        userId: userId,
+        categoryId: categoryId,
         type: 'expense',
         date: { $gte: periodStart, $lte: periodEnd }
       }
@@ -203,14 +209,14 @@ BudgetSchema.statics.updateSpentAmount = async function (userId, categoryId, per
       }
     }
   ])
-
+  
   const spent = result.length > 0 ? result[0].total : 0
-
+  
   // Update budget
   await this.updateMany(
     {
       userId,
-      categoryId,
+      categoryId: categoryId || null,
       startDate: { $lte: periodEnd },
       $or: [
         { endDate: { $gte: periodStart } },
@@ -220,23 +226,24 @@ BudgetSchema.statics.updateSpentAmount = async function (userId, categoryId, per
     },
     { $set: { spent } }
   )
-
+  
   return spent
 }
 
 /**
  * STATIC METHOD: Lấy tất cả budgets của user
  */
-BudgetSchema.statics.getUserBudgets = async function (userId, options = {}) {
+BudgetSchema.statics.getUserBudgets = async function(userId, options = {}) {
   const { status = 'active', period } = options
-
+  
   const query = { userId, status }
   if (period) query.period = period
-
+  
   const budgets = await this.find(query)
     .populate('categoryId', 'name type color')
+    .populate('walletId', 'name type currency ownerId userId isShared members status')
     .sort({ createdAt: -1 })
-
+  
   return budgets.map(budget => budget.getDisplayInfo())
 }
 

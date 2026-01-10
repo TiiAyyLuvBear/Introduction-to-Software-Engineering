@@ -133,7 +133,12 @@ export default function AddTransactionForm({ onSuccess, onCancel }) {
                     window.dispatchEvent(new CustomEvent('walletBalanceChanged'))
                     if (onSuccess) onSuccess()
                 } catch (e2) {
-                    toast.error(e2?.response?.data?.error || e2?.message || 'Failed to create transaction')
+                    toast.error(
+                        e2?.response?.data?.message ||
+                        e2?.response?.data?.error ||
+                        e2?.message ||
+                        'Failed to create transaction'
+                    )
                 } finally {
                     setBusy(false)
                 }

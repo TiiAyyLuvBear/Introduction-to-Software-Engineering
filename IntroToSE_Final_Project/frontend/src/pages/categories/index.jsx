@@ -2,8 +2,10 @@ import React from 'react'
 import { useNavigate } from 'react-router-dom'
 
 import categoryService from '../../services/categoryService.js'
+import reportService from '../../services/reportService.js'
 import MoreMenu from '../../components/MoreMenu.jsx'
 import { useToast } from '../../components/Toast.jsx'
+import { formatMoney } from '../../lib/format.js'
 
 export default function Categories() {
   const navigate = useNavigate()
@@ -37,6 +39,45 @@ export default function Categories() {
 
   const [type, setType] = React.useState('expense')
   const [query, setQuery] = React.useState('')
+
+  const [totalsByKey, setTotalsByKey] = React.useState({})
+  const [maxTotal, setMaxTotal] = React.useState(0)
+
+  React.useEffect(() => {
+    let mounted = true
+    ;(async () => {
+      try {
+        const rows = await reportService.getByCategory({ type })
+        if (!mounted) return
+
+        const map = {}
+        let max = 0
+
+        if (Array.isArray(rows)) {
+          for (const r of rows) {
+            const total = Number(r?.total || 0)
+            const categoryId = r?.categoryId ? String(r.categoryId) : ''
+            const name = r?.category ? String(r.category) : ''
+            if (categoryId) map[categoryId] = total
+            if (name) map[`name:${name}`] = total
+            if (total > max) max = total
+          }
+        }
+
+        setTotalsByKey(map)
+        setMaxTotal(max)
+      } catch {
+        if (!mounted) return
+        setTotalsByKey({})
+        setMaxTotal(0)
+      }
+    })()
+
+    return () => {
+      mounted = false
+    }
+  }, [type])
+
   const items = all
     .filter((c) => c.type === type)
     .filter((c) => (query ? c.name.toLowerCase().includes(query.toLowerCase()) : true))
@@ -198,11 +239,20 @@ export default function Categories() {
                 <div className="text-lg font-bold text-white">{c.name}</div>
                 <div className="mt-2 flex items-center gap-2">
                   <div className="h-1.5 flex-1 rounded-full bg-background-dark overflow-hidden">
-                    <div className="h-full w-2/3 rounded-full bg-primary" />
+                    {(() => {
+                      const id = String(c?._id || c?.id || '')
+                      const total = totalsByKey[id] ?? totalsByKey[`name:${c.name}`] ?? 0
+                      const pct = maxTotal ? Math.min(100, (Number(total) / maxTotal) * 100) : 0
+                      return <div className="h-full rounded-full bg-primary" style={{ width: `${pct}%` }} />
+                    })()}
                   </div>
-                  <div className="text-xs font-medium text-text-secondary">—</div>
+                  {(() => {
+                    const id = String(c?._id || c?.id || '')
+                    const total = totalsByKey[id] ?? totalsByKey[`name:${c.name}`] ?? 0
+                    return <div className="text-xs font-medium text-text-secondary">{formatMoney(Number(total) || 0)}</div>
+                  })()}
                 </div>
-                <div className="mt-2 text-xs text-text-secondary">Category</div>
+                <div className="mt-2 text-xs text-text-secondary">{type === 'expense' ? 'Spent' : 'Received'}</div>
               </div>
             </div>
           ))}

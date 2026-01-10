@@ -1,8 +1,8 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
 
-// import { api } from '../../lib/api.js'
 import { formatMoney } from '../../lib/format.js'
+import reportService from '../../services/reportService.js'
 
 function toYmd(d) {
   return new Date(d).toISOString().slice(0, 10)
@@ -109,30 +109,34 @@ export default function Reports() {
       setBusy(true)
       setError('')
       try {
-        const [summaryRes, byCatRes, barRes] = await Promise.all([
-          api.reportSummary({ startDate: rangeParams.startDate, endDate: rangeParams.endDate }),
-          api.reportByCategory({ startDate: rangeParams.startDate, endDate: rangeParams.endDate, type: 'expense' }),
-          api.reportBarChart({
+        const [summary, rows, barRows] = await Promise.all([
+          reportService.getSummary({ startDate: rangeParams.startDate, endDate: rangeParams.endDate }),
+          reportService.getByCategory({
+            startDate: rangeParams.startDate,
+            endDate: rangeParams.endDate,
+            type: 'expense',
+          }),
+          reportService.getBarChart({
             startDate: rangeParams.startDate,
             endDate: rangeParams.endDate,
             interval: rangeParams.interval,
           }),
         ])
 
-        const expense = summaryRes?.data?.expense ?? 0
-        const income = summaryRes?.data?.income ?? 0
-        const rows = byCatRes?.data || []
-        const top = Array.isArray(rows) && rows.length
-          ? { name: rows[0]?.category || 'Uncategorized', total: Number(rows[0]?.total || 0) }
+        const expense = summary?.expense ?? 0
+        const income = summary?.income ?? 0
+        const safeRows = Array.isArray(rows) ? rows : []
+        const top = safeRows.length
+          ? { name: safeRows[0]?.category || 'Uncategorized', total: Number(safeRows[0]?.total || 0) }
           : null
 
-        const fetched = barRes?.data || barRes || []
+        const fetched = Array.isArray(barRows) ? barRows : []
 
         if (!mounted) return
         setExpenseTotal(Number(expense) || 0)
         setIncomeTotal(Number(income) || 0)
         setTopCategory(top)
-        setChartRows(Array.isArray(fetched) ? fetched : [])
+        setChartRows(fetched)
       } catch (e2) {
         if (!mounted) return
         setError(e2?.message || 'Failed to load reports')

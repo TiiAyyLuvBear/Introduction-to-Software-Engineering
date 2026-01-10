@@ -1,13 +1,51 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
 
-import api from '../services/api.js'
+import apiClient from '../services/api.js'
+import transactionService from '../services/transactionService.js'
+import walletService from '../services/walletService.js'
+import goalService from '../services/goalService.js'
+import budgetService from '../services/budgetService.js'
 import { formatMoney } from '../lib/format.js'
 import { useBalance } from '../hooks/useBalance.js'
+
+function extractTransactions(response) {
+  let data = response?.data?.data ?? response?.data ?? response
+  if (data && typeof data === 'object' && !Array.isArray(data)) {
+    data = data.transactions || data.items || data.data || []
+  }
+  return Array.isArray(data) ? data : []
+}
+
+function asArray(value) {
+  if (Array.isArray(value)) return value
+  if (value && typeof value === 'object') {
+    const maybe = value.data || value.items || value.wallets || value.goals || value.budgets
+    if (Array.isArray(maybe)) return maybe
+  }
+  return []
+}
 
 export default function Dashboard() {
   // Sử dụng custom hook để quản lý balance với caching và auto-refresh
   const { balance, loading: balanceLoading, error: balanceError, refresh: refreshBalance } = useBalance()
+
+  const [displayCurrency, setDisplayCurrency] = React.useState(() => {
+    try {
+      const v = localStorage.getItem('app_display_currency')
+      return v === 'USD' || v === 'VND' ? v : 'VND'
+    } catch {
+      return 'VND'
+    }
+  })
+
+  React.useEffect(() => {
+    try {
+      localStorage.setItem('app_display_currency', displayCurrency)
+    } catch {
+      // ignore
+    }
+  }, [displayCurrency])
 
   const [cashflowRange, setCashflowRange] = React.useState('month')
   const [cashflowRows, setCashflowRows] = React.useState([])
@@ -34,23 +72,18 @@ export default function Dashboard() {
     let mounted = true
     ;(async () => {
       try {
-        const [w, g, b, t] = await Promise.all([
-          api.listWallets(),
-          api.listGoals(),
-          api.listBudgets(),
-          api.listTransactions(),
+        const [walletsList, goalsList, budgetsList, txRes] = await Promise.all([
+          walletService.listWallets({ status: 'active' }),
+          goalService.listGoals(),
+          budgetService.listBudgets(),
+          transactionService.getTransactions(),
         ])
         if (!mounted) return
 
-        const walletsList = w?.data?.wallets || w?.data || w || []
-        const goalsList = g?.data || g || []
-        const budgetsList = b?.data || b || []
-        const txList = t || []
-
-        setWallets(walletsList)
-        setGoals(goalsList)
-        setBudgets(budgetsList)
-        setTx(txList)
+        setWallets(asArray(walletsList))
+        setGoals(asArray(goalsList))
+        setBudgets(asArray(budgetsList))
+        setTx(extractTransactions(txRes))
       } catch {
         // keep empty; auth/connection errors handled by login flow
       }
@@ -67,14 +100,12 @@ export default function Dashboard() {
       // Reload dashboard data
       ;(async () => {
         try {
-          const [w, t] = await Promise.all([
-            api.listWallets(),
-            api.listTransactions(),
+          const [walletsList, txRes] = await Promise.all([
+            walletService.listWallets({ status: 'active' }),
+            transactionService.getTransactions(),
           ])
-          const walletsList = w?.data?.wallets || w?.data || w || []
-          const txList = t || []
-          setWallets(walletsList)
-          setTx(txList)
+          setWallets(asArray(walletsList))
+          setTx(extractTransactions(txRes))
         } catch {
           // ignore
         }
@@ -92,12 +123,14 @@ export default function Dashboard() {
       setCashflowBusy(true)
       setCashflowError('')
       try {
-        const res = await api.reportBarChart({
-          startDate: cashflowRangeParams.startDate,
-          endDate: cashflowRangeParams.endDate,
-          interval: cashflowRangeParams.interval,
+        const res = await apiClient.get('/reports/bar-chart', {
+          params: {
+            startDate: cashflowRangeParams.startDate,
+            endDate: cashflowRangeParams.endDate,
+            interval: cashflowRangeParams.interval,
+          },
         })
-        const rows = res?.data || res || []
+        const rows = res?.data?.data || res?.data || []
         if (!mounted) return
         setCashflowRows(Array.isArray(rows) ? rows : [])
       } catch (e) {
@@ -176,21 +209,57 @@ export default function Dashboard() {
     return { viewBox: `0 0 ${width} ${height}`, incomePath, expensePath, incomePoints, expensePoints, labels }
   }, [cashflowRows, cashflowRange])
 
-  // Tính totalBalance từ hook useBalance (đã được optimize với cache)
-  // Fallback về cách cũ nếu balance chưa load
-  const totalBalance = balance?.totalWalletBalance ?? 
-    wallets.reduce((s, w) => s + Number(w.balance ?? w.currentBalance ?? 0), 0)
-  
-  // Tính tổng balance bao gồm cả budgets và saving goals
-  const totalBalanceWithGoals = balance ? 
-    (balance.totalWalletBalance + balance.totalSavingBalance) : totalBalance
+  const moneyOpts = React.useMemo(() => {
+    const currencySymbol = displayCurrency === 'USD' ? ' USD' : ' VND'
+    return {
+      currencySymbol,
+      maximumFractionDigits: displayCurrency === 'VND' ? 0 : 2,
+      minimumFractionDigits: displayCurrency === 'VND' ? 0 : 2,
+      position: 'suffix',
+    }
+  }, [displayCurrency])
+
+  const walletCurrencyById = React.useMemo(() => {
+    const map = {}
+    for (const w of wallets) {
+      const id = w?.id || w?._id
+      if (!id) continue
+      map[String(id)] = String(w?.currency || 'USD')
+    }
+    return map
+  }, [wallets])
+
+  const walletsInCurrency = React.useMemo(() => {
+    return (Array.isArray(wallets) ? wallets : []).filter((w) => String(w?.currency || 'USD') === displayCurrency)
+  }, [wallets, displayCurrency])
+
+  const walletTotal = React.useMemo(() => {
+    return walletsInCurrency.reduce((s, w) => s + Number(w.balance ?? w.currentBalance ?? 0), 0)
+  }, [walletsInCurrency])
+
+  const savingsTotal = React.useMemo(() => {
+    const list = Array.isArray(goals) ? goals : []
+    return list.reduce((s, g) => {
+      const goalWalletId = g?.wallet?.id || g?.walletId
+      const c = goalWalletId ? walletCurrencyById[String(goalWalletId)] : null
+      if (c && c !== displayCurrency) return s
+      return s + Number(g?.currentAmount || 0)
+    }, 0)
+  }, [goals, walletCurrencyById, displayCurrency])
+
+  const netWorth = walletTotal + savingsTotal
 
   const currentMonth = new Date().toISOString().slice(0, 7)
-  const monthTx = tx.filter((t) => String(t.date || '').slice(0, 7) === currentMonth)
+  const txInCurrency = tx.filter((t) => {
+    const wid = t?.walletId
+    if (!wid) return false
+    return walletCurrencyById[String(wid)] === displayCurrency
+  })
+  const monthTx = txInCurrency.filter((t) => String(t.date || '').slice(0, 7) === currentMonth)
   const monthIncome = monthTx.filter((t) => t.type === 'income').reduce((s, t) => s + Number(t.amount || 0), 0)
   const monthExpense = monthTx.filter((t) => t.type === 'expense').reduce((s, t) => s + Number(t.amount || 0), 0)
 
-  const recent = [...tx]
+  const recent = [...txInCurrency]
     .sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')))
     .slice(0, 6)
 
@@ -224,23 +293,35 @@ export default function Dashboard() {
           <div className="rounded-2xl border border-border-dark bg-card-dark p-6">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <div className="text-sm font-medium text-text-secondary">Total Balance</div>
+                <div className="flex flex-wrap items-center gap-3">
+                  <div className="text-sm font-medium text-text-secondary">Total Balance</div>
+                  <div className="flex rounded-lg bg-border-dark p-1">
+                    {['VND', 'USD'].map((c) => (
+                      <button
+                        key={c}
+                        type="button"
+                        onClick={() => setDisplayCurrency(c)}
+                        className={
+                          'px-3 py-1 text-xs font-bold ' +
+                          (displayCurrency === c
+                            ? 'rounded-md bg-primary text-background-dark'
+                            : 'text-text-secondary')
+                        }
+                      >
+                        {c}
+                      </button>
+                    ))}
+                  </div>
+                </div>
                 {balanceLoading && !balance ? (
                   <div className="mt-2 text-xl text-text-secondary">Loading...</div>
                 ) : balanceError ? (
                   <div className="mt-2 text-xl text-red-400">Error</div>
                 ) : (
                   <>
-                    <div className="mt-2 text-3xl font-bold text-white">{formatMoney(totalBalance)}</div>
+                    <div className="mt-2 text-3xl font-bold text-white">{formatMoney(netWorth, moneyOpts)}</div>
                     <div className="mt-1 text-xs text-text-secondary">
-                      {balance ? (
-                        <>
-                          Wallets: {formatMoney(balance.totalWalletBalance)} • 
-                          Savings: {formatMoney(balance.totalSavingBalance)}
-                        </>
-                      ) : (
-                        `Across ${wallets.length} wallets`
-                      )}
+                      Wallets: {formatMoney(walletTotal, moneyOpts)} • Savings: {formatMoney(savingsTotal, moneyOpts)}
                     </div>
                   </>
                 )}
@@ -254,7 +335,7 @@ export default function Dashboard() {
             <div className="flex items-start justify-between gap-3">
               <div>
                 <div className="text-sm font-medium text-text-secondary">Monthly Income</div>
-                <div className="mt-2 text-3xl font-bold text-white">{formatMoney(monthIncome)}</div>
+                <div className="mt-2 text-3xl font-bold text-white">{formatMoney(monthIncome, moneyOpts)}</div>
                 <div className="mt-1 text-xs text-text-secondary">{currentMonth}</div>
               </div>
               <div className="flex size-10 items-center justify-center rounded-full bg-border-dark text-white">
@@ -266,7 +347,7 @@ export default function Dashboard() {
             <div className="flex items-start justify-between gap-3">
               <div>
                 <div className="text-sm font-medium text-text-secondary">Monthly Expense</div>
-                <div className="mt-2 text-3xl font-bold text-white">{formatMoney(monthExpense)}</div>
+                <div className="mt-2 text-3xl font-bold text-white">{formatMoney(monthExpense, moneyOpts)}</div>
                 <div className="mt-1 text-xs text-text-secondary">{currentMonth}</div>
               </div>
               <div className="flex size-10 items-center justify-center rounded-full bg-border-dark text-white">
@@ -412,13 +493,13 @@ export default function Dashboard() {
             {recent.map((t) => (
               <div key={t._id || t.id} className="flex items-center justify-between gap-4 px-6 py-4">
                 <div>
-                  <div className="font-semibold text-white">{t.note || '—'}</div>
+                  <div className="font-semibold text-white">{t.note || t.category || '—'}</div>
                   <div className="text-xs text-text-secondary">
                     {String(t.date || '').slice(0, 10)} • {t.category || '—'}
                   </div>
                 </div>
                 <div className="font-bold text-white">
-                  {(t.type === 'expense' ? '-' : t.type === 'income' ? '+' : '') + formatMoney(Math.abs(Number(t.amount || 0)))}
+                  {(t.type === 'expense' ? '-' : t.type === 'income' ? '+' : '') + formatMoney(Math.abs(Number(t.amount || 0)), moneyOpts)}
                 </div>
               </div>
             ))}

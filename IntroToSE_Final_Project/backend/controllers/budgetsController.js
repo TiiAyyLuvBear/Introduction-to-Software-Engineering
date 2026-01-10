@@ -34,11 +34,12 @@ async function computeBudgetSpent({ walletId, categoryId, startDate, endDate }) 
   const end = endDate ? new Date(Math.min(endDate.getTime(), now.getTime())) : now
 
   const match = {
-    walletId: new mongoose.Types.ObjectId(walletId),
+    // Transaction schema stores walletId/categoryId as String
+    walletId: String(walletId),
     type: 'expense',
     date: { $gte: start, $lte: end },
   }
-  if (categoryId) match.categoryId = new mongoose.Types.ObjectId(categoryId)
+  if (categoryId) match.categoryId = String(categoryId)
 
   const rows = await Transaction.aggregate([
     { $match: match },

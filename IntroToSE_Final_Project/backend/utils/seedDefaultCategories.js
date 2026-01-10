@@ -34,7 +34,9 @@ export async function seedDefaultCategories() {
         $set: {
           ...c,
           isDefault: true,
-          userId: undefined,
+        },
+        $unset: {
+          userId: '',
         },
       },
       upsert: true,
